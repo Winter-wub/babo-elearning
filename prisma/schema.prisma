@@ -1,0 +1,98 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  STUDENT
+  ADMIN
+}
+
+model User {
+  id                 String            @id @default(cuid())
+  email              String            @unique
+  passwordHash       String?
+  name               String?
+  role               Role              @default(STUDENT)
+  isActive           Boolean           @default(true)
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+
+  accounts           Account[]
+  videoPermissions   VideoPermission[] @relation("UserPermissions")
+  grantedPermissions VideoPermission[] @relation("GrantedByAdmin")
+  policyAgreements   PolicyAgreement[]
+
+  @@index([email])
+  @@index([role])
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Video {
+  id           String            @id @default(cuid())
+  title        String
+  description  String?
+  s3Key        String            @unique
+  duration     Int               // seconds, max 3600
+  thumbnailUrl String?
+  isActive     Boolean           @default(true)
+  playCount    Int               @default(0)
+  isFeatured   Boolean           @default(false)
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  permissions  VideoPermission[]
+
+  @@index([isActive])
+  @@index([isFeatured])
+  @@index([playCount])
+}
+
+model VideoPermission {
+  id        String   @id @default(cuid())
+  userId    String
+  videoId   String
+  grantedAt DateTime @default(now())
+  grantedBy String
+
+  user      User     @relation("UserPermissions", fields: [userId], references: [id], onDelete: Cascade)
+  video     Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  admin     User     @relation("GrantedByAdmin", fields: [grantedBy], references: [id])
+
+  @@unique([userId, videoId])
+  @@index([userId])
+  @@index([videoId])
+}
+
+model PolicyAgreement {
+  id        String   @id @default(cuid())
+  userId    String
+  agreedAt  DateTime @default(now())
+  ipAddress String
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}

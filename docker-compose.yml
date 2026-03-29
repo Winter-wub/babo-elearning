@@ -1,0 +1,158 @@
+# =============================================================================
+# docker-compose.yml — Base stack for the e-learning platform
+#
+# Services:
+#   db    — PostgreSQL 16, data persisted in a named volume
+#   minio — MinIO (S3-compatible) replacing Cloudflare R2 for local dev
+#   app   — Next.js 16 production build (standalone output)
+#
+# Usage (production-like local run):
+#   docker compose up --build
+#
+# Usage (development with hot reload):
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+#
+# Environment:
+#   Copy .env.local.example to .env.local and fill in values before starting.
+#   docker compose will automatically load .env.local if present.
+# =============================================================================
+
+name: elearning
+
+services:
+  # --------------------------------------------------------------------------
+  # PostgreSQL 16
+  # --------------------------------------------------------------------------
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER:     ${POSTGRES_USER:-elearning}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-elearning_dev_password}
+      POSTGRES_DB:       ${POSTGRES_DB:-elearning}
+    volumes:
+      # Named volume keeps data across container restarts / rebuilds
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      # Expose on 5433 on the host to avoid collisions with a local Postgres
+      - "5433:5432"
+    networks:
+      - elearning_net
+    healthcheck:
+      # pg_isready returns 0 when the server is accepting connections
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-elearning} -d ${POSTGRES_DB:-elearning}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # --------------------------------------------------------------------------
+  # MinIO — S3-compatible object storage (local substitute for Cloudflare R2)
+  #
+  # Access the MinIO web console at http://localhost:9001
+  # Default credentials: minioadmin / minioadmin (change via env vars)
+  # --------------------------------------------------------------------------
+  minio:
+    image: minio/minio:latest
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER:     ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+    volumes:
+      - minio_data:/data
+    ports:
+      - "9000:9000"   # S3 API endpoint
+      - "9001:9001"   # Web console
+    networks:
+      - elearning_net
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  # --------------------------------------------------------------------------
+  # MinIO bucket initializer
+  #
+  # One-shot container that creates the required bucket and exits.
+  # Runs after minio is healthy so the bucket always exists before the app
+  # tries to upload files.
+  # --------------------------------------------------------------------------
+  minio-init:
+    image: minio/mc:latest
+    depends_on:
+      minio:
+        condition: service_healthy
+    networks:
+      - elearning_net
+    # Create the bucket if it does not already exist (--ignore-existing)
+    entrypoint: >
+      /bin/sh -c "
+        mc alias set local http://minio:9000 ${MINIO_ROOT_USER:-minioadmin} ${MINIO_ROOT_PASSWORD:-minioadmin} &&
+        mc mb --ignore-existing local/${R2_BUCKET_NAME:-elearning-videos} &&
+        echo 'Bucket ready.'
+      "
+    restart: "no"
+
+  # --------------------------------------------------------------------------
+  # Next.js app — production build (standalone output)
+  #
+  # Prisma migrations run as a one-shot command inside this service before the
+  # main process starts. Using an entrypoint script keeps the Dockerfile clean.
+  # --------------------------------------------------------------------------
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runner
+    restart: unless-stopped
+    env_file:
+      # docker compose loads .env.local automatically; this makes it explicit
+      - path: .env.local
+        required: false
+      - path: .env.example
+        required: false
+    environment:
+      # Ensure the app connects to the containerised Postgres, not localhost
+      DATABASE_URL: ${DATABASE_URL:-postgresql://elearning:elearning_dev_password@db:5432/elearning?schema=public}
+      AUTH_URL:     ${AUTH_URL:-http://localhost:3000}
+      # R2 env vars are re-mapped to point at the MinIO container
+      R2_ENDPOINT:          http://minio:9000
+      R2_ACCOUNT_ID:        ${R2_ACCOUNT_ID:-local}
+      R2_ACCESS_KEY_ID:     ${R2_ACCESS_KEY_ID:-minioadmin}
+      R2_SECRET_ACCESS_KEY: ${R2_SECRET_ACCESS_KEY:-minioadmin}
+      R2_BUCKET_NAME:       ${R2_BUCKET_NAME:-elearning-videos}
+      NEXT_PUBLIC_APP_URL:  ${NEXT_PUBLIC_APP_URL:-http://localhost:3000}
+    ports:
+      - "3000:3000"
+    networks:
+      - elearning_net
+    depends_on:
+      db:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+# ------------------------------------------------------------------------------
+# Volumes
+# ------------------------------------------------------------------------------
+volumes:
+  postgres_data:
+    driver: local
+  minio_data:
+    driver: local
+
+# ------------------------------------------------------------------------------
+# Networks
+# ------------------------------------------------------------------------------
+networks:
+  elearning_net:
+    driver: bridge

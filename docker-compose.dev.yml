@@ -1,0 +1,58 @@
+# =============================================================================
+# docker-compose.dev.yml — Development override for docker-compose.yml
+#
+# Extends the base compose file with:
+#   - Source volume mounts so the Next.js dev server picks up file changes
+#   - `pnpm dev` instead of the production node server.js
+#   - Skips the multi-stage Dockerfile build; uses a plain node image with
+#     pnpm available via corepack so the dev container starts faster.
+#
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+#
+# The db and minio services are inherited from docker-compose.yml unchanged.
+# =============================================================================
+
+services:
+  app:
+    # Override the built image with a dev-friendly node image.
+    # We do NOT use the multi-stage Dockerfile here; instead we mount the
+    # source and let pnpm dev handle compilation on the fly.
+    build:
+      context: .
+      dockerfile: Dockerfile
+      # Use the deps stage so node_modules are already installed in the image;
+      # the source is then overlaid by the volume mount below.
+      target: deps
+
+    # Override the production CMD with the dev server
+    command: sh -c "pnpm exec prisma generate && pnpm dev"
+
+    # Hot-reload: mount the project root so edits on the host are reflected
+    # immediately inside the container without rebuilding.
+    volumes:
+      - .:/app
+      # Preserve the container's node_modules; do NOT overwrite it with the
+      # host's node_modules (they may differ, especially for native modules).
+      - /app/node_modules
+      # Preserve the .next build cache between restarts
+      - nextjs_dev_cache:/app/.next
+
+    environment:
+      NODE_ENV: development
+      # Enable Next.js fast refresh
+      WATCHPACK_POLLING: "true"
+      # Prisma shadow database for development migrations (optional)
+      # SHADOW_DATABASE_URL: ...
+
+    # Dev server is not built from the standalone runner, so it has no
+    # healthcheck endpoint at /api/health. Disable the inherited check.
+    healthcheck:
+      disable: true
+
+    # Ports stay the same as the base file (3000:3000)
+
+# Named volume for the .next dev cache — speeds up restarts
+volumes:
+  nextjs_dev_cache:
+    driver: local

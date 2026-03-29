@@ -1,0 +1,84 @@
+# =============================================================================
+# fly.toml — fly.io deployment configuration for the e-learning platform
+#
+# App:     e-learning-platform
+# Runtime: Node 20 Alpine (multi-stage Docker build)
+# Region:  sin (Singapore) — change to the region closest to your users
+#
+# Before first deploy:
+#   1. flyctl apps create e-learning-platform
+#   2. flyctl postgres create --name e-learning-platform-db --region sin
+#   3. flyctl postgres attach e-learning-platform-db --app e-learning-platform
+#   4. flyctl secrets set AUTH_SECRET=... AUTH_URL=... (see scripts/deploy.sh)
+#   5. flyctl deploy
+#
+# The Postgres attach command (step 3) automatically sets DATABASE_URL as a
+# fly secret — do not set DATABASE_URL manually unless you are using an
+# external database.
+# =============================================================================
+
+app      = "e-learning-platform"
+primary_region = "sin"
+
+# Build from the project's existing multi-stage Dockerfile.
+# No build args are required — NEXT_PUBLIC_APP_URL is a placeholder at build
+# time and NEXT_PUBLIC_APP_URL is injected at runtime via fly secrets.
+[build]
+  dockerfile = "Dockerfile"
+
+# --------------------------------------------------------------------------
+# HTTP service
+# --------------------------------------------------------------------------
+[[services]]
+  # Internal port that the Next.js standalone server listens on
+  internal_port = 3000
+  protocol      = "tcp"
+  auto_stop_machines  = true   # Stop idle machines to reduce cost
+  auto_start_machines = true   # Wake on incoming request automatically
+  # Keep at least one machine running during deployments for zero downtime.
+  # Set to 0 if you want fully serverless behaviour (cold-start on every request).
+  min_machines_running = 1
+
+  [[services.ports]]
+    # Redirect plain HTTP to HTTPS
+    port     = 80
+    handlers = ["http"]
+    force_https = true
+
+  [[services.ports]]
+    # TLS-terminated HTTPS — fly handles the TLS cert automatically
+    port     = 443
+    handlers = ["tls", "http"]
+
+  # --------------------------------------------------------------------------
+  # Health check — hits /api/health before routing traffic to the machine
+  # --------------------------------------------------------------------------
+  [[services.http_checks]]
+    interval       = 30000  # ms between checks
+    timeout        = 10000  # ms before the check is declared failed
+    grace_period   = "30s"  # time to wait after machine starts before checking
+    method         = "GET"
+    path           = "/api/health"
+    protocol       = "http"
+    tls_skip_verify = false
+
+# --------------------------------------------------------------------------
+# VM sizing — shared-cpu-1x is the cheapest option; upgrade for production
+# --------------------------------------------------------------------------
+[[vm]]
+  cpu_kind = "shared"
+  cpus     = 1
+  memory   = "512mb"   # Increase to 1gb if Next.js build-time or SSR is OOM
+
+# --------------------------------------------------------------------------
+# Deployment strategy
+# --------------------------------------------------------------------------
+[deploy]
+  # rolling: replace machines one at a time (zero-downtime)
+  # Use "immediate" only if you have min_machines_running = 0
+  strategy = "rolling"
+
+  # NOTE: release_command for prisma migrate deploy can be re-enabled after
+  # first successful deploy. For initial deploy, run migrations manually via:
+  #   flyctl ssh console --app e-learning-platform -C "/app/node_modules/.bin/prisma migrate deploy --schema /app/prisma/schema.prisma"
+  # release_command = "/app/node_modules/.bin/prisma migrate deploy --schema /app/prisma/schema.prisma"

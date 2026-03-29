@@ -1,0 +1,203 @@
+# =============================================================================
+# ci.yml — Continuous Integration pipeline for the e-learning platform
+#
+# Triggers:
+#   - Push to main
+#   - Pull requests targeting main
+#
+# Jobs (all run in parallel except 'build', which waits for the others):
+#   lint      — ESLint
+#   typecheck — tsc --noEmit
+#   test      — Vitest with v8 coverage, uploaded as an artifact
+#   build     — next build with dummy env vars; depends on lint+typecheck+test
+#
+# Design notes:
+#   - pnpm is installed via corepack so the version matches pnpm-lock.yaml
+#   - The pnpm store is cached by the setup-node action to speed up installs
+#   - Prisma client is generated before every job that touches source code
+#   - NEXT_PUBLIC_APP_URL is provided as a dummy at build time so next build
+#     does not fail due to a missing public env var
+# =============================================================================
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Cancel in-flight runs for the same branch/PR when a new push arrives.
+# Prevents wasted runner minutes on outdated commits.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: "20"
+  # Disable Next.js telemetry in CI
+  NEXT_TELEMETRY_DISABLED: "1"
+
+jobs:
+  # --------------------------------------------------------------------------
+  # lint — Run ESLint across the codebase
+  # --------------------------------------------------------------------------
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node & pnpm cache
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Enable corepack (pnpm)
+        run: corepack enable
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Prisma client types are referenced in source; generate before linting
+      - name: Generate Prisma client
+        run: pnpm exec prisma generate
+
+      - name: Run ESLint
+        run: pnpm lint
+
+  # --------------------------------------------------------------------------
+  # typecheck — tsc --noEmit (respects tsconfig.json incremental settings)
+  # --------------------------------------------------------------------------
+  typecheck:
+    name: Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node & pnpm cache
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Enable corepack (pnpm)
+        run: corepack enable
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm exec prisma generate
+
+      - name: Run TypeScript type check
+        run: pnpm exec tsc --noEmit
+
+  # --------------------------------------------------------------------------
+  # test — Vitest with coverage report uploaded as an artifact
+  #
+  # Tests run against jsdom (no real database needed) as configured in
+  # vitest.config.ts. Coverage thresholds are enforced by Vitest itself.
+  # --------------------------------------------------------------------------
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node & pnpm cache
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Enable corepack (pnpm)
+        run: corepack enable
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm exec prisma generate
+
+      - name: Run tests with coverage
+        run: pnpm test:coverage
+        env:
+          # Provide dummy values so any module that reads env vars at import
+          # time does not throw during the test run
+          DATABASE_URL:          "postgresql://test:test@localhost:5432/test"
+          AUTH_SECRET:           "ci-test-secret"
+          AUTH_URL:              "http://localhost:3000"
+          R2_ACCOUNT_ID:         "ci-placeholder"
+          R2_ACCESS_KEY_ID:      "ci-placeholder"
+          R2_SECRET_ACCESS_KEY:  "ci-placeholder"
+          R2_BUCKET_NAME:        "ci-placeholder"
+          NEXT_PUBLIC_APP_URL:   "http://localhost:3000"
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        # Always upload so the report is available even when coverage thresholds
+        # cause the test step to fail
+        if: always()
+        with:
+          name: coverage-report
+          path: coverage/
+          retention-days: 14
+
+  # --------------------------------------------------------------------------
+  # build — Verify next build succeeds; runs after the quality gates pass
+  # --------------------------------------------------------------------------
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: [lint, typecheck, test]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node & pnpm cache
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Enable corepack (pnpm)
+        run: corepack enable
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm exec prisma generate
+
+      - name: Cache Next.js build output
+        uses: actions/cache@v4
+        with:
+          path: |
+            .next/cache
+          # Cache key includes the lockfile hash so a dep change busts the cache
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('src/**/*.ts', 'src/**/*.tsx') }}
+          restore-keys: |
+            ${{ runner.os }}-nextjs-${{ hashFiles('pnpm-lock.yaml') }}-
+            ${{ runner.os }}-nextjs-
+
+      - name: Run next build
+        run: pnpm build
+        env:
+          # NEXT_PUBLIC_* vars are embedded at build time; provide a placeholder
+          # so the build does not fail on a missing required env var.
+          # The real value is injected at container start in production.
+          NEXT_PUBLIC_APP_URL:   "http://placeholder-replaced-at-runtime"
+          # Non-public vars that next.config.ts or middleware may reference at
+          # build time (e.g. for CSP header construction)
+          DATABASE_URL:          "postgresql://build:build@localhost:5432/build"
+          AUTH_SECRET:           "ci-build-secret"
+          AUTH_URL:              "http://localhost:3000"
+          R2_ACCOUNT_ID:         "ci-placeholder"
+          R2_ACCESS_KEY_ID:      "ci-placeholder"
+          R2_SECRET_ACCESS_KEY:  "ci-placeholder"
+          R2_BUCKET_NAME:        "ci-placeholder"

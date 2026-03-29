@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Next.js
+.next/
+out/
+
+# Environment variables
+.env.local
+.env.*.local
+
+# Test artifacts
+coverage/
+playwright-report/
+qa-screenshots/
+test-screenshots/
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Build output
+dist/
+
+# OS
+.DS_Store
+Thumbs.db

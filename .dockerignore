@@ -1,0 +1,58 @@
+# =============================================================================
+# .dockerignore — files excluded from the Docker build context
+#
+# Keeping the build context small speeds up `docker build` by reducing the
+# amount of data sent to the Docker daemon and prevents accidental secrets
+# from leaking into image layers.
+# =============================================================================
+
+# --- Dependencies (reinstalled inside the image) ---
+node_modules
+.pnpm-store
+
+# --- Next.js build artifacts ---
+.next
+out
+
+# --- Git history (not needed inside the image) ---
+.git
+.gitignore
+.gitattributes
+
+# --- Local environment files (NEVER bake secrets into images) ---
+.env
+.env.*
+!.env.example
+# keep .env.example so the runner stage can reference it for documentation
+
+# --- Test artifacts ---
+coverage
+__tests__
+**/*.test.ts
+**/*.test.tsx
+**/*.spec.ts
+**/*.spec.tsx
+
+# --- Documentation ---
+docs
+*.md
+!prisma/SEED_CONFIG_NOTE.md
+
+# --- Editor / OS noise ---
+.DS_Store
+*.swp
+*.swo
+.vscode
+.idea
+Thumbs.db
+
+# --- CI/CD configs (not needed at runtime) ---
+.github
+
+# --- TypeScript incremental build info ---
+*.tsbuildinfo
+
+# --- Logs ---
+*.log
+npm-debug.log*
+pnpm-debug.log*

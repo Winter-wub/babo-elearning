@@ -64,6 +64,7 @@ model Video {
   updatedAt    DateTime          @updatedAt
 
   permissions  VideoPermission[]
+  playlists    PlaylistVideo[]
 
   @@index([isActive])
   @@index([isFeatured])
@@ -95,4 +96,34 @@ model PolicyAgreement {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+}
+
+model Playlist {
+  id           String   @id @default(cuid())
+  title        String
+  description  String?
+  thumbnailUrl String?
+  slug         String   @unique
+  isActive     Boolean  @default(true)
+  isFeatured   Boolean  @default(false)
+  sortOrder    Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  videos PlaylistVideo[]
+
+  @@index([isActive])
+  @@index([isFeatured])
+}
+
+model PlaylistVideo {
+  playlistId String
+  videoId    String
+  position   Int    @default(0)
+
+  playlist Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  video    Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  @@id([playlistId, videoId])
+  @@index([playlistId])
 }

@@ -6,7 +6,7 @@
  * `overrides` parameter.
  */
 
-import type { User, Video, VideoPermission, PolicyAgreement } from "@prisma/client";
+import type { User, Video, VideoPermission, PolicyAgreement, Playlist, PlaylistVideo } from "@prisma/client";
 import type { Session } from "next-auth";
 
 // ---------------------------------------------------------------------------
@@ -58,6 +58,8 @@ export function makeVideo(overrides: Partial<Video> = {}): Video {
     duration: 300,
     thumbnailUrl: null,
     isActive: true,
+    playCount: 0,
+    isFeatured: false,
     createdAt: BASE_DATE,
     updatedAt: BASE_DATE,
     ...overrides,
@@ -104,6 +106,47 @@ export function makePolicyAgreement(
 }
 
 // ---------------------------------------------------------------------------
+// Playlist factory
+// ---------------------------------------------------------------------------
+
+let _playlistCounter = 0;
+
+export function makePlaylist(overrides: Partial<Playlist> = {}): Playlist {
+  const n = ++_playlistCounter;
+  return {
+    id: `playlist_${n}`,
+    title: `Test Playlist ${n}`,
+    description: `Description for playlist ${n}`,
+    thumbnailUrl: null,
+    slug: `test-playlist-${n}`,
+    isActive: true,
+    isFeatured: false,
+    sortOrder: n,
+    createdAt: BASE_DATE,
+    updatedAt: BASE_DATE,
+    ...overrides,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// PlaylistVideo factory
+// ---------------------------------------------------------------------------
+
+let _playlistVideoCounter = 0;
+
+export function makePlaylistVideo(
+  overrides: Partial<PlaylistVideo> = {}
+): PlaylistVideo {
+  const n = ++_playlistVideoCounter;
+  return {
+    playlistId: `playlist_1`,
+    videoId: `video_${n}`,
+    position: n - 1,
+    ...overrides,
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Session factories
 // ---------------------------------------------------------------------------
 
@@ -142,4 +185,6 @@ export function resetFactoryCounters(): void {
   _videoCounter = 0;
   _permissionCounter = 0;
   _policyCounter = 0;
+  _playlistCounter = 0;
+  _playlistVideoCounter = 0;
 }

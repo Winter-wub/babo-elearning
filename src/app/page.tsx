@@ -1,35 +1,38 @@
 import { auth } from "@/lib/auth";
+import { getPublicTrendingVideos } from "@/actions/video.actions";
 import {
-  getPublicFeaturedVideos,
-  getPublicLatestVideos,
-  getPublicMostPlayedVideos,
-} from "@/actions/video.actions";
+  getPublicFeaturedPlaylists,
+  getPublicCategoryPlaylists,
+} from "@/actions/playlist.actions";
 import {
   HomeHeader,
-  HomeHero,
-  HomeVideoSection,
+  HomeHeroCarousel,
+  TrendingSection,
+  FeaturedPlaylistsSection,
+  CategoryPlaylistsGrid,
+  PartnersStrip,
   HomeFooter,
 } from "@/components/home";
 
 /**
  * Public home page — visible to authenticated and unauthenticated users alike.
- * Fetches featured, latest, and most-played videos in parallel.
+ * Fetches trending videos, featured playlists, and category playlists in parallel.
  */
 export default async function HomePage() {
-  const [session, featuredResult, latestResult, mostPlayedResult] =
+  const [session, trendingResult, featuredResult, categoryResult] =
     await Promise.all([
       auth(),
-      getPublicFeaturedVideos(),
-      getPublicLatestVideos(),
-      getPublicMostPlayedVideos(),
+      getPublicTrendingVideos(10),
+      getPublicFeaturedPlaylists(4),
+      getPublicCategoryPlaylists(8),
     ]);
 
   const isAuthenticated = !!session?.user;
   const userRole = session?.user?.role;
 
-  const featuredVideos = featuredResult.success ? featuredResult.data : [];
-  const latestVideos = latestResult.success ? latestResult.data : [];
-  const mostPlayedVideos = mostPlayedResult.success ? mostPlayedResult.data : [];
+  const trendingVideos = trendingResult.success ? trendingResult.data : [];
+  const featuredPlaylists = featuredResult.success ? featuredResult.data : [];
+  const categoryPlaylists = categoryResult.success ? categoryResult.data : [];
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -40,29 +43,25 @@ export default async function HomePage() {
       />
 
       <main className="flex-1">
-        <HomeHero isAuthenticated={isAuthenticated} userRole={userRole} />
+        <HomeHeroCarousel />
 
-        {featuredVideos.length > 0 && (
-          <HomeVideoSection
-            title="Featured"
-            videos={featuredVideos}
-            isAuthenticated={isAuthenticated}
-          />
-        )}
+        {/* Split row: 60/40 — Trending left, Featured Playlists right */}
+        <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12">
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+            <div className="lg:col-span-3">
+              <TrendingSection
+                videos={trendingVideos}
+                isAuthenticated={isAuthenticated}
+              />
+            </div>
+            <div className="lg:col-span-2">
+              <FeaturedPlaylistsSection playlists={featuredPlaylists} />
+            </div>
+          </div>
+        </section>
 
-        <HomeVideoSection
-          title="Latest Videos"
-          videos={latestVideos}
-          emptyMessage="No videos available yet. Check back soon!"
-          isAuthenticated={isAuthenticated}
-        />
-
-        <HomeVideoSection
-          title="Most Played"
-          videos={mostPlayedVideos}
-          emptyMessage="No plays recorded yet."
-          isAuthenticated={isAuthenticated}
-        />
+        <CategoryPlaylistsGrid playlists={categoryPlaylists} />
+        <PartnersStrip />
       </main>
 
       <HomeFooter />

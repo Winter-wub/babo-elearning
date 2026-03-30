@@ -268,6 +268,23 @@ export async function getPublicFeaturedVideos(): Promise<ActionResult<PublicVide
   }
 }
 
+/** Trending active videos, highest play count first. No auth required. */
+export async function getPublicTrendingVideos(
+  limit = 10
+): Promise<ActionResult<PublicVideo[]>> {
+  try {
+    const videos = await db.video.findMany({
+      where: { isActive: true },
+      orderBy: { playCount: "desc" },
+      take: limit,
+      select: PUBLIC_VIDEO_SELECT,
+    });
+    return { success: true, data: videos };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : "Failed to fetch trending videos" };
+  }
+}
+
 /** Increment the play count for a video by 1. Auth required. */
 export async function incrementPlayCount(videoId: string): Promise<ActionResult<undefined>> {
   try {

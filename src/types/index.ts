@@ -57,6 +57,15 @@ export type ActionResult<T = undefined> =
   | { success: true; data: T }
   | { success: false; error: string };
 
+/** Safe subset of Playlist exposed to unauthenticated callers. */
+export type PublicPlaylist = {
+  id: string;
+  title: string;
+  thumbnailUrl: string | null;
+  slug: string;
+  videoCount: number;
+};
+
 /** Pagination metadata returned alongside paginated list responses. */
 export type PaginationMeta = {
   total: number;

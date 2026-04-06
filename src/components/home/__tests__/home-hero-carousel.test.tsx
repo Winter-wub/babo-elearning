@@ -90,17 +90,17 @@ describe("HomeHeroCarousel", () => {
     expect(screen.getByText(HERO_SLIDES[0].subHeadline)).toBeVisible();
   });
 
-  it('prev button exists and has aria-label="Previous slide"', () => {
+  it('prev button exists and has aria-label="สไลด์ก่อนหน้า"', () => {
     render(<HomeHeroCarousel />);
     expect(
-      screen.getByRole("button", { name: "Previous slide" })
+      screen.getByRole("button", { name: "สไลด์ก่อนหน้า" })
     ).toBeInTheDocument();
   });
 
-  it('next button exists and has aria-label="Next slide"', () => {
+  it('next button exists and has aria-label="สไลด์ถัดไป"', () => {
     render(<HomeHeroCarousel />);
     expect(
-      screen.getByRole("button", { name: "Next slide" })
+      screen.getByRole("button", { name: "สไลด์ถัดไป" })
     ).toBeInTheDocument();
   });
 
@@ -118,7 +118,7 @@ describe("HomeHeroCarousel", () => {
     expect(screen.getByText(HERO_SLIDES[0].headline)).toBeVisible();
 
     // Click next
-    fireEvent.click(screen.getByRole("button", { name: "Next slide" }));
+    fireEvent.click(screen.getByRole("button", { name: "สไลด์ถัดไป" }));
 
     // Second slide headline should now be visible
     expect(screen.getByText(HERO_SLIDES[1].headline)).toBeVisible();
@@ -127,7 +127,7 @@ describe("HomeHeroCarousel", () => {
   it("clicking prev button from the first slide wraps to the last slide", () => {
     render(<HomeHeroCarousel />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Previous slide" }));
+    fireEvent.click(screen.getByRole("button", { name: "สไลด์ก่อนหน้า" }));
 
     const lastSlide = HERO_SLIDES[HERO_SLIDES.length - 1];
     expect(screen.getByText(lastSlide.headline)).toBeVisible();

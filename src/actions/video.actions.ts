@@ -8,6 +8,7 @@ import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import { getR2Client, R2_BUCKET_NAME } from "@/lib/r2";
 import { DEFAULT_PAGE_SIZE, MAX_VIDEO_DURATION, SIGNED_URL_EXPIRY } from "@/lib/constants";
+import { isPermissionCurrentlyValid } from "@/lib/permission-utils";
 import type { ActionResult, PaginatedResult, PublicVideo, VideoWithPermissions } from "@/types";
 import type { Video } from "@prisma/client";
 
@@ -18,14 +19,14 @@ import type { Video } from "@prisma/client";
 async function requireAdmin() {
   const session = await auth();
   if (!session?.user || session.user.role !== "ADMIN") {
-    throw new Error("Unauthorized");
+    throw new Error("ไม่มีสิทธิ์");
   }
   return session;
 }
 
 async function requireAuth() {
   const session = await auth();
-  if (!session?.user) throw new Error("Unauthorized");
+  if (!session?.user) throw new Error("ไม่มีสิทธิ์");
   return session;
 }
 
@@ -41,9 +42,9 @@ const GetVideosSchema = z.object({
 });
 
 const CreateVideoSchema = z.object({
-  title: z.string().min(1, "Title is required").max(255),
+  title: z.string().min(1, "จำเป็นต้องระบุชื่อ").max(255),
   description: z.string().max(2000).optional(),
-  s3Key: z.string().min(1, "s3Key is required"),
+  s3Key: z.string().min(1, "จำเป็นต้องระบุ s3Key"),
   duration: z
     .number()
     .int()
@@ -94,12 +95,18 @@ export async function getVideos(
       },
     };
   } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : "Failed to fetch videos" };
+    return { success: false, error: err instanceof Error ? err.message : "ไม่สามารถดึงข้อมูลวิดีโอได้" };
   }
 }
 
-/** Videos the current student has access to. STUDENT or ADMIN. */
-export async function getPermittedVideos(): Promise<ActionResult<Video[]>> {
+/** Video with optional expiry info for student-facing display. */
+export type PermittedVideo = Omit<Video, "s3Key"> & {
+  s3Key: "";
+  validUntil: Date | null;
+};
+
+/** Videos the current student has access to. Filters out expired/not-yet-active. */
+export async function getPermittedVideos(): Promise<ActionResult<PermittedVideo[]>> {
   try {
     const session = await requireAuth();
 
@@ -108,16 +115,17 @@ export async function getPermittedVideos(): Promise<ActionResult<Video[]>> {
       include: { video: true },
     });
 
-    const videos = permissions
-      .map((p) => p.video)
-      .filter((v) => v.isActive);
+    const now = new Date();
+    const results: PermittedVideo[] = permissions
+      .filter((p) => p.video.isActive && isPermissionCurrentlyValid(p, now))
+      .map((p) => {
+        const { s3Key, ...rest } = p.video;
+        return { ...rest, s3Key: "" as const, validUntil: p.validUntil };
+      });
 
-    // Strip s3Key from student-facing response to avoid leaking internal storage paths
-    const safeVideos = videos.map(({ s3Key, ...rest }) => ({ ...rest, s3Key: "" }));
-
-    return { success: true, data: safeVideos as typeof videos };
+    return { success: true, data: results };
   } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : "Failed to fetch videos" };
+    return { success: false, error: err instanceof Error ? err.message : "ไม่สามารถดึงข้อมูลวิดีโอได้" };
   }
 }
 
@@ -135,19 +143,19 @@ export async function getVideoById(
       include: { permissions: { include: { user: { omit: { passwordHash: true } } } } },
     });
 
-    if (!video) return { success: false, error: "Video not found" };
+    if (!video) return { success: false, error: "ไม่พบวิดีโอ" };
 
     // Students must have explicit permission.
     if (!isAdmin) {
       const hasPermission = video.permissions.some(
         (p) => p.userId === session.user.id
       );
-      if (!hasPermission) return { success: false, error: "Access denied" };
+      if (!hasPermission) return { success: false, error: "ไม่มีสิทธิ์เข้าถึง" };
     }
 
     return { success: true, data: video };
   } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : "Failed to fetch video" };
+    return { success: false, error: err instanceof Error ? err.message : "ไม่สามารถดึงข้อมูลวิดีโอได้" };
   }
 }
 
@@ -159,13 +167,13 @@ export async function createVideo(
     await requireAdmin();
     const parsed = CreateVideoSchema.safeParse(data);
     if (!parsed.success) {
-      return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
+      return { success: false, error: parsed.error.issues[0]?.message ?? "ข้อมูลไม่ถูกต้อง" };
     }
 
     const video = await db.video.create({ data: parsed.data });
     return { success: true, data: video };
   } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : "Failed to create video" };
+    return { success: false, error: err instanceof Error ? err.message : "ไม่สามารถสร้างวิดีโอได้" };
   }
 }
 
@@ -178,14 +186,14 @@ export async function updateVideo(
     await requireAdmin();
     const parsed = UpdateVideoSchema.safeParse(data);
     if (!parsed.success) {
-      return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
+      return { success: false, error: parsed.error.issues[0]?.message ?? "ข้อมูลไม่ถูกต้อง" };
     }
 
     const video = await db.video.update({ where: { id }, data: parsed.data });
     revalidatePath("/admin/videos");
     return { success: true, data: video };
   } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : "Failed to update video" };
+    return { success: false, error: err instanceof Error ? err.message : "ไม่สามารถอัปเดตวิดีโอได้" };
   }
 }
 
@@ -197,7 +205,7 @@ export async function deleteVideo(id: string): Promise<ActionResult<undefined>> 
     revalidatePath("/admin/videos");
     return { success: true, data: undefined };
   } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : "Failed to delete video" };
+    return { success: false, error: err instanceof Error ? err.message : "ไม่สามารถลบวิดีโอได้" };
   }
 }
 
@@ -233,7 +241,7 @@ export async function getPublicLatestVideos(
     });
     return { success: true, data: videos };
   } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : "Failed to fetch latest videos" };
+    return { success: false, error: err instanceof Error ? err.message : "ไม่สามารถดึงข้อมูลวิดีโอล่าสุดได้" };
   }
 }
 
@@ -250,7 +258,7 @@ export async function getPublicMostPlayedVideos(
     });
     return { success: true, data: videos };
   } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : "Failed to fetch most-played videos" };
+    return { success: false, error: err instanceof Error ? err.message : "ไม่สามารถดึงข้อมูลวิดีโอยอดนิยมได้" };
   }
 }
 
@@ -264,7 +272,7 @@ export async function getPublicFeaturedVideos(): Promise<ActionResult<PublicVide
     });
     return { success: true, data: videos };
   } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : "Failed to fetch featured videos" };
+    return { success: false, error: err instanceof Error ? err.message : "ไม่สามารถดึงข้อมูลวิดีโอแนะนำได้" };
   }
 }
 
@@ -281,7 +289,7 @@ export async function getPublicTrendingVideos(
     });
     return { success: true, data: videos };
   } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : "Failed to fetch trending videos" };
+    return { success: false, error: err instanceof Error ? err.message : "ไม่สามารถดึงข้อมูลวิดีโอมาแรงได้" };
   }
 }
 
@@ -295,7 +303,7 @@ export async function incrementPlayCount(videoId: string): Promise<ActionResult<
     });
     return { success: true, data: undefined };
   } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : "Failed to increment play count" };
+    return { success: false, error: err instanceof Error ? err.message : "ไม่สามารถเพิ่มจำนวนการเล่นได้" };
   }
 }
 
@@ -315,7 +323,7 @@ export async function getUploadPresignedUrl(
     // Validate content type to prevent upload of non-video files
     const ALLOWED_CONTENT_TYPES = ["video/mp4", "video/webm"];
     if (!ALLOWED_CONTENT_TYPES.includes(contentType)) {
-      return { success: false, error: "Invalid content type. Only video/mp4 and video/webm are allowed." };
+      return { success: false, error: "ประเภทไฟล์ไม่ถูกต้อง อนุญาตเฉพาะ video/mp4 และ video/webm เท่านั้น" };
     }
 
     // Sanitise the filename: strip directory traversal characters and
@@ -342,7 +350,7 @@ export async function getUploadPresignedUrl(
   } catch (err) {
     return {
       success: false,
-      error: err instanceof Error ? err.message : "Failed to generate upload URL",
+      error: err instanceof Error ? err.message : "ไม่สามารถสร้าง URL สำหรับอัปโหลดได้",
     };
   }
 }

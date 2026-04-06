@@ -3,7 +3,7 @@ import Link from "next/link";
 import { LoginForm } from "@/components/auth/login-form";
 
 export const metadata: Metadata = {
-  title: "Sign In",
+  title: "เข้าสู่ระบบ",
 };
 
 export default function LoginPage() {
@@ -12,12 +12,12 @@ export default function LoginPage() {
       <LoginForm />
 
       <p className="text-center text-sm text-muted-foreground">
-        Don&apos;t have an account?{" "}
+        ยังไม่มีบัญชี?{" "}
         <Link
           href="/register"
           className="font-medium text-primary underline-offset-4 hover:underline"
         >
-          Register
+          สมัครสมาชิก
         </Link>
       </p>
     </>

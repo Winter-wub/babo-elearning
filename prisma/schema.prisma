@@ -72,11 +72,16 @@ model Video {
 }
 
 model VideoPermission {
-  id        String   @id @default(cuid())
-  userId    String
-  videoId   String
-  grantedAt DateTime @default(now())
-  grantedBy String
+  id           String    @id @default(cuid())
+  userId       String
+  videoId      String
+  grantedAt    DateTime  @default(now())
+  grantedBy    String
+
+  // Time-based access control (all nullable = permanent access)
+  validFrom    DateTime? // null = immediately valid from grantedAt
+  validUntil   DateTime? // null = never expires (permanent)
+  durationDays Int?      // audit hint: original admin-chosen duration in days
 
   user      User     @relation("UserPermissions", fields: [userId], references: [id], onDelete: Cascade)
   video     Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
@@ -85,6 +90,7 @@ model VideoPermission {
   @@unique([userId, videoId])
   @@index([userId])
   @@index([videoId])
+  @@index([validUntil])
 }
 
 model PolicyAgreement {
@@ -126,4 +132,42 @@ model PlaylistVideo {
 
   @@id([playlistId, videoId])
   @@index([playlistId])
+}
+
+// -----------------------------------------------------------------------
+// CMS — Admin-managed site content
+// -----------------------------------------------------------------------
+
+model SiteContent {
+  id        String   @id @default(cuid())
+  key       String   @unique // e.g. "about.hero.title", "about.highlight.1"
+  value     String   @db.Text
+  updatedAt DateTime @updatedAt
+
+  @@index([key])
+}
+
+model Faq {
+  id        String   @id @default(cuid())
+  question  String
+  answer    String   @db.Text
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive, sortOrder])
+}
+
+model ContactSubmission {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  subject   String
+  message   String   @db.Text
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([isRead])
+  @@index([createdAt])
 }

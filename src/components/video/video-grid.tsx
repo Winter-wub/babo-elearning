@@ -47,8 +47,8 @@ export function VideoGrid({ videos }: VideoGridProps) {
           type="search"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search videos…"
-          aria-label="Search videos"
+          placeholder="ค้นหาวิดีโอ…"
+          aria-label="ค้นหาวิดีโอ"
           className="h-9 w-full rounded-md border border-input bg-background pl-9 pr-3 text-sm shadow-sm placeholder:text-muted-foreground focus:outline-none focus-visible:ring-1 focus-visible:ring-ring"
         />
       </div>
@@ -58,27 +58,27 @@ export function VideoGrid({ videos }: VideoGridProps) {
         // No videos assigned at all
         <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-muted/20 py-16 text-center">
           <VideoOff className="mb-3 h-10 w-10 text-muted-foreground/50" aria-hidden="true" />
-          <p className="text-sm font-medium text-muted-foreground">No videos available</p>
+          <p className="text-sm font-medium text-muted-foreground">ไม่มีวิดีโอที่พร้อมรับชม</p>
           <p className="mt-1 text-xs text-muted-foreground/70">
-            Videos will appear here once an instructor grants you access.
+            วิดีโอจะแสดงที่นี่เมื่อผู้สอนให้สิทธิ์เข้าถึงแก่คุณ
           </p>
         </div>
       ) : filtered.length === 0 ? (
         // Has videos but search yielded no matches
         <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-muted/20 py-16 text-center">
           <Search className="mb-3 h-10 w-10 text-muted-foreground/50" aria-hidden="true" />
-          <p className="text-sm font-medium text-muted-foreground">No results for &ldquo;{search}&rdquo;</p>
+          <p className="text-sm font-medium text-muted-foreground">ไม่พบผลลัพธ์สำหรับ &ldquo;{search}&rdquo;</p>
           <button
             onClick={() => setSearch("")}
             className="mt-2 text-xs text-indigo-600 underline-offset-2 hover:underline"
           >
-            Clear search
+            ล้างการค้นหา
           </button>
         </div>
       ) : (
         <ul
           className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
-          aria-label="Video library"
+          aria-label="คลังวิดีโอ"
         >
           {filtered.map((video) => (
             <li key={video.id}>

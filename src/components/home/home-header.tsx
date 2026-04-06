@@ -14,13 +14,13 @@ import {
   SheetTrigger,
   SheetClose,
 } from "@/components/ui/sheet";
-import { NavCoursesDropdown } from "./nav-courses-dropdown";
 import { cn } from "@/lib/utils";
 
 interface HomeHeaderProps {
   isAuthenticated: boolean;
   userRole?: "ADMIN" | "STUDENT";
   userName?: string;
+  appName?: string;
 }
 
 interface NavItem {
@@ -30,15 +30,16 @@ interface NavItem {
 
 // Static nav links displayed in the center of the header
 const NAV_ITEMS: NavItem[] = [
-  { label: "Home", href: "/" },
-  { label: "About", href: "#" },
-  { label: "FAQ", href: "#" },
+  { label: "หน้าแรก", href: "/" },
+  { label: "เกี่ยวกับเรา", href: "/about" },
+  { label: "คำถามที่พบบ่อย", href: "/faq" },
 ];
 
 export function HomeHeader({
   isAuthenticated,
   userRole,
   userName,
+  appName = "อีเลิร์นนิง",
 }: HomeHeaderProps) {
   const pathname = usePathname();
   const dashboardHref = userRole === "ADMIN" ? "/admin/dashboard" : "/dashboard";
@@ -53,13 +54,13 @@ export function HomeHeader({
           className="flex items-center gap-2 text-foreground transition-colors hover:text-foreground/80"
         >
           <GraduationCap className="h-6 w-6" aria-hidden="true" />
-          <span className="text-lg font-semibold tracking-tight">E-Learning</span>
+          <span className="text-lg font-semibold tracking-tight">{appName}</span>
         </Link>
 
         {/* ── Desktop center nav ──────────────────────────────────────── */}
         <nav
           className="hidden items-center gap-1 md:flex"
-          aria-label="Main navigation"
+          aria-label="เมนูหลัก"
         >
           {NAV_ITEMS.map((item) => (
             <Button
@@ -79,16 +80,14 @@ export function HomeHeader({
               </Link>
             </Button>
           ))}
-          {/* Courses gets its own dropdown */}
-          <NavCoursesDropdown />
         </nav>
 
         {/* ── Desktop auth actions ─────────────────────────────────────── */}
-        <div className="hidden items-center gap-2 md:flex" aria-label="User actions">
+        <div className="hidden items-center gap-2 md:flex" aria-label="การดำเนินการผู้ใช้">
           {isAuthenticated ? (
             <>
               <Button variant="ghost" size="sm" asChild>
-                <Link href={dashboardHref}>Dashboard</Link>
+                <Link href={dashboardHref}>แดชบอร์ด</Link>
               </Button>
               <Link
                 href={dashboardHref}
@@ -100,10 +99,10 @@ export function HomeHeader({
           ) : (
             <>
               <Button variant="ghost" size="sm" asChild>
-                <Link href="/login">Login</Link>
+                <Link href="/login">เข้าสู่ระบบ</Link>
               </Button>
               <Button size="sm" asChild>
-                <Link href="/register">Register</Link>
+                <Link href="/register">สมัครสมาชิก</Link>
               </Button>
             </>
           )}
@@ -115,8 +114,8 @@ export function HomeHeader({
             <Button
               variant="ghost"
               size="icon"
-              className="md:hidden"
-              aria-label="Open navigation menu"
+              className="md:hidden h-11 w-11"
+              aria-label="เปิดเมนูนำทาง"
             >
               <Menu className="h-5 w-5" aria-hidden="true" />
             </Button>
@@ -131,19 +130,19 @@ export function HomeHeader({
                   className="flex items-center gap-2 text-foreground"
                 >
                   <GraduationCap className="h-5 w-5" aria-hidden="true" />
-                  E-Learning
+                  {appName}
                 </Link>
               </SheetTitle>
             </SheetHeader>
 
             {/* Mobile nav links */}
-            <nav className="mt-4 flex flex-col gap-1" aria-label="Mobile navigation">
+            <nav className="mt-4 flex flex-col gap-1" aria-label="เมนูมือถือ">
               {NAV_ITEMS.map((item) => (
                 <SheetClose key={item.label} asChild>
                   <Link
                     href={item.href}
                     className={cn(
-                      "rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                      "rounded-md px-3 py-3 text-sm font-medium transition-colors",
                       "hover:bg-accent hover:text-accent-foreground",
                       "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                       pathname === item.href
@@ -157,32 +156,6 @@ export function HomeHeader({
                 </SheetClose>
               ))}
 
-              {/* Courses section in mobile drawer */}
-              <div className="mt-2">
-                <p className="px-3 pb-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Courses
-                </p>
-                {[
-                  { label: "All Courses", href: "#" },
-                  { label: "Finance", href: "#" },
-                  { label: "Investment", href: "#" },
-                  { label: "Tax Planning", href: "#" },
-                ].map((item) => (
-                  <SheetClose key={item.label} asChild>
-                    <Link
-                      href={item.href}
-                      className={cn(
-                        "block rounded-md px-3 py-2 text-sm transition-colors",
-                        "hover:bg-accent hover:text-accent-foreground",
-                        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                        "text-foreground"
-                      )}
-                    >
-                      {item.label}
-                    </Link>
-                  </SheetClose>
-                ))}
-              </div>
             </nav>
 
             {/* Mobile auth actions — pushed to the bottom */}
@@ -197,7 +170,7 @@ export function HomeHeader({
                   </div>
                   <SheetClose asChild>
                     <Button asChild>
-                      <Link href={dashboardHref}>Go to Dashboard</Link>
+                      <Link href={dashboardHref}>ไปที่แดชบอร์ด</Link>
                     </Button>
                   </SheetClose>
                 </>
@@ -205,12 +178,12 @@ export function HomeHeader({
                 <>
                   <SheetClose asChild>
                     <Button variant="outline" asChild>
-                      <Link href="/login">Login</Link>
+                      <Link href="/login">เข้าสู่ระบบ</Link>
                     </Button>
                   </SheetClose>
                   <SheetClose asChild>
                     <Button asChild>
-                      <Link href="/register">Register</Link>
+                      <Link href="/register">สมัครสมาชิก</Link>
                     </Button>
                   </SheetClose>
                 </>

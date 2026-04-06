@@ -78,7 +78,4 @@ primary_region = "sin"
   # Use "immediate" only if you have min_machines_running = 0
   strategy = "rolling"
 
-  # NOTE: release_command for prisma migrate deploy can be re-enabled after
-  # first successful deploy. For initial deploy, run migrations manually via:
-  #   flyctl ssh console --app e-learning-platform -C "/app/node_modules/.bin/prisma migrate deploy --schema /app/prisma/schema.prisma"
-  # release_command = "/app/node_modules/.bin/prisma migrate deploy --schema /app/prisma/schema.prisma"
+  release_command = "node /prisma-cli/node_modules/prisma/build/index.js migrate deploy --schema /app/prisma/schema.prisma"

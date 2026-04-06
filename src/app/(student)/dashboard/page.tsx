@@ -5,7 +5,7 @@ import { getPermittedVideos } from "@/actions/video.actions";
 import { VideoGrid } from "@/components/video/video-grid";
 
 export const metadata: Metadata = {
-  title: "My Dashboard",
+  title: "แดชบอร์ดของฉัน",
 };
 
 /**
@@ -36,12 +36,12 @@ export default async function StudentDashboardPage() {
       {/* Page heading */}
       <div>
         <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-          My Videos
+          วิดีโอของฉัน
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
           {videos.length > 0
-            ? `${videos.length} video${videos.length === 1 ? "" : "s"} available`
-            : "Your assigned videos will appear here."}
+            ? `${videos.length} วิดีโอที่พร้อมรับชม`
+            : "วิดีโอที่ได้รับอนุญาตจะแสดงที่นี่"}
         </p>
       </div>
 

@@ -1,22 +1,25 @@
-import type { Metadata } from "next";
-import { SessionProvider } from "@/components/providers/session-provider";
 import { StudentShell } from "@/components/layout/student-shell";
+import { SessionProvider } from "@/components/providers/session-provider";
+import { getAppName } from "@/lib/app-config";
+import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: {
-    default: "Dashboard",
+    default: "แดชบอร์ด",
     template: "%s | E-Learning",
   },
 };
 
-export default function StudentLayout({
+export default async function StudentLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const appName = await getAppName();
+
   return (
     <SessionProvider>
-      <StudentShell>{children}</StudentShell>
+      <StudentShell appName={appName}>{children}</StudentShell>
     </SessionProvider>
   );
 }

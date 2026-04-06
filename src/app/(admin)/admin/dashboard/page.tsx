@@ -1,17 +1,12 @@
 import type { Metadata } from "next";
 import { Users, Video, Shield } from "lucide-react";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 
 export const metadata: Metadata = {
-  title: "Admin Dashboard",
+  title: "แดชบอร์ดผู้ดูแลระบบ",
 };
 
 interface StatCardProps {
@@ -66,7 +61,7 @@ export default async function AdminDashboardPage() {
   return (
     <div>
       <div className="mb-8">
-        <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">แดชบอร์ด</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Overview of your e-learning platform.
         </p>
@@ -74,17 +69,17 @@ export default async function AdminDashboardPage() {
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <StatCard
-          title="Total Users"
+          title="ผู้ใช้ทั้งหมด"
           value={totalUsers.toLocaleString()}
           icon={Users}
         />
         <StatCard
-          title="Active Videos"
+          title="วิดีโอที่ใช้งาน"
           value={totalVideos.toLocaleString()}
           icon={Video}
         />
         <StatCard
-          title="Active Permissions"
+          title="สิทธิ์ที่ใช้งาน"
           value={activePermissions.toLocaleString()}
           icon={Shield}
         />

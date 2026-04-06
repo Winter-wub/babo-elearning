@@ -36,7 +36,7 @@ export function PlaylistCard({ playlist, href }: PlaylistCardProps) {
         {/* Video count badge — bottom-left overlay */}
         <div className="absolute bottom-2 left-2">
           <Badge variant="secondary" className="text-xs shadow">
-            {playlist.videoCount} {playlist.videoCount === 1 ? "video" : "videos"}
+            {playlist.videoCount} วิดีโอ
           </Badge>
         </div>
       </div>

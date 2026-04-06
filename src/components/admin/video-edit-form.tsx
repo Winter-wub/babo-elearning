@@ -22,11 +22,11 @@ import type { Video } from "@/types";
 const editVideoSchema = z.object({
   title: z
     .string()
-    .min(1, "Title is required")
-    .max(255, "Title must be at most 255 characters"),
+    .min(1, "จำเป็นต้องระบุชื่อเรื่อง")
+    .max(255, "ชื่อเรื่องต้องไม่เกิน 255 ตัวอักษร"),
   description: z
     .string()
-    .max(2000, "Description must be at most 2000 characters")
+    .max(2000, "คำอธิบายต้องไม่เกิน 2000 ตัวอักษร")
     .optional(),
   isActive: z.boolean(),
 });
@@ -76,15 +76,15 @@ export function VideoEditForm({ video }: VideoEditFormProps) {
     if (!result.success) {
       toast({
         variant: "destructive",
-        title: "Update failed",
+        title: "อัปเดตไม่สำเร็จ",
         description: result.error,
       });
       return;
     }
 
     toast({
-      title: "Video updated",
-      description: "Changes have been saved successfully.",
+      title: "อัปเดตวิดีโอแล้ว",
+      description: "บันทึกการเปลี่ยนแปลงเรียบร้อยแล้ว",
     });
 
     // Reset dirty state to the newly saved values
@@ -98,9 +98,9 @@ export function VideoEditForm({ video }: VideoEditFormProps) {
   return (
     <Card data-testid="video-edit-form">
       <CardHeader>
-        <CardTitle>Edit Video Metadata</CardTitle>
+        <CardTitle>แก้ไขข้อมูลวิดีโอ</CardTitle>
         <CardDescription>
-          Update the title, description, or visibility of this video.
+          อัปเดตชื่อเรื่อง คำอธิบาย หรือการมองเห็นของวิดีโอนี้
         </CardDescription>
       </CardHeader>
 
@@ -109,11 +109,11 @@ export function VideoEditForm({ video }: VideoEditFormProps) {
           {/* Title */}
           <div className="space-y-1.5">
             <Label htmlFor="video-title">
-              Title <span className="text-destructive">*</span>
+              ชื่อเรื่อง <span className="text-destructive">*</span>
             </Label>
             <Input
               id="video-title"
-              placeholder="Enter video title"
+              placeholder="กรอกชื่อวิดีโอ"
               error={!!errors.title}
               {...register("title")}
             />
@@ -126,11 +126,11 @@ export function VideoEditForm({ video }: VideoEditFormProps) {
 
           {/* Description */}
           <div className="space-y-1.5">
-            <Label htmlFor="video-description">Description</Label>
+            <Label htmlFor="video-description">คำอธิบาย</Label>
             <textarea
               id="video-description"
               rows={4}
-              placeholder="Optional description of the video content…"
+              placeholder="คำอธิบายเนื้อหาวิดีโอ (ไม่บังคับ)..."
               className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
               aria-invalid={errors.description ? "true" : undefined}
               {...register("description")}
@@ -146,10 +146,10 @@ export function VideoEditForm({ video }: VideoEditFormProps) {
           <div className="flex items-center justify-between rounded-lg border p-4">
             <div className="space-y-0.5">
               <Label htmlFor="video-isActive" className="text-base font-medium">
-                Active
+                ใช้งาน
               </Label>
               <p className="text-sm text-muted-foreground">
-                Inactive videos are hidden from students and cannot be accessed.
+                วิดีโอที่ไม่ใช้งานจะถูกซ่อนจากนักเรียนและไม่สามารถเข้าถึงได้
               </p>
             </div>
             <Switch
@@ -167,7 +167,7 @@ export function VideoEditForm({ video }: VideoEditFormProps) {
               {isSubmitting && (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               )}
-              Save Changes
+              บันทึกการเปลี่ยนแปลง
             </Button>
           </div>
         </form>

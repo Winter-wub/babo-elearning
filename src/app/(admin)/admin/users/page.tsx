@@ -5,7 +5,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { getUsers } from "@/actions/user.actions";
 
 export const metadata: Metadata = {
-  title: "User Management",
+  title: "จัดการผู้ใช้",
 };
 
 interface AdminUsersPageProps {
@@ -53,9 +53,9 @@ export default function AdminUsersPage(props: AdminUsersPageProps) {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">User Management</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">จัดการผู้ใช้</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Create and manage user accounts and their video access permissions.
+          สร้างและจัดการบัญชีผู้ใช้และสิทธิ์การเข้าถึงวิดีโอ
         </p>
       </div>
 

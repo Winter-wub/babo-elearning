@@ -4,7 +4,7 @@ import { ShieldOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export const metadata: Metadata = {
-  title: "Access Denied",
+  title: "ไม่มีสิทธิ์เข้าถึง",
 };
 
 /**
@@ -25,16 +25,16 @@ export default function UnauthorizedPage() {
 
       <div className="space-y-2">
         <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-          Access Denied
+          ไม่มีสิทธิ์เข้าถึง
         </h1>
         <p className="max-w-sm text-sm text-muted-foreground">
-          You don&apos;t have permission to view this content. If you believe
-          this is a mistake, please contact your administrator.
+          คุณไม่มีสิทธิ์ดูเนื้อหานี้ หากคุณเชื่อว่านี่เป็นข้อผิดพลาด
+          กรุณาติดต่อผู้ดูแลระบบ
         </p>
       </div>
 
       <Button asChild>
-        <Link href="/dashboard">Back to Dashboard</Link>
+        <Link href="/dashboard">กลับไปที่แดชบอร์ด</Link>
       </Button>
     </div>
   );

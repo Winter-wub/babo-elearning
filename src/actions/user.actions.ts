@@ -14,7 +14,7 @@ import type { ActionResult, PaginatedResult, SafeUser, SafeUserWithPermissions }
 async function requireAdmin() {
   const session = await auth();
   if (!session?.user || session.user.role !== "ADMIN") {
-    throw new Error("Unauthorized");
+    throw new Error("ไม่มีสิทธิ์");
   }
   return session;
 }
@@ -96,7 +96,7 @@ export async function getUsers(
       },
     };
   } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : "Failed to fetch users" };
+    return { success: false, error: err instanceof Error ? err.message : "ไม่สามารถดึงข้อมูลผู้ใช้ได้" };
   }
 }
 
@@ -118,11 +118,11 @@ export async function getUserById(
       },
     });
 
-    if (!user) return { success: false, error: "User not found" };
+    if (!user) return { success: false, error: "ไม่พบผู้ใช้" };
 
     return { success: true, data: user as unknown as SafeUserWithPermissions };
   } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : "Failed to fetch user" };
+    return { success: false, error: err instanceof Error ? err.message : "ไม่สามารถดึงข้อมูลผู้ใช้ได้" };
   }
 }
 
@@ -135,12 +135,12 @@ export async function updateUser(
     const session = await requireAdmin();
     const parsed = UpdateUserSchema.safeParse(data);
     if (!parsed.success) {
-      return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
+      return { success: false, error: parsed.error.issues[0]?.message ?? "ข้อมูลไม่ถูกต้อง" };
     }
 
     // Prevent admin from deactivating themselves
     if (session.user.id === id && parsed.data.isActive === false) {
-      return { success: false, error: "You cannot deactivate your own account." };
+      return { success: false, error: "ไม่สามารถปิดใช้งานบัญชีของตัวเองได้" };
     }
 
     const user = await db.user.update({
@@ -153,7 +153,7 @@ export async function updateUser(
     revalidatePath(`/admin/users/${id}`);
     return { success: true, data: user as SafeUser };
   } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : "Failed to update user" };
+    return { success: false, error: err instanceof Error ? err.message : "ไม่สามารถอัปเดตผู้ใช้ได้" };
   }
 }
 
@@ -168,12 +168,12 @@ export async function createUser(
     await requireAdmin();
     const parsed = CreateUserSchema.safeParse(data);
     if (!parsed.success) {
-      return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
+      return { success: false, error: parsed.error.issues[0]?.message ?? "ข้อมูลไม่ถูกต้อง" };
     }
 
     const existing = await db.user.findUnique({ where: { email: parsed.data.email } });
     if (existing) {
-      return { success: false, error: "An account with this email already exists." };
+      return { success: false, error: "มีบัญชีที่ใช้อีเมลนี้อยู่แล้ว" };
     }
 
     // Lazily import bcrypt only when needed (keeps edge bundle lean)
@@ -194,7 +194,7 @@ export async function createUser(
     revalidatePath("/admin/users");
     return { success: true, data: user as SafeUser };
   } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : "Failed to create user" };
+    return { success: false, error: err instanceof Error ? err.message : "ไม่สามารถสร้างผู้ใช้ได้" };
   }
 }
 
@@ -204,7 +204,7 @@ export async function deleteUser(id: string): Promise<ActionResult<undefined>> {
     const session = await requireAdmin();
 
     if (session.user.id === id) {
-      return { success: false, error: "You cannot deactivate your own account." };
+      return { success: false, error: "ไม่สามารถปิดใช้งานบัญชีของตัวเองได้" };
     }
 
     await db.user.update({ where: { id }, data: { isActive: false } });
@@ -213,6 +213,6 @@ export async function deleteUser(id: string): Promise<ActionResult<undefined>> {
     revalidatePath(`/admin/users/${id}`);
     return { success: true, data: undefined };
   } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : "Failed to delete user" };
+    return { success: false, error: err instanceof Error ? err.message : "ไม่สามารถลบผู้ใช้ได้" };
   }
 }

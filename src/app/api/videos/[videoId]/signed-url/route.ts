@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getPlaybackUrl } from "@/lib/r2";
 import { SIGNED_URL_EXPIRY } from "@/lib/constants";
+import { getPermissionTimeStatus } from "@/lib/permission-utils";
 
 // ---------------------------------------------------------------------------
 // Rate limiting (TODO: implement before going to production)
@@ -37,7 +38,7 @@ export async function GET(
   const session = await auth();
   if (!session?.user) {
     return NextResponse.json(
-      { error: "Unauthorized" },
+      { error: "ไม่มีสิทธิ์" },
       {
         status: 401,
         headers: { "Cache-Control": "no-store" },
@@ -50,7 +51,7 @@ export async function GET(
   //    Both headers are checked because browsers send Origin on cross-origin
   //    requests and Referer on same-origin navigations, but not always both.
   // -----------------------------------------------------------------------
-  const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000").replace(/\/$/, "");
+  const appUrl = (process.env.APP_URL ?? process.env.AUTH_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000").replace(/\/$/, "");
   const origin = request.headers.get("origin");
   const referer = request.headers.get("referer");
 
@@ -62,7 +63,7 @@ export async function GET(
 
   if (!isValidOrigin) {
     return NextResponse.json(
-      { error: "Forbidden" },
+      { error: "ไม่อนุญาต" },
       {
         status: 403,
         headers: { "Cache-Control": "no-store" },
@@ -85,7 +86,7 @@ export async function GET(
 
   if (!video) {
     return NextResponse.json(
-      { error: "Video not found" },
+      { error: "ไม่พบวิดีโอ" },
       {
         status: 404,
         headers: { "Cache-Control": "no-store" },
@@ -94,24 +95,35 @@ export async function GET(
   }
 
   // -----------------------------------------------------------------------
-  // 5. Authorise — STUDENT needs an explicit VideoPermission row;
-  //               ADMIN can access any active video without one.
+  // 5. Authorise — STUDENT needs an explicit VideoPermission row that is
+  //               currently valid (time-based check); ADMIN bypasses.
   // -----------------------------------------------------------------------
   if (session.user.role === "STUDENT") {
     const permission = await db.videoPermission.findUnique({
       where: {
         userId_videoId: { userId: session.user.id, videoId },
       },
-      select: { id: true },
+      select: { id: true, validFrom: true, validUntil: true },
     });
 
     if (!permission) {
       return NextResponse.json(
-        { error: "Access denied" },
-        {
-          status: 403,
-          headers: { "Cache-Control": "no-store" },
-        }
+        { error: "ไม่มีสิทธิ์เข้าถึง" },
+        { status: 403, headers: { "Cache-Control": "no-store" } }
+      );
+    }
+
+    const timeStatus = getPermissionTimeStatus(permission);
+    if (timeStatus === "expired") {
+      return NextResponse.json(
+        { error: "สิทธิ์หมดอายุแล้ว" },
+        { status: 403, headers: { "Cache-Control": "no-store" } }
+      );
+    }
+    if (timeStatus === "not_yet_active") {
+      return NextResponse.json(
+        { error: "สิทธิ์ยังไม่เริ่มใช้งาน" },
+        { status: 403, headers: { "Cache-Control": "no-store" } }
       );
     }
   }

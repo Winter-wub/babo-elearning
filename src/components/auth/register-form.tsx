@@ -31,17 +31,17 @@ const registerSchema = z
   .object({
     name: z
       .string()
-      .min(2, "Name must be at least 2 characters")
-      .max(100, "Name must be at most 100 characters"),
-    email: z.string().min(1, "Email is required").email("Enter a valid email"),
+      .min(2, "ชื่อต้องมีอย่างน้อย 2 ตัวอักษร")
+      .max(100, "ชื่อต้องไม่เกิน 100 ตัวอักษร"),
+    email: z.string().min(1, "กรุณากรอกอีเมล").email("กรุณากรอกอีเมลที่ถูกต้อง"),
     password: z
       .string()
-      .min(8, "Password must be at least 8 characters")
-      .max(128, "Password must be at most 128 characters"),
-    confirmPassword: z.string().min(1, "Please confirm your password"),
+      .min(8, "รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร")
+      .max(128, "รหัสผ่านต้องไม่เกิน 128 ตัวอักษร"),
+    confirmPassword: z.string().min(1, "กรุณายืนยันรหัสผ่าน"),
   })
   .refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords do not match",
+    message: "รหัสผ่านไม่ตรงกัน",
     path: ["confirmPassword"],
   });
 
@@ -75,10 +75,10 @@ function getPasswordStrength(password: string): PasswordStrength {
 
   const labels: Record<number, string> = {
     0: "",
-    1: "Weak",
-    2: "Fair",
-    3: "Good",
-    4: "Strong",
+    1: "อ่อน",
+    2: "ปานกลาง",
+    3: "ดี",
+    4: "แข็งแรง",
   };
 
   return { score: normalized, label: labels[normalized] ?? "" };
@@ -152,16 +152,16 @@ export function RegisterForm() {
       router.push("/dashboard");
       router.refresh();
     } catch {
-      setServerError("Something went wrong. Please try again later.");
+      setServerError("เกิดข้อผิดพลาด กรุณาลองอีกครั้งภายหลัง");
     }
   }
 
   return (
     <Card>
       <CardHeader className="space-y-1">
-        <CardTitle className="text-2xl">Create an account</CardTitle>
+        <CardTitle className="text-2xl">สร้างบัญชี</CardTitle>
         <CardDescription>
-          Enter your details to get started with learning
+          กรอกข้อมูลเพื่อเริ่มต้นการเรียนรู้
         </CardDescription>
       </CardHeader>
 
@@ -182,11 +182,11 @@ export function RegisterForm() {
 
           {/* Name field */}
           <div className="space-y-2">
-            <Label htmlFor="register-name">Full name</Label>
+            <Label htmlFor="register-name">ชื่อ-นามสกุล</Label>
             <Input
               id="register-name"
               type="text"
-              placeholder="John Doe"
+              placeholder="สมชาย ใจดี"
               autoComplete="name"
               autoFocus
               error={!!errors.name}
@@ -202,7 +202,7 @@ export function RegisterForm() {
 
           {/* Email field */}
           <div className="space-y-2">
-            <Label htmlFor="register-email">Email</Label>
+            <Label htmlFor="register-email">อีเมล</Label>
             <Input
               id="register-email"
               type="email"
@@ -223,11 +223,11 @@ export function RegisterForm() {
 
           {/* Password field */}
           <div className="space-y-2">
-            <Label htmlFor="register-password">Password</Label>
+            <Label htmlFor="register-password">รหัสผ่าน</Label>
             <Input
               id="register-password"
               type="password"
-              placeholder="Create a password"
+              placeholder="สร้างรหัสผ่าน"
               autoComplete="new-password"
               error={!!errors.password}
               aria-describedby={
@@ -283,11 +283,11 @@ export function RegisterForm() {
 
           {/* Confirm password field */}
           <div className="space-y-2">
-            <Label htmlFor="register-confirm-password">Confirm password</Label>
+            <Label htmlFor="register-confirm-password">ยืนยันรหัสผ่าน</Label>
             <Input
               id="register-confirm-password"
               type="password"
-              placeholder="Repeat your password"
+              placeholder="กรอกรหัสผ่านอีกครั้ง"
               autoComplete="new-password"
               error={!!errors.confirmPassword}
               aria-describedby={
@@ -317,10 +317,10 @@ export function RegisterForm() {
             {isSubmitting ? (
               <>
                 <Spinner size="sm" className="text-primary-foreground" />
-                Creating account...
+                กำลังสร้างบัญชี...
               </>
             ) : (
-              "Create account"
+              "สร้างบัญชี"
             )}
           </Button>
         </form>

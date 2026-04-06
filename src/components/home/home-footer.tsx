@@ -1,8 +1,5 @@
 import Link from "next/link";
-// lucide-react in this project does not bundle social-brand icons (Youtube, Twitter, etc.).
-// We use SVG paths inline via a tiny wrapper so the footer layout is identical —
-// swap these for real brand SVGs when the design system allows it.
-import { Play, Globe, Rss, Share2 } from "lucide-react";
+import { getSiteContent } from "@/actions/content.actions";
 
 // Footer column definition type
 interface FooterColumn {
@@ -12,47 +9,51 @@ interface FooterColumn {
 
 const FOOTER_COLUMNS: FooterColumn[] = [
   {
-    heading: "Menu",
+    heading: "เมนู",
     links: [
-      { label: "Home", href: "#" },
-      { label: "Courses", href: "#" },
-      { label: "About Us", href: "#" },
-      { label: "FAQ", href: "#" },
-      { label: "Glossary", href: "#" },
+      { label: "หน้าแรก", href: "/" },
+      { label: "คอร์สเรียน", href: "#" },
+      { label: "เกี่ยวกับเรา", href: "/about" },
+      { label: "คำถามที่พบบ่อย", href: "/faq" },
     ],
   },
   {
-    heading: "Categories",
+    heading: "ศูนย์ช่วยเหลือ",
     links: [
-      { label: "Finance", href: "#" },
-      { label: "Investment", href: "#" },
-      { label: "Tax Planning", href: "#" },
-      { label: "Beginner", href: "#" },
-      { label: "Retirement", href: "#" },
-    ],
-  },
-  {
-    heading: "Help Center",
-    links: [
-      { label: "Contact Us", href: "#" },
-      { label: "FAQs", href: "#" },
-      { label: "Privacy Policy", href: "#" },
-      { label: "Terms of Use", href: "#" },
+      { label: "ติดต่อเรา", href: "/contact" },
+      { label: "คำถามที่พบบ่อย", href: "/faq" },
+      { label: "นโยบายความเป็นส่วนตัว", href: "/privacy" },
+      { label: "ข้อกำหนดการใช้งาน", href: "/terms" },
     ],
   },
 ];
 
-export function HomeFooter() {
+// CMS keys with fallback defaults
+const CONTENT_KEYS: Record<string, string> = {
+  "footer.about.heading": "เกี่ยวกับ",
+  "footer.about.description":
+    "แพลตฟอร์มอีเลิร์นนิงมอบคอร์สวิดีโอจากผู้เชี่ยวชาญด้านการเงิน การลงทุน และการวางแผนภาษี ช่วยให้คุณสร้างความรู้ที่ยั่งยืนตามจังหวะของคุณ",
+  "footer.about.address": "123 Learning Street,\nBangkok, Thailand 10110",
+  "footer.copyright": "แพลตฟอร์มอีเลิร์นนิง สงวนลิขสิทธิ์",
+};
+
+export async function HomeFooter() {
+  const content = await getSiteContent(Object.keys(CONTENT_KEYS));
+
+  function c(key: string): string {
+    return content[key] ?? CONTENT_KEYS[key] ?? "";
+  }
+
   const year = new Date().getFullYear();
 
   return (
     <footer className="border-t border-border bg-background">
       <div className="mx-auto max-w-7xl px-4 pt-12 pb-8 sm:px-6 lg:px-8">
 
-        {/* ── 4-column grid ────────────────────────────────────────────── */}
-        <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-4">
+        {/* ── 3-column grid ────────────────────────────────────────────── */}
+        <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-3">
 
-          {/* First three columns are generated from the data array */}
+          {/* First two columns are generated from the data array */}
           {FOOTER_COLUMNS.map((col) => (
             <div key={col.heading}>
               <h3 className="text-sm font-semibold text-foreground">
@@ -73,77 +74,37 @@ export function HomeFooter() {
             </div>
           ))}
 
-          {/* Fourth column — About / brand */}
+          {/* Third column — About / brand (CMS-configurable) */}
           <div>
-            <h3 className="text-sm font-semibold text-foreground">About</h3>
+            <h3 className="text-sm font-semibold text-foreground">
+              {c("footer.about.heading")}
+            </h3>
             <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
-              E-Learning Platform delivers expert-led video courses on finance,
-              investing, and tax planning — helping you build lasting knowledge
-              at your own pace.
+              {c("footer.about.description")}
             </p>
-            <p className="mt-3 text-sm text-muted-foreground">
-              123 Learning Street,<br />
-              Bangkok, Thailand 10110
+            <p className="mt-3 text-sm text-muted-foreground whitespace-pre-line">
+              {c("footer.about.address")}
             </p>
           </div>
-        </div>
-
-        {/* ── Social icons row ─────────────────────────────────────────── */}
-        <div className="mt-10 flex items-center justify-center gap-6">
-          <a
-            href="#"
-            aria-label="YouTube"
-            className="text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
-          >
-            {/* Play icon proxies for YouTube until brand icons are available */}
-            <Play className="h-5 w-5" aria-hidden="true" />
-          </a>
-          <a
-            href="#"
-            aria-label="Twitter / X"
-            className="text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
-          >
-            <Rss className="h-5 w-5" aria-hidden="true" />
-          </a>
-          <a
-            href="#"
-            aria-label="LinkedIn"
-            className="text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
-          >
-            <Globe className="h-5 w-5" aria-hidden="true" />
-          </a>
-          <a
-            href="#"
-            aria-label="Facebook"
-            className="text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
-          >
-            <Share2 className="h-5 w-5" aria-hidden="true" />
-          </a>
         </div>
 
         {/* ── Bottom bar ───────────────────────────────────────────────── */}
         <div className="mt-8 flex flex-col items-center justify-between gap-4 border-t border-border pt-6 sm:flex-row">
           <p className="text-xs text-muted-foreground">
-            &copy; {year} E-Learning Platform. All rights reserved.
+            &copy; {year} {c("footer.copyright")}
           </p>
           <div className="flex items-center gap-4">
             <Link
-              href="#"
+              href="/privacy"
               className="text-xs text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:underline"
             >
-              Privacy
+              ความเป็นส่วนตัว
             </Link>
             <Link
-              href="#"
+              href="/terms"
               className="text-xs text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:underline"
             >
-              Terms
-            </Link>
-            <Link
-              href="#"
-              className="text-xs text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:underline"
-            >
-              Cookies
+              ข้อกำหนด
             </Link>
           </div>
         </div>

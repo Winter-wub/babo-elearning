@@ -181,7 +181,7 @@ export function UsersTable({ users, meta }: UsersTableProps) {
         return;
       }
       setCreateOpen(false);
-      toast({ title: "User created", description: `${createForm.name} has been added.` });
+      toast({ title: "สร้างผู้ใช้แล้ว", description: `${createForm.name} ถูกเพิ่มแล้ว` });
     });
   }
 
@@ -204,7 +204,7 @@ export function UsersTable({ users, meta }: UsersTableProps) {
         return;
       }
       setEditOpen(false);
-      toast({ title: "User updated", description: "Changes have been saved." });
+      toast({ title: "อัปเดตผู้ใช้แล้ว", description: "บันทึกการเปลี่ยนแปลงแล้ว" });
     });
   }
 
@@ -213,12 +213,12 @@ export function UsersTable({ users, meta }: UsersTableProps) {
     startTransition(async () => {
       const result = await updateUser(user.id, { isActive: !user.isActive });
       if (!result.success) {
-        toast({ variant: "destructive", title: "Error", description: result.error });
+        toast({ variant: "destructive", title: "ข้อผิดพลาด", description: result.error });
         return;
       }
       toast({
-        title: user.isActive ? "User deactivated" : "User activated",
-        description: `${user.name}'s account has been ${user.isActive ? "deactivated" : "activated"}.`,
+        title: user.isActive ? "ปิดใช้งานผู้ใช้แล้ว" : "เปิดใช้งานผู้ใช้แล้ว",
+        description: `บัญชีของ ${user.name} ถูก${user.isActive ? "ปิดใช้งาน" : "เปิดใช้งาน"}แล้ว`,
       });
     });
   }
@@ -228,10 +228,10 @@ export function UsersTable({ users, meta }: UsersTableProps) {
     startTransition(async () => {
       const result = await deleteUser(user.id);
       if (!result.success) {
-        toast({ variant: "destructive", title: "Error", description: result.error });
+        toast({ variant: "destructive", title: "ข้อผิดพลาด", description: result.error });
         return;
       }
-      toast({ title: "User deactivated", description: `${user.name} has been deactivated.` });
+      toast({ title: "ปิดใช้งานผู้ใช้แล้ว", description: `${user.name} ถูกปิดใช้งานแล้ว` });
     });
   }
 
@@ -248,7 +248,7 @@ export function UsersTable({ users, meta }: UsersTableProps) {
           <div className="relative w-full max-w-xs">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search name or email…"
+              placeholder="ค้นหาชื่อหรืออีเมล..."
               className="pl-8"
               value={searchInput}
               onChange={(e) => handleSearchChange(e.target.value)}
@@ -262,12 +262,12 @@ export function UsersTable({ users, meta }: UsersTableProps) {
             }
           >
             <SelectTrigger className="w-32">
-              <SelectValue placeholder="All roles" />
+              <SelectValue placeholder="ทุกบทบาท" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All roles</SelectItem>
-              <SelectItem value="STUDENT">Student</SelectItem>
-              <SelectItem value="ADMIN">Admin</SelectItem>
+              <SelectItem value="all">ทุกบทบาท</SelectItem>
+              <SelectItem value="STUDENT">นักเรียน</SelectItem>
+              <SelectItem value="ADMIN">ผู้ดูแลระบบ</SelectItem>
             </SelectContent>
           </Select>
 
@@ -278,12 +278,12 @@ export function UsersTable({ users, meta }: UsersTableProps) {
             }
           >
             <SelectTrigger className="w-32">
-              <SelectValue placeholder="All status" />
+              <SelectValue placeholder="ทุกสถานะ" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All status</SelectItem>
-              <SelectItem value="true">Active</SelectItem>
-              <SelectItem value="false">Inactive</SelectItem>
+              <SelectItem value="all">ทุกสถานะ</SelectItem>
+              <SelectItem value="true">ใช้งาน</SelectItem>
+              <SelectItem value="false">ไม่ใช้งาน</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -293,19 +293,19 @@ export function UsersTable({ users, meta }: UsersTableProps) {
           <DialogTrigger asChild>
             <Button onClick={openCreate} className="shrink-0">
               <UserPlus className="mr-2 h-4 w-4" />
-              Add User
+              เพิ่มผู้ใช้
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Create New User</DialogTitle>
+              <DialogTitle>สร้างผู้ใช้ใหม่</DialogTitle>
               <DialogDescription>
-                Add a new user account. They can log in immediately.
+                เพิ่มบัญชีผู้ใช้ใหม่ พวกเขาสามารถเข้าสู่ระบบได้ทันที
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleCreate} className="space-y-4">
               <div className="space-y-1.5">
-                <Label htmlFor="create-name">Full name</Label>
+                <Label htmlFor="create-name">ชื่อเต็ม</Label>
                 <Input
                   id="create-name"
                   placeholder="Jane Doe"
@@ -318,7 +318,7 @@ export function UsersTable({ users, meta }: UsersTableProps) {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="create-email">Email</Label>
+                <Label htmlFor="create-email">อีเมล</Label>
                 <Input
                   id="create-email"
                   type="email"
@@ -331,11 +331,11 @@ export function UsersTable({ users, meta }: UsersTableProps) {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="create-password">Password</Label>
+                <Label htmlFor="create-password">รหัสผ่าน</Label>
                 <Input
                   id="create-password"
                   type="password"
-                  placeholder="Min. 8 characters"
+                  placeholder="อย่างน้อย 8 ตัวอักษร"
                   required
                   minLength={8}
                   value={createForm.password}
@@ -345,7 +345,7 @@ export function UsersTable({ users, meta }: UsersTableProps) {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="create-role">Role</Label>
+                <Label htmlFor="create-role">บทบาท</Label>
                 <Select
                   value={createForm.role}
                   onValueChange={(v) =>
@@ -359,8 +359,8 @@ export function UsersTable({ users, meta }: UsersTableProps) {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="STUDENT">Student</SelectItem>
-                    <SelectItem value="ADMIN">Admin</SelectItem>
+                    <SelectItem value="STUDENT">นักเรียน</SelectItem>
+                    <SelectItem value="ADMIN">ผู้ดูแลระบบ</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -375,11 +375,11 @@ export function UsersTable({ users, meta }: UsersTableProps) {
                   variant="outline"
                   onClick={() => setCreateOpen(false)}
                 >
-                  Cancel
+                  ยกเลิก
                 </Button>
                 <Button type="submit" disabled={isPending}>
                   {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Create User
+                  สร้างผู้ใช้
                 </Button>
               </DialogFooter>
             </form>
@@ -398,7 +398,7 @@ export function UsersTable({ users, meta }: UsersTableProps) {
                   onClick={() => handleSort("name")}
                   type="button"
                 >
-                  Name
+                  ชื่อ
                   <SortIcon column="name" currentSort={currentSort} currentOrder={currentOrder} />
                 </button>
               </TableHead>
@@ -408,13 +408,13 @@ export function UsersTable({ users, meta }: UsersTableProps) {
                   onClick={() => handleSort("email")}
                   type="button"
                 >
-                  Email
+                  อีเมล
                   <SortIcon column="email" currentSort={currentSort} currentOrder={currentOrder} />
                 </button>
               </TableHead>
-              <TableHead>Role</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Permissions</TableHead>
+              <TableHead>บทบาท</TableHead>
+              <TableHead>สถานะ</TableHead>
+              <TableHead className="text-right">สิทธิ์</TableHead>
               <TableHead className="w-10" />
             </TableRow>
           </TableHeader>
@@ -422,7 +422,7 @@ export function UsersTable({ users, meta }: UsersTableProps) {
             {users.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="py-10 text-center text-muted-foreground">
-                  No users found.
+                  ไม่พบผู้ใช้
                 </TableCell>
               </TableRow>
             ) : (
@@ -434,7 +434,7 @@ export function UsersTable({ users, meta }: UsersTableProps) {
                     <Badge
                       variant={user.role === "ADMIN" ? "default" : "secondary"}
                     >
-                      {user.role === "ADMIN" ? "Admin" : "Student"}
+                      {user.role === "ADMIN" ? "ผู้ดูแลระบบ" : "นักเรียน"}
                     </Badge>
                   </TableCell>
                   <TableCell>
@@ -446,7 +446,7 @@ export function UsersTable({ users, meta }: UsersTableProps) {
                           : undefined
                       }
                     >
-                      {user.isActive ? "Active" : "Inactive"}
+                      {user.isActive ? "ใช้งาน" : "ไม่ใช้งาน"}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right tabular-nums">
@@ -460,16 +460,16 @@ export function UsersTable({ users, meta }: UsersTableProps) {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                        <DropdownMenuLabel>การดำเนินการ</DropdownMenuLabel>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
                           onClick={() => openEdit(user)}
                         >
-                          Edit
+                          แก้ไข
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild>
                           <Link href={`/admin/users/${user.id}`}>
-                            View Permissions
+                            ดูสิทธิ์
                           </Link>
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
@@ -477,13 +477,13 @@ export function UsersTable({ users, meta }: UsersTableProps) {
                           className={user.isActive ? "text-amber-600 focus:text-amber-600" : "text-green-600 focus:text-green-600"}
                           onClick={() => handleToggleActive(user)}
                         >
-                          {user.isActive ? "Deactivate" : "Activate"}
+                          {user.isActive ? "ปิดใช้งาน" : "เปิดใช้งาน"}
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           className="text-destructive focus:text-destructive"
                           onClick={() => handleDelete(user)}
                         >
-                          Delete (Soft)
+                          ลบ (ซอฟต์)
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -499,12 +499,12 @@ export function UsersTable({ users, meta }: UsersTableProps) {
       {meta.total > 0 && (
         <div className="flex items-center justify-between">
           <p className="text-sm text-muted-foreground">
-            Showing{" "}
+            แสดง{" "}
             <span className="font-medium">
               {(currentPage - 1) * meta.pageSize + 1}–
               {Math.min(currentPage * meta.pageSize, meta.total)}
             </span>{" "}
-            of <span className="font-medium">{meta.total}</span> users
+            จาก <span className="font-medium">{meta.total}</span> ผู้ใช้
           </p>
           <div className="flex gap-2">
             <Button
@@ -513,7 +513,7 @@ export function UsersTable({ users, meta }: UsersTableProps) {
               disabled={currentPage <= 1}
               onClick={() => pushParams({ page: String(currentPage - 1) })}
             >
-              Previous
+              ก่อนหน้า
             </Button>
             <Button
               variant="outline"
@@ -521,7 +521,7 @@ export function UsersTable({ users, meta }: UsersTableProps) {
               disabled={currentPage >= meta.totalPages}
               onClick={() => pushParams({ page: String(currentPage + 1) })}
             >
-              Next
+              ถัดไป
             </Button>
           </div>
         </div>
@@ -531,14 +531,14 @@ export function UsersTable({ users, meta }: UsersTableProps) {
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edit User</DialogTitle>
+            <DialogTitle>แก้ไขผู้ใช้</DialogTitle>
             <DialogDescription>
-              Update the user&apos;s name or email address.
+              อัปเดตชื่อหรืออีเมลของผู้ใช้
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleEdit} className="space-y-4">
             <div className="space-y-1.5">
-              <Label htmlFor="edit-name">Full name</Label>
+              <Label htmlFor="edit-name">ชื่อเต็ม</Label>
               <Input
                 id="edit-name"
                 required
@@ -550,7 +550,7 @@ export function UsersTable({ users, meta }: UsersTableProps) {
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="edit-email">Email</Label>
+              <Label htmlFor="edit-email">อีเมล</Label>
               <Input
                 id="edit-email"
                 type="email"
@@ -572,11 +572,11 @@ export function UsersTable({ users, meta }: UsersTableProps) {
                 variant="outline"
                 onClick={() => setEditOpen(false)}
               >
-                Cancel
+                ยกเลิก
               </Button>
               <Button type="submit" disabled={isPending}>
                 {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Save Changes
+                บันทึกการเปลี่ยนแปลง
               </Button>
             </DialogFooter>
           </form>

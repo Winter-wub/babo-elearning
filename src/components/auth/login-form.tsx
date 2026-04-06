@@ -26,8 +26,8 @@ import { SocialDivider } from "@/components/auth/social-divider";
 // ---------------------------------------------------------------------------
 
 const loginSchema = z.object({
-  email: z.string().min(1, "Email is required").email("Enter a valid email"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
+  email: z.string().min(1, "กรุณากรอกอีเมล").email("กรุณากรอกอีเมลที่ถูกต้อง"),
+  password: z.string().min(6, "รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร"),
 });
 
 type LoginFormValues = z.infer<typeof loginSchema>;
@@ -64,7 +64,7 @@ export function LoginForm({ callbackUrl = "/dashboard" }: LoginFormProps) {
       });
 
       if (result?.error) {
-        setServerError("Invalid email or password. Please try again.");
+        setServerError("อีเมลหรือรหัสผ่านไม่ถูกต้อง กรุณาลองอีกครั้ง");
         return;
       }
 
@@ -76,16 +76,16 @@ export function LoginForm({ callbackUrl = "/dashboard" }: LoginFormProps) {
       router.push(destination);
       router.refresh();
     } catch {
-      setServerError("Something went wrong. Please try again later.");
+      setServerError("เกิดข้อผิดพลาด กรุณาลองอีกครั้งภายหลัง");
     }
   }
 
   return (
     <Card>
       <CardHeader className="space-y-1">
-        <CardTitle className="text-2xl">Sign in</CardTitle>
+        <CardTitle className="text-2xl">เข้าสู่ระบบ</CardTitle>
         <CardDescription>
-          Enter your credentials to access your account
+          กรอกข้อมูลเพื่อเข้าสู่ระบบ
         </CardDescription>
       </CardHeader>
 
@@ -106,7 +106,7 @@ export function LoginForm({ callbackUrl = "/dashboard" }: LoginFormProps) {
 
           {/* Email field */}
           <div className="space-y-2">
-            <Label htmlFor="login-email">Email</Label>
+            <Label htmlFor="login-email">อีเมล</Label>
             <Input
               id="login-email"
               type="email"
@@ -126,11 +126,11 @@ export function LoginForm({ callbackUrl = "/dashboard" }: LoginFormProps) {
 
           {/* Password field */}
           <div className="space-y-2">
-            <Label htmlFor="login-password">Password</Label>
+            <Label htmlFor="login-password">รหัสผ่าน</Label>
             <Input
               id="login-password"
               type="password"
-              placeholder="Enter your password"
+              placeholder="กรอกรหัสผ่าน"
               autoComplete="current-password"
               error={!!errors.password}
               aria-describedby={
@@ -155,10 +155,10 @@ export function LoginForm({ callbackUrl = "/dashboard" }: LoginFormProps) {
             {isSubmitting ? (
               <>
                 <Spinner size="sm" className="text-primary-foreground" />
-                Signing in...
+                กำลังเข้าสู่ระบบ...
               </>
             ) : (
-              "Sign in"
+              "เข้าสู่ระบบ"
             )}
           </Button>
         </form>

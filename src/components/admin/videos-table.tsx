@@ -106,13 +106,13 @@ export function VideosTable({ videos, meta }: VideosTableProps) {
     startTransition(async () => {
       const result = await updateVideo(video.id, { isActive: !video.isActive });
       if (!result.success) {
-        toast({ variant: "destructive", title: "Error", description: result.error });
+        toast({ variant: "destructive", title: "ข้อผิดพลาด", description: result.error });
         return;
       }
       router.refresh();
       toast({
-        title: video.isActive ? "Video deactivated" : "Video activated",
-        description: `"${video.title}" is now ${video.isActive ? "inactive" : "active"}.`,
+        title: video.isActive ? "ปิดใช้งานวิดีโอแล้ว" : "เปิดใช้งานวิดีโอแล้ว",
+        description: `"${video.title}" ตอนนี้${video.isActive ? "ไม่ใช้งาน" : "ใช้งาน"}แล้ว`,
       });
     });
   }
@@ -122,13 +122,13 @@ export function VideosTable({ videos, meta }: VideosTableProps) {
     startTransition(async () => {
       const result = await updateVideo(video.id, { isFeatured: !video.isFeatured });
       if (!result.success) {
-        toast({ variant: "destructive", title: "Error", description: result.error });
+        toast({ variant: "destructive", title: "ข้อผิดพลาด", description: result.error });
         return;
       }
       router.refresh();
       toast({
-        title: video.isFeatured ? "Removed from featured" : "Marked as featured",
-        description: `"${video.title}" is now ${video.isFeatured ? "not featured" : "featured"}.`,
+        title: video.isFeatured ? "นำออกจากรายการแนะนำ" : "ตั้งเป็นรายการแนะนำ",
+        description: `"${video.title}" ตอนนี้${video.isFeatured ? "ไม่ได้เป็นรายการแนะนำ" : "เป็นรายการแนะนำ"}แล้ว`,
       });
     });
   }
@@ -138,12 +138,12 @@ export function VideosTable({ videos, meta }: VideosTableProps) {
     startTransition(async () => {
       const result = await deleteVideo(video.id);
       if (!result.success) {
-        toast({ variant: "destructive", title: "Error", description: result.error });
+        toast({ variant: "destructive", title: "ข้อผิดพลาด", description: result.error });
         return;
       }
       toast({
-        title: "Video deactivated",
-        description: `"${video.title}" has been deactivated.`,
+        title: "ปิดใช้งานวิดีโอแล้ว",
+        description: `"${video.title}" ถูกปิดใช้งานแล้ว`,
       });
     });
   }
@@ -161,7 +161,7 @@ export function VideosTable({ videos, meta }: VideosTableProps) {
           <div className="relative w-full max-w-xs">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search by title…"
+              placeholder="ค้นหาตามชื่อ..."
               className="pl-8"
               value={searchInput}
               onChange={(e) => handleSearchChange(e.target.value)}
@@ -175,12 +175,12 @@ export function VideosTable({ videos, meta }: VideosTableProps) {
             }
           >
             <SelectTrigger className="w-36">
-              <SelectValue placeholder="All status" />
+              <SelectValue placeholder="ทุกสถานะ" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All status</SelectItem>
-              <SelectItem value="true">Active</SelectItem>
-              <SelectItem value="false">Inactive</SelectItem>
+              <SelectItem value="all">ทุกสถานะ</SelectItem>
+              <SelectItem value="true">ใช้งาน</SelectItem>
+              <SelectItem value="false">ไม่ใช้งาน</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -189,7 +189,7 @@ export function VideosTable({ videos, meta }: VideosTableProps) {
         <Button asChild className="shrink-0">
           <Link href="/admin/videos/upload">
             <Upload className="mr-2 h-4 w-4" />
-            Upload Video
+            อัปโหลดวิดีโอ
           </Link>
         </Button>
       </div>
@@ -199,18 +199,18 @@ export function VideosTable({ videos, meta }: VideosTableProps) {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-16">Thumbnail</TableHead>
-              <TableHead>Title</TableHead>
-              <TableHead className="w-24">Duration</TableHead>
-              <TableHead className="w-24">Status</TableHead>
+              <TableHead className="w-16">ภาพขนาดย่อ</TableHead>
+              <TableHead>ชื่อเรื่อง</TableHead>
+              <TableHead className="w-24">ความยาว</TableHead>
+              <TableHead className="w-24">สถานะ</TableHead>
               <TableHead className="w-24">
                 <span className="flex items-center gap-1">
                   <Star className="h-3.5 w-3.5" />
-                  Featured
+                  แนะนำ
                 </span>
               </TableHead>
-              <TableHead className="w-20">Views</TableHead>
-              <TableHead className="w-36">Upload Date</TableHead>
+              <TableHead className="w-20">ยอดเข้าชม</TableHead>
+              <TableHead className="w-36">วันที่อัปโหลด</TableHead>
               <TableHead className="w-10" />
             </TableRow>
           </TableHeader>
@@ -220,17 +220,17 @@ export function VideosTable({ videos, meta }: VideosTableProps) {
                 <TableCell colSpan={8} className="py-16 text-center">
                   <div className="flex flex-col items-center gap-2 text-muted-foreground">
                     <Film className="h-8 w-8 opacity-40" />
-                    <p className="text-sm font-medium">No videos found</p>
+                    <p className="text-sm font-medium">ไม่พบวิดีโอ</p>
                     <p className="text-xs">
                       {currentSearch || currentStatus
-                        ? "Try adjusting your search or filter."
-                        : "Upload your first video to get started."}
+                        ? "ลองปรับการค้นหาหรือตัวกรอง"
+                        : "อัปโหลดวิดีโอแรกของคุณเพื่อเริ่มต้น"}
                     </p>
                     {!currentSearch && !currentStatus && (
                       <Button asChild size="sm" className="mt-2">
                         <Link href="/admin/videos/upload">
                           <Upload className="mr-1.5 h-3.5 w-3.5" />
-                          Upload Video
+                          อัปโหลดวิดีโอ
                         </Link>
                       </Button>
                     )}
@@ -286,7 +286,7 @@ export function VideosTable({ videos, meta }: VideosTableProps) {
                           : undefined
                       }
                     >
-                      {video.isActive ? "Active" : "Inactive"}
+                      {video.isActive ? "ใช้งาน" : "ไม่ใช้งาน"}
                     </Badge>
                   </TableCell>
 
@@ -307,7 +307,7 @@ export function VideosTable({ videos, meta }: VideosTableProps) {
 
                   {/* Upload date */}
                   <TableCell className="text-sm text-muted-foreground">
-                    {new Date(video.createdAt).toLocaleDateString("en-US", {
+                    {new Date(video.createdAt).toLocaleDateString("th-TH", {
                       year: "numeric",
                       month: "short",
                       day: "numeric",
@@ -327,13 +327,13 @@ export function VideosTable({ videos, meta }: VideosTableProps) {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                        <DropdownMenuLabel>การดำเนินการ</DropdownMenuLabel>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem asChild>
-                          <Link href={`/admin/videos/${video.id}`}>Edit</Link>
+                          <Link href={`/admin/videos/${video.id}`}>แก้ไข</Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild>
-                          <Link href={`/admin/videos/${video.id}`}>View Details</Link>
+                          <Link href={`/admin/videos/${video.id}`}>ดูรายละเอียด</Link>
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
@@ -348,14 +348,14 @@ export function VideosTable({ videos, meta }: VideosTableProps) {
                           {isPending ? (
                             <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
                           ) : null}
-                          {video.isActive ? "Deactivate" : "Activate"}
+                          {video.isActive ? "ปิดใช้งาน" : "เปิดใช้งาน"}
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           className="text-destructive focus:text-destructive"
                           onClick={() => handleDelete(video)}
                           disabled={isPending}
                         >
-                          Delete (Soft)
+                          ลบ (ซอฟต์)
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -371,13 +371,12 @@ export function VideosTable({ videos, meta }: VideosTableProps) {
       {meta.total > 0 && (
         <div className="flex items-center justify-between">
           <p className="text-sm text-muted-foreground">
-            Showing{" "}
+            แสดง{" "}
             <span className="font-medium">
               {(currentPage - 1) * meta.pageSize + 1}–
               {Math.min(currentPage * meta.pageSize, meta.total)}
             </span>{" "}
-            of <span className="font-medium">{meta.total}</span>{" "}
-            video{meta.total !== 1 ? "s" : ""}
+            จาก <span className="font-medium">{meta.total}</span> วิดีโอ
           </p>
           <div className="flex gap-2">
             <Button
@@ -386,7 +385,7 @@ export function VideosTable({ videos, meta }: VideosTableProps) {
               disabled={currentPage <= 1 || isPending}
               onClick={() => pushParams({ page: String(currentPage - 1) })}
             >
-              Previous
+              ก่อนหน้า
             </Button>
             <Button
               variant="outline"
@@ -394,7 +393,7 @@ export function VideosTable({ videos, meta }: VideosTableProps) {
               disabled={currentPage >= meta.totalPages || isPending}
               onClick={() => pushParams({ page: String(currentPage + 1) })}
             >
-              Next
+              ถัดไป
             </Button>
           </div>
         </div>

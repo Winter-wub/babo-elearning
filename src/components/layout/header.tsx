@@ -33,7 +33,7 @@ export function Header({ onMenuClick }: HeaderProps) {
           size="icon"
           onClick={onMenuClick}
           className="lg:hidden"
-          aria-label="Open navigation menu"
+          aria-label="เปิดเมนูนำทาง"
         >
           <Menu className="h-5 w-5" />
         </Button>
@@ -45,13 +45,13 @@ export function Header({ onMenuClick }: HeaderProps) {
           <Button
             variant="ghost"
             className="flex items-center gap-2 px-2"
-            aria-label="User menu"
+            aria-label="เมนูผู้ใช้"
           >
             <Avatar size="sm" fallback={userName} />
             <div className="hidden text-left sm:block">
               <p className="text-sm font-medium leading-none">{userName}</p>
               <p className="text-xs text-muted-foreground">
-                {userRole === "ADMIN" ? "Administrator" : "Student"}
+                {userRole === "ADMIN" ? "ผู้ดูแลระบบ" : "นักเรียน"}
               </p>
             </div>
           </Button>
@@ -68,7 +68,7 @@ export function Header({ onMenuClick }: HeaderProps) {
           <DropdownMenuSeparator />
           <DropdownMenuItem disabled>
             <User className="mr-2 h-4 w-4" />
-            Profile
+            โปรไฟล์
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem
@@ -76,7 +76,7 @@ export function Header({ onMenuClick }: HeaderProps) {
             className="text-destructive focus:text-destructive"
           >
             <LogOut className="mr-2 h-4 w-4" />
-            Log out
+            ออกจากระบบ
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

@@ -6,13 +6,14 @@ import { Header } from "@/components/layout/header";
 
 interface AdminShellProps {
   children: React.ReactNode;
+  appName?: string;
 }
 
 /**
  * Client shell that combines the sidebar + header with mobile toggle state.
  * Rendered inside the server-component admin layout.
  */
-export function AdminShell({ children }: AdminShellProps) {
+export function AdminShell({ children, appName }: AdminShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const handleClose = useCallback(() => setSidebarOpen(false), []);
@@ -20,7 +21,7 @@ export function AdminShell({ children }: AdminShellProps) {
 
   return (
     <div className="min-h-screen bg-muted/30">
-      <AdminSidebar open={sidebarOpen} onClose={handleClose} />
+      <AdminSidebar open={sidebarOpen} onClose={handleClose} appName={appName} />
 
       {/* Main content area: offset by sidebar width on desktop */}
       <div className="lg:pl-64">

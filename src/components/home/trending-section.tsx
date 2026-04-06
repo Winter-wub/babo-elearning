@@ -16,11 +16,11 @@ export function TrendingSection({ videos, isAuthenticated }: TrendingSectionProp
       {/* Section heading with icon */}
       <h2 className="flex items-center gap-2 text-2xl font-semibold tracking-tight text-foreground">
         <TrendingUp className="h-6 w-6" aria-hidden="true" />
-        Top 10 Trending
+        10 อันดับยอดนิยม
       </h2>
 
       {videos.length > 0 ? (
-        <ol className="mt-6 space-y-1" aria-label="Trending videos">
+        <ol className="mt-6 space-y-1" aria-label="วิดีโอยอดนิยม">
           {/* Cap display at 10 to honour the "Top 10" heading promise */}
           {videos.slice(0, 10).map((video, index) => (
             <li key={video.id}>
@@ -34,7 +34,7 @@ export function TrendingSection({ videos, isAuthenticated }: TrendingSectionProp
         </ol>
       ) : (
         <p className="mt-6 text-sm text-muted-foreground">
-          No trending content yet
+          ยังไม่มีเนื้อหายอดนิยม
         </p>
       )}
     </section>

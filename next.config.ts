@@ -44,8 +44,8 @@ const nextConfig: NextConfig = {
               "script-src 'self' 'unsafe-eval' 'unsafe-inline'", // unsafe-eval required by Next.js dev
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' blob: data: https: https://lh3.googleusercontent.com https://graph.facebook.com https://platform-lookaside.fbsbx.com",
-              "media-src 'self' blob: https://*.r2.cloudflarestorage.com",
-              "connect-src 'self' https://*.r2.cloudflarestorage.com https://accounts.google.com https://graph.facebook.com https://appleid.apple.com",
+              "media-src 'self' blob: https://*.r2.cloudflarestorage.com https://fly.storage.tigris.dev",
+              "connect-src 'self' https://*.r2.cloudflarestorage.com https://fly.storage.tigris.dev https://accounts.google.com https://graph.facebook.com https://appleid.apple.com",
               "font-src 'self'",
               "object-src 'none'",
               "frame-src 'self' https://accounts.google.com",
@@ -62,7 +62,7 @@ const nextConfig: NextConfig = {
         headers: [
           {
             key: "Access-Control-Allow-Origin",
-            value: process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
+            value: process.env.APP_URL ?? process.env.AUTH_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
           },
           {
             key: "Access-Control-Allow-Methods",

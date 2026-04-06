@@ -38,5 +38,6 @@ export const SESSION_MAX_AGE = 30 * 24 * 60 * 60;
 // Application metadata
 // -----------------------------------------------------------------------
 
-export const APP_NAME = "E-Learning Platform";
-export const APP_DESCRIPTION = "Secure video learning management system.";
+export const APP_NAME = "E Learning";
+export const APP_DESCRIPTION =
+  "เข้าถึงคอร์สวิดีโอคุณภาพจากผู้เชี่ยวชาญ สร้างทักษะจริงตามจังหวะของคุณ";

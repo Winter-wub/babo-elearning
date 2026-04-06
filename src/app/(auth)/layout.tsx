@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import { APP_NAME } from "@/lib/constants";
+import { getAppName } from "@/lib/app-config";
 
 export const metadata: Metadata = {
   title: {
-    default: "Sign In",
+    default: "เข้าสู่ระบบ",
     template: `%s | ${APP_NAME}`,
   },
 };
@@ -11,15 +12,14 @@ export const metadata: Metadata = {
 /**
  * Auth layout -- vertically and horizontally centered single-column card layout.
  * Used by /login and /register.
- *
- * A subtle dot-grid background adds visual depth without being distracting.
- * The brand name anchors the top of the card area, reinforcing identity.
  */
-export default function AuthLayout({
+export default async function AuthLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const appName = await getAppName();
+
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-muted px-4 py-12">
       {/* Decorative gradient accent at top of viewport */}
@@ -32,10 +32,10 @@ export default function AuthLayout({
         {/* Brand */}
         <div className="text-center">
           <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            {APP_NAME}
+            {appName}
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Secure video learning platform
+            แพลตฟอร์มเรียนรู้วิดีโอที่ปลอดภัย
           </p>
         </div>
 

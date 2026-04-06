@@ -9,7 +9,7 @@ export function CategoryPlaylistsGrid({ playlists }: CategoryPlaylistsGridProps)
   return (
     <section className="py-12 px-4 max-w-7xl mx-auto sm:px-6 lg:px-8">
       <h2 className="text-2xl font-semibold tracking-tight text-foreground">
-        Browse by Category
+        เรียกดูตามหมวดหมู่
       </h2>
 
       {playlists.length > 0 ? (
@@ -21,7 +21,7 @@ export function CategoryPlaylistsGrid({ playlists }: CategoryPlaylistsGridProps)
         </div>
       ) : (
         <p className="mt-6 text-sm text-muted-foreground">
-          No categories available yet.
+          ยังไม่มีหมวดหมู่
         </p>
       )}
     </section>

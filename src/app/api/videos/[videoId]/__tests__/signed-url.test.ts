@@ -101,7 +101,7 @@ describe("GET /api/videos/[videoId]/signed-url", () => {
 
       expect(response.status).toBe(401);
       const body = await response.json();
-      expect(body.error).toMatch(/unauthorized/i);
+      expect(body.error).toMatch(/ไม่มีสิทธิ์/);
     });
 
     it("includes Cache-Control: no-store on 401 response", async () => {
@@ -128,7 +128,7 @@ describe("GET /api/videos/[videoId]/signed-url", () => {
 
       expect(response.status).toBe(403);
       const body = await response.json();
-      expect(body.error).toMatch(/forbidden/i);
+      expect(body.error).toMatch(/ไม่อนุญาต/);
     });
 
     it("returns 403 when Origin header is a different domain", async () => {
@@ -194,7 +194,7 @@ describe("GET /api/videos/[videoId]/signed-url", () => {
 
       expect(response.status).toBe(404);
       const body = await response.json();
-      expect(body.error).toMatch(/not found/i);
+      expect(body.error).toMatch(/ไม่พบ/);
     });
 
     it("returns 404 when the video is inactive (isActive: false)", async () => {
@@ -229,7 +229,7 @@ describe("GET /api/videos/[videoId]/signed-url", () => {
 
       expect(response.status).toBe(403);
       const body = await response.json();
-      expect(body.error).toMatch(/access denied/i);
+      expect(body.error).toMatch(/ไม่มีสิทธิ์เข้าถึง/);
     });
 
     it("returns 200 with a signed URL when the student has a VideoPermission", async () => {
@@ -266,6 +266,105 @@ describe("GET /api/videos/[videoId]/signed-url", () => {
       await GET(req, ctx);
 
       expect(mockGetPlaybackUrl).toHaveBeenCalledWith("videos/xyz/specific-key.mp4");
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // Time-based authorization (STUDENT)
+  // -------------------------------------------------------------------------
+
+  describe("STUDENT time-based authorization", () => {
+    it("returns 403 'Access expired' when permission validUntil is in the past", async () => {
+      const session = makeStudentSession({ id: "student_expired" });
+      mockAuth.mockResolvedValue(session);
+
+      const video = makeVideo({ id: "video_time_1" });
+      mockDb.video.findUnique.mockResolvedValue(video);
+
+      const expiredPermission = makeVideoPermission({
+        userId: "student_expired",
+        videoId: "video_time_1",
+        validUntil: new Date(Date.now() - 1000), // 1 second ago
+      });
+      mockDb.videoPermission.findUnique.mockResolvedValue(expiredPermission);
+
+      const [req, ctx] = makeValidOriginRequest("video_time_1");
+      const response = await GET(req, ctx);
+
+      expect(response.status).toBe(403);
+      const body = await response.json();
+      expect(body.error).toMatch(/หมดอายุ/);
+    });
+
+    it("returns 403 'Access not yet active' when permission validFrom is in the future", async () => {
+      const session = makeStudentSession({ id: "student_future" });
+      mockAuth.mockResolvedValue(session);
+
+      const video = makeVideo({ id: "video_time_2" });
+      mockDb.video.findUnique.mockResolvedValue(video);
+
+      const futurePermission = makeVideoPermission({
+        userId: "student_future",
+        videoId: "video_time_2",
+        validFrom: new Date(Date.now() + 86400000), // tomorrow
+        validUntil: new Date(Date.now() + 86400000 * 30), // 30 days from now
+      });
+      mockDb.videoPermission.findUnique.mockResolvedValue(futurePermission);
+
+      const [req, ctx] = makeValidOriginRequest("video_time_2");
+      const response = await GET(req, ctx);
+
+      expect(response.status).toBe(403);
+      const body = await response.json();
+      expect(body.error).toMatch(/ยังไม่เริ่มใช้งาน/);
+    });
+
+    it("returns 200 when permission is within valid time window", async () => {
+      const session = makeStudentSession({ id: "student_active" });
+      mockAuth.mockResolvedValue(session);
+
+      const video = makeVideo({ id: "video_time_3", s3Key: "videos/time/active.mp4" });
+      mockDb.video.findUnique.mockResolvedValue(video);
+
+      const activePermission = makeVideoPermission({
+        userId: "student_active",
+        videoId: "video_time_3",
+        validFrom: new Date(Date.now() - 86400000), // yesterday
+        validUntil: new Date(Date.now() + 86400000), // tomorrow
+      });
+      mockDb.videoPermission.findUnique.mockResolvedValue(activePermission);
+
+      mockGetPlaybackUrl.mockResolvedValue("https://r2.example.com/signed?token=timeactive");
+
+      const [req, ctx] = makeValidOriginRequest("video_time_3");
+      const response = await GET(req, ctx);
+
+      expect(response.status).toBe(200);
+      const body = await response.json();
+      expect(body.url).toBe("https://r2.example.com/signed?token=timeactive");
+    });
+
+    it("returns 200 for permanent permission (null validFrom and validUntil)", async () => {
+      const session = makeStudentSession({ id: "student_perm" });
+      mockAuth.mockResolvedValue(session);
+
+      const video = makeVideo({ id: "video_time_4", s3Key: "videos/time/perm.mp4" });
+      mockDb.video.findUnique.mockResolvedValue(video);
+
+      const permanentPermission = makeVideoPermission({
+        userId: "student_perm",
+        videoId: "video_time_4",
+        validFrom: null,
+        validUntil: null,
+      });
+      mockDb.videoPermission.findUnique.mockResolvedValue(permanentPermission);
+
+      mockGetPlaybackUrl.mockResolvedValue("https://r2.example.com/signed?token=perm");
+
+      const [req, ctx] = makeValidOriginRequest("video_time_4");
+      const response = await GET(req, ctx);
+
+      expect(response.status).toBe(200);
     });
   });
 

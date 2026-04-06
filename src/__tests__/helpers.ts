@@ -82,6 +82,9 @@ export function makeVideoPermission(
     videoId: `video_1`,
     grantedBy: `admin_1`,
     grantedAt: BASE_DATE,
+    validFrom: null,
+    validUntil: null,
+    durationDays: null,
     ...overrides,
   };
 }

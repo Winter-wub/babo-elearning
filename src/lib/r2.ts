@@ -2,30 +2,60 @@ import { S3Client, DeleteObjectCommand, PutObjectCommand, GetObjectCommand } fro
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { SIGNED_URL_EXPIRY } from "@/lib/constants";
 
-export const R2_BUCKET_NAME = process.env.R2_BUCKET_NAME ?? "elearning-videos";
+/**
+ * Bucket name — Tigris sets BUCKET_NAME, R2 uses R2_BUCKET_NAME.
+ */
+export const R2_BUCKET_NAME =
+  process.env.BUCKET_NAME ?? process.env.R2_BUCKET_NAME ?? "elearning-videos";
 
 let _r2Client: S3Client | null = null;
 
 /**
- * Returns a lazily-initialized S3Client pointed at Cloudflare R2.
+ * Returns a lazily-initialized S3Client.
+ *
+ * Supports two providers (auto-detected from environment):
+ *   1. **Tigris** (Fly.io) — uses AWS_ENDPOINT_URL_S3, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY
+ *   2. **Cloudflare R2**   — uses R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY
+ *
  * Throws at call time (not at module load time) if env vars are missing,
- * so that Next.js can complete its build without a live R2 connection.
+ * so that Next.js can complete its build without a live connection.
  */
 export function getR2Client(): S3Client {
   if (_r2Client) return _r2Client;
 
+  // Tigris (set automatically by `flyctl storage create`)
+  const tigrisEndpoint = process.env.AWS_ENDPOINT_URL_S3;
+  if (tigrisEndpoint) {
+    const accessKeyId = process.env.AWS_ACCESS_KEY_ID;
+    const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
+    if (!accessKeyId) throw new Error("Missing env: AWS_ACCESS_KEY_ID");
+    if (!secretAccessKey) throw new Error("Missing env: AWS_SECRET_ACCESS_KEY");
+
+    _r2Client = new S3Client({
+      region: process.env.AWS_REGION ?? "auto",
+      endpoint: tigrisEndpoint,
+      credentials: { accessKeyId, secretAccessKey },
+      forcePathStyle: true,
+    });
+    return _r2Client;
+  }
+
+  // Cloudflare R2 fallback
   const accountId = process.env.R2_ACCOUNT_ID;
   const accessKeyId = process.env.R2_ACCESS_KEY_ID;
   const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY;
 
-  if (!accountId) throw new Error("Missing env: R2_ACCOUNT_ID");
+  if (!accountId) throw new Error("Missing env: R2_ACCOUNT_ID or AWS_ENDPOINT_URL_S3");
   if (!accessKeyId) throw new Error("Missing env: R2_ACCESS_KEY_ID");
   if (!secretAccessKey) throw new Error("Missing env: R2_SECRET_ACCESS_KEY");
 
+  const endpoint = process.env.R2_ENDPOINT ?? `https://${accountId}.r2.cloudflarestorage.com`;
+
   _r2Client = new S3Client({
     region: "auto",
-    endpoint: `https://${accountId}.r2.cloudflarestorage.com`,
+    endpoint,
     credentials: { accessKeyId, secretAccessKey },
+    forcePathStyle: true,
   });
 
   return _r2Client;

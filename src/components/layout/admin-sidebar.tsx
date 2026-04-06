@@ -3,7 +3,19 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users, Video, X, GraduationCap } from "lucide-react";
+import {
+  LayoutDashboard,
+  Users,
+  Video,
+  X,
+  GraduationCap,
+  BarChart3,
+  Shield,
+  ListVideo,
+  HelpCircle,
+  FileText,
+  Mail,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
@@ -14,17 +26,24 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { label: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
-  { label: "Users", href: "/admin/users", icon: Users },
-  { label: "Videos", href: "/admin/videos", icon: Video },
+  { label: "แดชบอร์ด", href: "/admin/dashboard", icon: LayoutDashboard },
+  { label: "ผู้ใช้", href: "/admin/users", icon: Users },
+  { label: "วิดีโอ", href: "/admin/videos", icon: Video },
+  { label: "เพลย์ลิสต์", href: "/admin/playlists", icon: ListVideo },
+  { label: "สิทธิ์การเข้าถึง", href: "/admin/permissions", icon: Shield },
+  { label: "คำถามที่พบบ่อย", href: "/admin/faq", icon: HelpCircle },
+  { label: "เนื้อหา", href: "/admin/content", icon: FileText },
+  { label: "ข้อความติดต่อ", href: "/admin/contacts", icon: Mail },
+  { label: "วิเคราะห์", href: "/admin/analytics", icon: BarChart3 },
 ];
 
 interface AdminSidebarProps {
   open: boolean;
   onClose: () => void;
+  appName?: string;
 }
 
-export function AdminSidebar({ open, onClose }: AdminSidebarProps) {
+export function AdminSidebar({ open, onClose, appName = "อีเลิร์นนิง" }: AdminSidebarProps) {
   const pathname = usePathname();
 
   /** Close sidebar on route change (mobile) */
@@ -68,11 +87,12 @@ export function AdminSidebar({ open, onClose }: AdminSidebarProps) {
 
       {/* Sidebar */}
       <aside
+        role="navigation"
+        aria-label="Admin navigation"
         className={cn(
           "fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-slate-900 transition-transform duration-200 ease-in-out lg:translate-x-0 lg:transition-none",
           open ? "translate-x-0" : "-translate-x-full"
         )}
-        aria-label="Admin navigation"
       >
         {/* Brand header */}
         <div className="flex h-16 items-center justify-between border-b border-slate-800 px-6">
@@ -82,7 +102,7 @@ export function AdminSidebar({ open, onClose }: AdminSidebarProps) {
           >
             <GraduationCap className="h-6 w-6 text-indigo-400" />
             <span className="text-base font-semibold tracking-tight">
-              E-Learning Admin
+              {appName} แอดมิน
             </span>
           </Link>
           <Button
@@ -123,7 +143,7 @@ export function AdminSidebar({ open, onClose }: AdminSidebarProps) {
 
         {/* Sidebar footer */}
         <div className="border-t border-slate-800 px-6 py-4">
-          <p className="text-xs text-slate-500">Administration Panel</p>
+          <p className="text-xs text-slate-500">แผงควบคุมผู้ดูแลระบบ</p>
         </div>
       </aside>
     </>

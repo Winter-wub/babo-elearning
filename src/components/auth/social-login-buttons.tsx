@@ -81,9 +81,9 @@ interface ProviderConfig {
 }
 
 const PROVIDERS: ProviderConfig[] = [
-  { id: "google", label: "Continue with Google", Icon: GoogleIcon },
-  { id: "facebook", label: "Continue with Facebook", Icon: FacebookIcon },
-  { id: "apple", label: "Continue with Apple", Icon: AppleIcon },
+  { id: "google", label: "ดำเนินการต่อด้วย Google", Icon: GoogleIcon },
+  { id: "facebook", label: "ดำเนินการต่อด้วย Facebook", Icon: FacebookIcon },
+  { id: "apple", label: "ดำเนินการต่อด้วย Apple", Icon: AppleIcon },
 ];
 
 // ---------------------------------------------------------------------------

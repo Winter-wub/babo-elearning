@@ -5,6 +5,7 @@ import { ArrowLeft } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { incrementPlayCount } from "@/actions/video.actions";
+import { getPermissionTimeStatus } from "@/lib/permission-utils";
 import { VideoPlayerWithPolicy } from "@/components/video/video-player-with-policy";
 import { Button } from "@/components/ui/button";
 
@@ -29,7 +30,7 @@ export async function generateMetadata({ params }: VideoPageProps): Promise<Meta
   });
 
   return {
-    title: video?.title ?? "Watch Video",
+    title: video?.title ?? "ดูวิดีโอ",
   };
 }
 
@@ -75,18 +76,21 @@ export default async function VideoPage({ params }: VideoPageProps) {
     notFound();
   }
 
-  // ---- 3. Authorisation ---------------------------------------------------
+  // ---- 3. Authorisation (with time-based check) ---------------------------
   if (session.user.role === "STUDENT") {
     const permission = await db.videoPermission.findUnique({
       where: {
         userId_videoId: { userId: session.user.id, videoId },
       },
-      select: { id: true },
+      select: { id: true, validFrom: true, validUntil: true },
     });
 
     if (!permission) {
-      // Redirect to the dedicated 403 page.  We do NOT use notFound() here
-      // because that would leak whether the video ID exists at all.
+      redirect("/unauthorized");
+    }
+
+    const timeStatus = getPermissionTimeStatus(permission);
+    if (timeStatus === "expired" || timeStatus === "not_yet_active") {
       redirect("/unauthorized");
     }
   }
@@ -111,7 +115,7 @@ export default async function VideoPage({ params }: VideoPageProps) {
         <Button variant="ghost" size="sm" asChild className="gap-1.5 text-muted-foreground hover:text-foreground">
           <Link href="/dashboard">
             <ArrowLeft className="h-4 w-4" />
-            Back to Dashboard
+            กลับไปที่แดชบอร์ด
           </Link>
         </Button>
       </div>

@@ -82,27 +82,25 @@ describe("PlaylistCard", () => {
   describe("video count badge", () => {
     it("renders the video count badge with the correct number", () => {
       render(<PlaylistCard playlist={makePublicPlaylist({ videoCount: 5 })} />);
-      // Badge renders "{count} videos"
-      expect(screen.getByText(/5 videos/i)).toBeInTheDocument();
+      // Badge renders "{count} วิดีโอ"
+      expect(screen.getByText(/5 วิดีโอ/)).toBeInTheDocument();
     });
 
-    it('renders singular "video" label when videoCount is 1', () => {
+    it('renders "วิดีโอ" label when videoCount is 1', () => {
       render(<PlaylistCard playlist={makePublicPlaylist({ videoCount: 1 })} />);
-      expect(screen.getByText(/1 video/i)).toBeInTheDocument();
-      // Must not say "1 videos"
-      expect(screen.queryByText(/1 videos/i)).toBeNull();
+      expect(screen.getByText(/1 วิดีโอ/)).toBeInTheDocument();
     });
 
     it("renders badge with count 0", () => {
       render(<PlaylistCard playlist={makePublicPlaylist({ videoCount: 0 })} />);
-      expect(screen.getByText(/0 videos/i)).toBeInTheDocument();
+      expect(screen.getByText(/0 วิดีโอ/)).toBeInTheDocument();
     });
 
     it("renders badge with a large count", () => {
       render(
         <PlaylistCard playlist={makePublicPlaylist({ videoCount: 42 })} />
       );
-      expect(screen.getByText(/42 videos/i)).toBeInTheDocument();
+      expect(screen.getByText(/42 วิดีโอ/)).toBeInTheDocument();
     });
   });
 

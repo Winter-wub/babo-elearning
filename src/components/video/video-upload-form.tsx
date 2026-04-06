@@ -44,8 +44,8 @@ type UploadPhase =
 // ---------------------------------------------------------------------------
 
 const metadataSchema = z.object({
-  title: z.string().min(1, "Title is required").max(255, "Title is too long"),
-  description: z.string().max(2000, "Description must be under 2000 characters").optional(),
+  title: z.string().min(1, "จำเป็นต้องระบุชื่อเรื่อง").max(255, "ชื่อเรื่องยาวเกินไป"),
+  description: z.string().max(2000, "คำอธิบายต้องไม่เกิน 2000 ตัวอักษร").optional(),
 });
 
 type MetadataValues = z.infer<typeof metadataSchema>;
@@ -165,7 +165,7 @@ export function VideoUploadForm() {
       if (!acceptedTypes.includes(file.type) && !file.type.startsWith("video/")) {
         setPhase("error");
         setErrorMessage(
-          `Unsupported file type: ${file.type || "unknown"}. Please upload an MP4 or WebM video.`
+          `ไม่รองรับประเภทไฟล์: ${file.type || "ไม่ทราบ"} กรุณาอัปโหลดวิดีโอ MP4 หรือ WebM`
         );
         return;
       }
@@ -174,7 +174,7 @@ export function VideoUploadForm() {
       if (file.size > MAX_UPLOAD_SIZE_BYTES) {
         setPhase("error");
         setErrorMessage(
-          `File is too large (${formatBytes(file.size)}). Maximum allowed size is ${formatBytes(MAX_UPLOAD_SIZE_BYTES)}.`
+          `ไฟล์มีขนาดใหญ่เกินไป (${formatBytes(file.size)}) ขนาดสูงสุดที่อนุญาตคือ ${formatBytes(MAX_UPLOAD_SIZE_BYTES)}`
         );
         return;
       }
@@ -186,7 +186,7 @@ export function VideoUploadForm() {
       } catch (err) {
         setPhase("error");
         setErrorMessage(
-          err instanceof Error ? err.message : "Could not read video duration."
+          err instanceof Error ? err.message : "ไม่สามารถอ่านความยาววิดีโอได้"
         );
         return;
       }
@@ -194,7 +194,7 @@ export function VideoUploadForm() {
       if (duration > MAX_VIDEO_DURATION) {
         setPhase("error");
         setErrorMessage(
-          `Video is too long (${formatDuration(duration)}). Maximum allowed duration is ${formatDuration(MAX_VIDEO_DURATION)}.`
+          `วิดีโอยาวเกินไป (${formatDuration(duration)}) ความยาวสูงสุดที่อนุญาตคือ ${formatDuration(MAX_VIDEO_DURATION)}`
         );
         return;
       }
@@ -314,7 +314,7 @@ export function VideoUploadForm() {
             resolve(true);
           } else {
             setErrorMessage(
-              `Upload failed: server responded with HTTP ${xhr.status}. Please try again.`
+              `อัปโหลดไม่สำเร็จ: เซิร์ฟเวอร์ตอบกลับด้วย HTTP ${xhr.status} กรุณาลองอีกครั้ง`
             );
             resolve(false);
           }
@@ -322,7 +322,7 @@ export function VideoUploadForm() {
 
         xhr.addEventListener("error", () => {
           xhrRef.current = null;
-          setErrorMessage("Network error during upload. Check your connection and try again.");
+          setErrorMessage("เกิดข้อผิดพลาดของเครือข่ายระหว่างการอัปโหลด ตรวจสอบการเชื่อมต่อและลองอีกครั้ง");
           resolve(false);
         });
 
@@ -333,7 +333,7 @@ export function VideoUploadForm() {
 
         xhr.addEventListener("timeout", () => {
           xhrRef.current = null;
-          setErrorMessage("Upload timed out. The file may be too large or your connection too slow.");
+          setErrorMessage("การอัปโหลดหมดเวลา ไฟล์อาจมีขนาดใหญ่เกินไปหรือการเชื่อมต่อช้าเกินไป");
           resolve(false);
         });
 
@@ -393,9 +393,9 @@ export function VideoUploadForm() {
   return (
     <Card className="mx-auto max-w-2xl">
       <CardHeader>
-        <CardTitle>Upload a video</CardTitle>
+        <CardTitle>อัปโหลดวิดีโอ</CardTitle>
         <CardDescription>
-          Accepted formats: MP4, WebM. Maximum file size: 2 GB. Maximum duration: 1 hour.
+          รูปแบบที่รองรับ: MP4, WebM ขนาดไฟล์สูงสุด: 2 GB ความยาวสูงสุด: 1 ชั่วโมง
         </CardDescription>
       </CardHeader>
 
@@ -444,16 +444,16 @@ export function VideoUploadForm() {
                 <UploadCloud className="h-12 w-12 text-muted-foreground" />
                 <div>
                   <p className="text-sm font-medium">
-                    Drag and drop a video file, or{" "}
-                    <span className="text-primary underline underline-offset-2">browse</span>
+                    ลากและวางไฟล์วิดีโอ หรือ{" "}
+                    <span className="text-primary underline underline-offset-2">เลือกไฟล์</span>
                   </p>
-                  <p className="mt-1 text-xs text-muted-foreground">MP4 or WebM, up to 2 GB</p>
+                  <p className="mt-1 text-xs text-muted-foreground">MP4 หรือ WebM ขนาดสูงสุด 2 GB</p>
                 </div>
               </>
             ) : phase === "validating" ? (
               <>
                 <Spinner size="lg" />
-                <p className="text-sm text-muted-foreground">Checking video file...</p>
+                <p className="text-sm text-muted-foreground">กำลังตรวจสอบไฟล์วิดีโอ...</p>
               </>
             ) : selectedFile ? (
               /* File is selected and valid */
@@ -502,7 +502,7 @@ export function VideoUploadForm() {
           {phase === "uploading" && (
             <div className="space-y-1.5">
               <div className="flex justify-between text-xs text-muted-foreground">
-                <span>Uploading to storage...</span>
+                <span>กำลังอัปโหลดไปยังที่เก็บข้อมูล...</span>
                 <span>{uploadProgress}%</span>
               </div>
               <div
@@ -526,7 +526,7 @@ export function VideoUploadForm() {
           {phase === "saving" && (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Spinner size="sm" />
-              <span>Saving video metadata...</span>
+              <span>กำลังบันทึกข้อมูลวิดีโอ...</span>
             </div>
           )}
 
@@ -539,7 +539,7 @@ export function VideoUploadForm() {
               className="flex items-center gap-2 rounded-md border border-green-500/30 bg-green-50 px-4 py-3 text-sm font-medium text-green-700 dark:bg-green-950/20 dark:text-green-400"
             >
               <CheckCircle2 className="h-4 w-4 shrink-0" />
-              Video uploaded successfully. Redirecting...
+              อัปโหลดวิดีโอสำเร็จแล้ว กำลังเปลี่ยนเส้นทาง...
             </div>
           )}
 
@@ -553,12 +553,12 @@ export function VideoUploadForm() {
               {/* Title */}
               <div className="space-y-2">
                 <Label htmlFor="video-title">
-                  Title <span aria-hidden="true" className="text-destructive">*</span>
+                  ชื่อเรื่อง <span aria-hidden="true" className="text-destructive">*</span>
                 </Label>
                 <Input
                   id="video-title"
                   type="text"
-                  placeholder="Enter a descriptive title"
+                  placeholder="กรอกชื่อเรื่องที่อธิบายได้ชัดเจน"
                   autoComplete="off"
                   error={!!errors.title}
                   aria-describedby={errors.title ? "video-title-error" : undefined}
@@ -574,11 +574,11 @@ export function VideoUploadForm() {
 
               {/* Description */}
               <div className="space-y-2">
-                <Label htmlFor="video-description">Description</Label>
+                <Label htmlFor="video-description">คำอธิบาย</Label>
                 <textarea
                   id="video-description"
                   rows={3}
-                  placeholder="Optional description visible to students..."
+                  placeholder="คำอธิบายที่นักเรียนจะเห็น (ไม่บังคับ)..."
                   className={cn(
                     "flex min-h-[80px] w-full resize-y rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50",
                     errors.description && "border-destructive focus-visible:ring-destructive"
@@ -608,22 +608,22 @@ export function VideoUploadForm() {
               {phase === "uploading" ? (
                 <>
                   <Spinner size="sm" className="text-primary-foreground" />
-                  Uploading... {uploadProgress}%
+                  กำลังอัปโหลด... {uploadProgress}%
                 </>
               ) : phase === "saving" ? (
                 <>
                   <Spinner size="sm" className="text-primary-foreground" />
-                  Saving metadata...
+                  กำลังบันทึกข้อมูล...
                 </>
               ) : phase === "success" ? (
                 <>
                   <CheckCircle2 className="h-4 w-4" />
-                  Upload complete
+                  อัปโหลดเสร็จสิ้น
                 </>
               ) : (
                 <>
                   <UploadCloud className="h-4 w-4" />
-                  Upload video
+                  อัปโหลดวิดีโอ
                 </>
               )}
             </Button>

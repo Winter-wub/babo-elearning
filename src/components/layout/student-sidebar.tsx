@@ -3,7 +3,7 @@
 import { useCallback, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Video, X, GraduationCap } from "lucide-react";
+import { LayoutDashboard, Video, X, GraduationCap, UserCircle, ListVideo } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
@@ -14,16 +14,19 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { label: "My Videos", href: "/videos", icon: Video },
+  { label: "แดชบอร์ด", href: "/dashboard", icon: LayoutDashboard },
+  { label: "วิดีโอของฉัน", href: "/videos", icon: Video },
+  { label: "เพลย์ลิสต์", href: "/playlists", icon: ListVideo },
+  { label: "โปรไฟล์ของฉัน", href: "/profile", icon: UserCircle },
 ];
 
 interface StudentSidebarProps {
   open: boolean;
   onClose: () => void;
+  appName?: string;
 }
 
-export function StudentSidebar({ open, onClose }: StudentSidebarProps) {
+export function StudentSidebar({ open, onClose, appName = "อีเลิร์นนิง" }: StudentSidebarProps) {
   const pathname = usePathname();
 
   /** Close sidebar on route change (mobile) */
@@ -66,11 +69,12 @@ export function StudentSidebar({ open, onClose }: StudentSidebarProps) {
 
       {/* Sidebar */}
       <aside
+        role="navigation"
+        aria-label="Student navigation"
         className={cn(
           "fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-border bg-background transition-transform duration-200 ease-in-out lg:translate-x-0 lg:transition-none",
           open ? "translate-x-0" : "-translate-x-full"
         )}
-        aria-label="Student navigation"
       >
         {/* Brand header */}
         <div className="flex h-16 items-center justify-between border-b border-border px-6">
@@ -80,7 +84,7 @@ export function StudentSidebar({ open, onClose }: StudentSidebarProps) {
           >
             <GraduationCap className="h-6 w-6 text-indigo-600" />
             <span className="text-base font-semibold tracking-tight">
-              E-Learning
+              {appName}
             </span>
           </Link>
           <Button
@@ -88,7 +92,7 @@ export function StudentSidebar({ open, onClose }: StudentSidebarProps) {
             size="icon"
             onClick={onClose}
             className="lg:hidden"
-            aria-label="Close navigation"
+            aria-label="ปิดเมนู"
           >
             <X className="h-5 w-5" />
           </Button>
@@ -126,7 +130,7 @@ export function StudentSidebar({ open, onClose }: StudentSidebarProps) {
 
         {/* Sidebar footer */}
         <div className="border-t border-border px-6 py-4">
-          <p className="text-xs text-muted-foreground">Student Portal</p>
+          <p className="text-xs text-muted-foreground">พอร์ทัลนักเรียน</p>
         </div>
       </aside>
     </>

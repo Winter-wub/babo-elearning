@@ -9,7 +9,6 @@ export { TrendingListItem } from "./trending-list-item";
 export { PlaylistCard } from "./playlist-card";
 export { FeaturedPlaylistsSection } from "./featured-playlists-section";
 export { CategoryPlaylistsGrid } from "./category-playlists-grid";
-export { PartnersStrip } from "./partners-strip";
 export { NavCoursesDropdown } from "./nav-courses-dropdown";
 
 // ── Existing components (kept for backward compatibility) ─────────────────────

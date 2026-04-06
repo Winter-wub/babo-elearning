@@ -31,14 +31,14 @@ export async function registerUser(
 ): Promise<ActionResult<{ id: string }>> {
   const parsed = RegisterSchema.safeParse(data);
   if (!parsed.success) {
-    return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
+    return { success: false, error: parsed.error.issues[0]?.message ?? "ข้อมูลไม่ถูกต้อง" };
   }
 
   const { name, email, password } = parsed.data;
 
   const existing = await db.user.findUnique({ where: { email } });
   if (existing) {
-    return { success: false, error: "An account with this email already exists." };
+    return { success: false, error: "มีบัญชีที่ใช้อีเมลนี้อยู่แล้ว" };
   }
 
   const passwordHash = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
@@ -75,7 +75,7 @@ export async function checkPolicyAgreement(): Promise<boolean> {
 export async function acceptPolicy(): Promise<ActionResult<{ id: string }>> {
   const session = await auth();
   if (!session?.user) {
-    return { success: false, error: "Unauthorized" };
+    return { success: false, error: "ไม่มีสิทธิ์" };
   }
 
   // Determine IP server-side from request headers (never trust client-supplied IP)

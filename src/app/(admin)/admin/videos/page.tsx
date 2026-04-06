@@ -9,7 +9,7 @@ import { getVideos } from "@/actions/video.actions";
 // -----------------------------------------------------------------------
 
 export const metadata: Metadata = {
-  title: "Video Management",
+  title: "จัดการวิดีโอ",
 };
 
 // -----------------------------------------------------------------------
@@ -64,10 +64,10 @@ export default function AdminVideosPage(props: AdminVideosPageProps) {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">
-          Video Management
+          จัดการวิดีโอ
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Upload and manage videos, control visibility, and review access permissions.
+          อัปโหลดและจัดการวิดีโอ ควบคุมการมองเห็น และตรวจสอบสิทธิ์การเข้าถึง
         </p>
       </div>
 

@@ -124,7 +124,7 @@ describe("registerUser()", () => {
 
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.error).toMatch(/already exists/i);
+      expect(result.error).toMatch(/มีบัญชีที่ใช้อีเมลนี้อยู่แล้ว/);
     }
 
     // Should never attempt to create a user
@@ -235,7 +235,7 @@ describe("acceptPolicy()", () => {
 
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.error).toMatch(/unauthorized/i);
+      expect(result.error).toMatch(/ไม่มีสิทธิ์/);
     }
 
     expect(mockDb.policyAgreement.create).not.toHaveBeenCalled();

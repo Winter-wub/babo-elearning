@@ -14,7 +14,7 @@ export function HomeHero({ isAuthenticated, userRole }: HomeHeroProps) {
       : "/dashboard"
     : "/register";
 
-  const ctaLabel = isAuthenticated ? "Go to Dashboard" : "Get Started";
+  const ctaLabel = isAuthenticated ? "ไปที่แดชบอร์ด" : "เริ่มต้นเลย";
 
   return (
     <section className="relative overflow-hidden bg-muted/40">
@@ -27,12 +27,11 @@ export function HomeHero({ isAuthenticated, userRole }: HomeHeroProps) {
       <div className="relative mx-auto max-w-7xl px-4 py-24 sm:px-6 sm:py-32 lg:px-8 lg:py-40">
         <div className="mx-auto max-w-2xl text-center">
           <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl lg:text-6xl">
-            Learn at Your Own Pace
+            เรียนรู้ตามจังหวะของคุณ
           </h1>
           <p className="mt-6 text-lg leading-8 text-muted-foreground">
-            Access curated video courses from industry experts. Build real
-            skills, at your own schedule, with content designed to help you
-            succeed.
+            เข้าถึงคอร์สวิดีโอคัดสรรจากผู้เชี่ยวชาญในอุตสาหกรรม สร้างทักษะจริง
+            ตามตารางเวลาของคุณ ด้วยเนื้อหาที่ออกแบบมาเพื่อช่วยให้คุณประสบความสำเร็จ
           </p>
           <div className="mt-10 flex items-center justify-center gap-4">
             <Button size="lg" asChild>

@@ -9,7 +9,7 @@ export function FeaturedPlaylistsSection({ playlists }: FeaturedPlaylistsSection
   return (
     <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-16 lg:px-8">
       <h2 className="text-2xl font-semibold tracking-tight text-foreground">
-        Featured Playlists
+        เพลย์ลิสต์แนะนำ
       </h2>
 
       {playlists.length > 0 ? (
@@ -21,7 +21,7 @@ export function FeaturedPlaylistsSection({ playlists }: FeaturedPlaylistsSection
         </div>
       ) : (
         <p className="mt-6 text-sm text-muted-foreground">
-          No featured playlists yet.
+          ยังไม่มีเพลย์ลิสต์แนะนำ
         </p>
       )}
     </section>

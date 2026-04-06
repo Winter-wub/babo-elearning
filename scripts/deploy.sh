@@ -31,6 +31,7 @@ set -euo pipefail
 # --------------------------------------------------------------------------- #
 APP_NAME="e-learning-platform"
 DB_NAME="e-learning-platform-db"
+MINIO_APP_NAME="e-learning-platform-minio"
 REGION="sin"   # Singapore; see `flyctl platform regions` for options
 
 # --------------------------------------------------------------------------- #
@@ -85,6 +86,53 @@ create_postgres() {
 }
 
 # --------------------------------------------------------------------------- #
+# Step 2b — Provision MinIO (S3-compatible storage) on Fly.io                  #
+# --------------------------------------------------------------------------- #
+create_minio() {
+  info "Creating MinIO app: $MINIO_APP_NAME in region $REGION"
+
+  flyctl apps create "$MINIO_APP_NAME" --machines || warn "MinIO app may already exist — continuing."
+
+  info "Creating persistent volume for MinIO data (10 GB)"
+  flyctl volumes create minio_data \
+    --size 10 \
+    --region "$REGION" \
+    --app "$MINIO_APP_NAME" \
+    || warn "Volume may already exist — continuing."
+
+  info "Setting MinIO credentials"
+  echo -n "MINIO_ROOT_USER (default: minioadmin) > "
+  read -r MINIO_USER_VAL
+  MINIO_USER_VAL="${MINIO_USER_VAL:-minioadmin}"
+  echo -n "MINIO_ROOT_PASSWORD (min 8 chars) > "
+  read -rs MINIO_PASS_VAL
+  echo ""
+  MINIO_PASS_VAL="${MINIO_PASS_VAL:-minioadmin}"
+
+  flyctl secrets set \
+    MINIO_ROOT_USER="$MINIO_USER_VAL" \
+    MINIO_ROOT_PASSWORD="$MINIO_PASS_VAL" \
+    --app "$MINIO_APP_NAME"
+
+  info "Deploying MinIO"
+  flyctl deploy --config fly.minio.toml --app "$MINIO_APP_NAME" --remote-only
+
+  info "MinIO deployed. Creating bucket via flyctl ssh..."
+  # Wait for machine to be ready
+  sleep 5
+  flyctl ssh console --app "$MINIO_APP_NAME" -C \
+    "mc alias set local http://localhost:9000 $MINIO_USER_VAL $MINIO_PASS_VAL && mc mb --ignore-existing local/elearning-videos" \
+    || warn "Could not create bucket automatically — create it manually via the MinIO console."
+
+  # Store credentials for the secrets step
+  export _MINIO_USER="$MINIO_USER_VAL"
+  export _MINIO_PASS="$MINIO_PASS_VAL"
+
+  info "MinIO is available at: http://$MINIO_APP_NAME.internal:9000 (Fly private network)"
+  info "MinIO console: https://$MINIO_APP_NAME.fly.dev:9001"
+}
+
+# --------------------------------------------------------------------------- #
 # Step 3 — Set application secrets                                             #
 # --------------------------------------------------------------------------- #
 set_secrets() {
@@ -102,15 +150,28 @@ set_secrets() {
   read -r AUTH_URL_VAL
 
   # ------------------------------------------------------------------ #
-  # Cloudflare R2                                                        #
+  # S3-compatible storage (MinIO on Fly private network)                 #
   # ------------------------------------------------------------------ #
-  echo -n "R2_ACCOUNT_ID > "
+  local MINIO_USER="${_MINIO_USER:-minioadmin}"
+  local MINIO_PASS="${_MINIO_PASS:-minioadmin}"
+
+  echo -n "R2_ENDPOINT (default: http://$MINIO_APP_NAME.internal:9000) > "
+  read -r R2_ENDPOINT_VAL
+  R2_ENDPOINT_VAL="${R2_ENDPOINT_VAL:-http://$MINIO_APP_NAME.internal:9000}"
+
+  echo -n "R2_ACCOUNT_ID (default: minio) > "
   read -r R2_ACCOUNT_ID_VAL
-  echo -n "R2_ACCESS_KEY_ID > "
+  R2_ACCOUNT_ID_VAL="${R2_ACCOUNT_ID_VAL:-minio}"
+
+  echo -n "R2_ACCESS_KEY_ID (default: $MINIO_USER) > "
   read -r R2_ACCESS_KEY_ID_VAL
-  echo -n "R2_SECRET_ACCESS_KEY > "
+  R2_ACCESS_KEY_ID_VAL="${R2_ACCESS_KEY_ID_VAL:-$MINIO_USER}"
+
+  echo -n "R2_SECRET_ACCESS_KEY (default: from MinIO setup) > "
   read -rs R2_SECRET_ACCESS_KEY_VAL
+  R2_SECRET_ACCESS_KEY_VAL="${R2_SECRET_ACCESS_KEY_VAL:-$MINIO_PASS}"
   echo ""
+
   echo -n "R2_BUCKET_NAME (default: elearning-videos) > "
   read -r R2_BUCKET_NAME_VAL
   R2_BUCKET_NAME_VAL="${R2_BUCKET_NAME_VAL:-elearning-videos}"
@@ -126,6 +187,7 @@ set_secrets() {
 
   [[ -n "$AUTH_SECRET_VAL"           ]] && SECRETS_ARGS+=" AUTH_SECRET=$AUTH_SECRET_VAL"
   [[ -n "$AUTH_URL_VAL"              ]] && SECRETS_ARGS+=" AUTH_URL=$AUTH_URL_VAL"
+  [[ -n "$R2_ENDPOINT_VAL"           ]] && SECRETS_ARGS+=" R2_ENDPOINT=$R2_ENDPOINT_VAL"
   [[ -n "$R2_ACCOUNT_ID_VAL"        ]] && SECRETS_ARGS+=" R2_ACCOUNT_ID=$R2_ACCOUNT_ID_VAL"
   [[ -n "$R2_ACCESS_KEY_ID_VAL"     ]] && SECRETS_ARGS+=" R2_ACCESS_KEY_ID=$R2_ACCESS_KEY_ID_VAL"
   [[ -n "$R2_SECRET_ACCESS_KEY_VAL" ]] && SECRETS_ARGS+=" R2_SECRET_ACCESS_KEY=$R2_SECRET_ACCESS_KEY_VAL"
@@ -168,6 +230,7 @@ case "$COMMAND" in
     info "=== fly.io first-time setup for $APP_NAME ==="
     create_app
     create_postgres
+    create_minio
     set_secrets
     deploy
     info ""

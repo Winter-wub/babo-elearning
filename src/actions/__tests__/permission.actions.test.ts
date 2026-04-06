@@ -124,7 +124,7 @@ describe("grantPermission()", () => {
 
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.error).toMatch(/unauthorized/i);
+      expect(result.error).toMatch(/ไม่มีสิทธิ์/);
     }
 
     expect(mockDb.videoPermission.upsert).not.toHaveBeenCalled();
@@ -178,7 +178,7 @@ describe("revokePermission()", () => {
 
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.error).toMatch(/unauthorized/i);
+      expect(result.error).toMatch(/ไม่มีสิทธิ์/);
     }
     expect(mockDb.videoPermission.delete).not.toHaveBeenCalled();
   });

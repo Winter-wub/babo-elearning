@@ -20,11 +20,11 @@ import { usePolicyAgreement } from "@/hooks/use-policy-agreement";
 // ---------------------------------------------------------------------------
 
 const POLICY_TERMS = [
-  "Not download, record, or capture any video content",
-  "Not use screen recording software while viewing",
-  "Not share your account or access credentials",
-  "Not attempt to circumvent any security measures",
-  "Report any security concerns to administrators",
+  "ไม่ดาวน์โหลด บันทึก หรือจับภาพเนื้อหาวิดีโอใดๆ",
+  "ไม่ใช้ซอฟต์แวร์บันทึกหน้าจอขณะรับชม",
+  "ไม่แชร์บัญชีหรือข้อมูลการเข้าสู่ระบบของคุณ",
+  "ไม่พยายามหลีกเลี่ยงมาตรการรักษาความปลอดภัยใดๆ",
+  "รายงานข้อกังวลด้านความปลอดภัยต่อผู้ดูแลระบบ",
 ] as const;
 
 // ---------------------------------------------------------------------------
@@ -78,9 +78,9 @@ export function PolicyAgreementModal({ onAccepted }: PolicyAgreementModalProps) 
           <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 sm:mx-0">
             <ShieldCheck className="h-6 w-6 text-primary" />
           </div>
-          <DialogTitle className="text-xl">Terms of Use Agreement</DialogTitle>
+          <DialogTitle className="text-xl">ข้อตกลงการใช้งาน</DialogTitle>
           <DialogDescription>
-            Please review and accept the terms before watching video content.
+            กรุณาตรวจสอบและยอมรับข้อกำหนดก่อนรับชมเนื้อหาวิดีโอ
           </DialogDescription>
         </DialogHeader>
 
@@ -88,11 +88,11 @@ export function PolicyAgreementModal({ onAccepted }: PolicyAgreementModalProps) 
         <div
           className="max-h-56 overflow-y-auto rounded-md border bg-muted/50 p-4"
           role="region"
-          aria-label="Terms of use"
+          aria-label="ข้อกำหนดการใช้งาน"
           tabIndex={0}
         >
           <p className="mb-3 text-sm font-medium text-foreground">
-            By accessing video content on this platform, you agree to:
+            เมื่อเข้าถึงเนื้อหาวิดีโอบนแพลตฟอร์มนี้ คุณยอมรับว่าจะ:
           </p>
           <ol className="list-decimal space-y-2 pl-5 text-sm text-muted-foreground">
             {POLICY_TERMS.map((term, index) => (
@@ -100,7 +100,7 @@ export function PolicyAgreementModal({ onAccepted }: PolicyAgreementModalProps) 
             ))}
           </ol>
           <p className="mt-4 text-sm font-medium text-destructive">
-            Violation of these terms may result in immediate account suspension.
+            การละเมิดข้อกำหนดเหล่านี้อาจส่งผลให้บัญชีถูกระงับทันที
           </p>
         </div>
 
@@ -117,7 +117,7 @@ export function PolicyAgreementModal({ onAccepted }: PolicyAgreementModalProps) 
             htmlFor="policy-agreement"
             className="cursor-pointer text-sm leading-snug text-foreground"
           >
-            I have read and agree to the Terms of Use
+            ฉันได้อ่านและยอมรับข้อกำหนดการใช้งาน
           </label>
         </div>
 
@@ -136,7 +136,7 @@ export function PolicyAgreementModal({ onAccepted }: PolicyAgreementModalProps) 
             onClick={handleDecline}
             disabled={isSubmitting}
           >
-            Decline
+            ปฏิเสธ
           </Button>
           <Button
             type="button"
@@ -144,7 +144,7 @@ export function PolicyAgreementModal({ onAccepted }: PolicyAgreementModalProps) 
             disabled={!checked || isSubmitting}
           >
             {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
-            {isSubmitting ? "Accepting..." : "Accept"}
+            {isSubmitting ? "กำลังยอมรับ..." : "ยอมรับ"}
           </Button>
         </DialogFooter>
       </DialogContent>

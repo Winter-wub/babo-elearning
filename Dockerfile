@@ -73,6 +73,8 @@ ENV NEXT_TELEMETRY_DISABLED=1
 
 RUN pnpm build
 
+# No separate prisma-cli prep needed — installed directly in runner stage
+
 # ---------------------------------------------------------------------------- #
 # Stage 3: runner — minimal production image                                   #
 # ---------------------------------------------------------------------------- #
@@ -112,6 +114,14 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static    ./.next/static
 
 # Copy schema and migration files
 COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
+# Copy prisma config (Prisma 7 needs prisma.config.ts for migrate deploy)
+COPY --from=builder --chown=nextjs:nodejs /app/prisma.config.ts ./prisma.config.ts
+# Install Prisma CLI in an isolated directory for running migrations,
+# then symlink into /app/node_modules so prisma.config.ts can resolve "prisma/config"
+RUN mkdir -p /prisma-cli && cd /prisma-cli && npm init -y > /dev/null 2>&1 && \
+    npm install prisma@7.6.0 --save-exact 2>&1 | tail -1 && \
+    ln -sf /prisma-cli/node_modules/prisma /app/node_modules/prisma && \
+    ln -sf /prisma-cli/node_modules/@prisma /app/node_modules/@prisma 2>/dev/null || true
 
 # Switch to non-root before starting the server
 USER nextjs

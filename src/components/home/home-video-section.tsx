@@ -12,7 +12,7 @@ interface HomeVideoSectionProps {
 export function HomeVideoSection({
   title,
   videos,
-  emptyMessage = "No videos available yet.",
+  emptyMessage = "ยังไม่มีวิดีโอ",
   isAuthenticated,
 }: HomeVideoSectionProps) {
   return (

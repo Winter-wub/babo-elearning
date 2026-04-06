@@ -21,10 +21,6 @@ export const metadata: Metadata = {
     template: `%s | ${APP_NAME}`,
   },
   description: APP_DESCRIPTION,
-  robots: {
-    index: false, // Private platform — keep out of search engines
-    follow: false,
-  },
 };
 
 export default function RootLayout({

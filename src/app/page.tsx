@@ -4,27 +4,34 @@ import {
   getPublicFeaturedPlaylists,
   getPublicCategoryPlaylists,
 } from "@/actions/playlist.actions";
+import { getSiteContent } from "@/actions/content.actions";
 import {
   HomeHeader,
   HomeHeroCarousel,
   TrendingSection,
   FeaturedPlaylistsSection,
   CategoryPlaylistsGrid,
-  PartnersStrip,
   HomeFooter,
 } from "@/components/home";
+import { getAppName } from "@/lib/app-config";
 
 /**
  * Public home page — visible to authenticated and unauthenticated users alike.
  * Fetches trending videos, featured playlists, and category playlists in parallel.
  */
 export default async function HomePage() {
-  const [session, trendingResult, featuredResult, categoryResult] =
+  const [session, trendingResult, featuredResult, categoryResult, appName, heroContent] =
     await Promise.all([
       auth(),
       getPublicTrendingVideos(10),
       getPublicFeaturedPlaylists(4),
       getPublicCategoryPlaylists(8),
+      getAppName(),
+      getSiteContent([
+        "hero.slide1.headline", "hero.slide1.sub", "hero.slide1.cta", "hero.slide1.ctaHref",
+        "hero.slide2.headline", "hero.slide2.sub", "hero.slide2.cta", "hero.slide2.ctaHref",
+        "hero.slide3.headline", "hero.slide3.sub", "hero.slide3.cta", "hero.slide3.ctaHref",
+      ]),
     ]);
 
   const isAuthenticated = !!session?.user;
@@ -40,10 +47,11 @@ export default async function HomePage() {
         isAuthenticated={isAuthenticated}
         userRole={userRole}
         userName={session?.user?.name ?? undefined}
+        appName={appName}
       />
 
       <main className="flex-1">
-        <HomeHeroCarousel />
+        <HomeHeroCarousel content={heroContent} />
 
         {/* Split row: 60/40 — Trending left, Featured Playlists right */}
         <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12">
@@ -61,7 +69,6 @@ export default async function HomePage() {
         </section>
 
         <CategoryPlaylistsGrid playlists={categoryPlaylists} />
-        <PartnersStrip />
       </main>
 
       <HomeFooter />

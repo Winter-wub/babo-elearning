@@ -1,7 +1,15 @@
 import { PrismaClient, Role } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
+import pg from "pg";
 import bcrypt from "bcryptjs";
 
-const prisma = new PrismaClient();
+const connectionString = process.env.DATABASE_URL;
+if (!connectionString) {
+  throw new Error("DATABASE_URL environment variable is not set.");
+}
+const pool = new pg.Pool({ connectionString });
+const adapter = new PrismaPg(pool);
+const prisma = new PrismaClient({ adapter });
 
 async function hashPassword(plain: string): Promise<string> {
   return bcrypt.hash(plain, 12);
@@ -140,29 +148,83 @@ async function main() {
   videos.forEach((v) => console.log(`Video: "${v.title}" (id: ${v.id})`));
 
   // -------------------------
-  // Video permissions
-  // alice -> both videos
-  // bob  -> first video only
-  // carol -> no permissions
+  // Video permissions (time-based examples)
   // -------------------------
-  const permissionsData = [
-    { student: students[0], video: videos[0] }, // alice -> intro
-    { student: students[0], video: videos[1] }, // alice -> advanced react
-    { student: students[1], video: videos[0] }, // bob   -> intro
+  const now = new Date();
+  const DAY = 24 * 60 * 60 * 1000;
+
+  const permissionsData: {
+    student: (typeof students)[0];
+    video: (typeof videos)[0];
+    timeFields: { validFrom?: Date | null; validUntil?: Date | null; durationDays?: number | null };
+    label: string;
+  }[] = [
+    // Permanent: alice -> intro (existing behavior)
+    {
+      student: students[0], video: videos[0],
+      timeFields: {},
+      label: "permanent",
+    },
+    // Active 30-day duration: alice -> advanced react
+    {
+      student: students[0], video: videos[1],
+      timeFields: {
+        validUntil: new Date(now.getTime() + 30 * DAY),
+        durationDays: 30,
+      },
+      label: "active 30-day",
+    },
+    // Active absolute range: bob -> intro
+    {
+      student: students[1], video: videos[0],
+      timeFields: {
+        validFrom: new Date(now.getTime() - 3 * DAY),
+        validUntil: new Date(now.getTime() + 7 * DAY),
+      },
+      label: "active range",
+    },
+    // Expired: bob -> typescript (for testing expired state)
+    {
+      student: students[1], video: videos[2],
+      timeFields: {
+        validUntil: new Date(now.getTime() - 1 * DAY),
+        durationDays: 1,
+      },
+      label: "expired",
+    },
+    // Scheduled/not-yet-active: carol -> CSS grid (starts tomorrow)
+    {
+      student: students[2], video: videos[3],
+      timeFields: {
+        validFrom: new Date(now.getTime() + 1 * DAY),
+        validUntil: new Date(now.getTime() + 31 * DAY),
+      },
+      label: "scheduled (starts tomorrow)",
+    },
+    // Expiring soon: alice -> typescript (expires in 3 days — for amber badge)
+    {
+      student: students[0], video: videos[2],
+      timeFields: {
+        validUntil: new Date(now.getTime() + 3 * DAY),
+        durationDays: 10,
+      },
+      label: "expiring soon (3 days)",
+    },
   ];
 
-  for (const { student, video } of permissionsData) {
+  for (const { student, video, timeFields, label } of permissionsData) {
     const permission = await prisma.videoPermission.upsert({
       where: { userId_videoId: { userId: student.id, videoId: video.id } },
-      update: {},
+      update: { ...timeFields },
       create: {
         userId: student.id,
         videoId: video.id,
         grantedBy: admin.id,
+        ...timeFields,
       },
     });
     console.log(
-      `Permission granted: ${student.name} -> "${video.title}" (id: ${permission.id})`
+      `Permission [${label}]: ${student.name} -> "${video.title}" (id: ${permission.id})`
     );
   }
 
@@ -262,6 +324,126 @@ async function main() {
     );
   }
 
+  // -------------------------
+  // Site content (CMS)
+  // -------------------------
+  const siteContentData = [
+    // Hero carousel slides (home page)
+    { key: "hero.slide1.headline", value: "เรียนรู้ตามจังหวะของคุณ" },
+    { key: "hero.slide1.sub", value: "คอร์สวิดีโอคัดสรรจากผู้เชี่ยวชาญในอุตสาหกรรม" },
+    { key: "hero.slide1.cta", value: "ดูคอร์สเรียน" },
+    { key: "hero.slide1.ctaHref", value: "#" },
+    { key: "hero.slide2.headline", value: "สร้างทักษะการเงินที่แท้จริง" },
+    { key: "hero.slide2.sub", value: "ตั้งแต่การลงทุนเบื้องต้นจนถึงการวางแผนภาษีขั้นสูง" },
+    { key: "hero.slide2.cta", value: "เริ่มต้นเลย" },
+    { key: "hero.slide2.ctaHref", value: "/register" },
+    { key: "hero.slide3.headline", value: "เรียนรู้กับผู้เชี่ยวชาญ" },
+    { key: "hero.slide3.sub", value: "เพลย์ลิสต์ที่จัดโครงสร้างเพื่อเป้าหมายของคุณ" },
+    { key: "hero.slide3.cta", value: "ดูเพลย์ลิสต์" },
+    { key: "hero.slide3.ctaHref", value: "#" },
+    // About page
+    { key: "about.hero.title", value: "E-Learning Platform" },
+    { key: "about.hero.subtitle", value: "A comprehensive online learning platform packed with curated video courses on web development, programming, and software engineering — helping you build lasting skills at your own pace." },
+    { key: "about.highlight.1.title", value: "Comprehensive Knowledge Coverage" },
+    { key: "about.highlight.1.desc", value: "Courses cover everything from frontend basics to advanced backend architecture, ensuring a well-rounded skill set." },
+    { key: "about.highlight.2.title", value: "Divided into Micro-Lessons" },
+    { key: "about.highlight.2.desc", value: "Each course is broken down into bite-sized video lessons that are easy to follow and fit into your schedule." },
+    { key: "about.highlight.3.title", value: "Includes Assessments" },
+    { key: "about.highlight.3.desc", value: "Test your understanding with quizzes and practical exercises at the end of each module." },
+    { key: "about.highlight.4.title", value: "Learning Progress Tracking" },
+    { key: "about.highlight.4.desc", value: "Track your learning journey with detailed progress indicators and completion certificates." },
+    { key: "about.highlight.5.title", value: "Multi-Device Support" },
+    { key: "about.highlight.5.desc", value: "Access your courses seamlessly on PC, laptop, tablet, or mobile — learn anywhere, anytime." },
+    { key: "about.info.sysreq.title", value: "System Requirements" },
+    { key: "about.info.sysreq.content", value: "A modern web browser (Chrome, Firefox, Safari, Edge) with a stable internet connection. Minimum 2 Mbps recommended for smooth video playback." },
+    { key: "about.info.cert.title", value: "Certification Process" },
+    { key: "about.info.cert.content", value: "Complete all lessons in a course, pass the final assessment with 80% or higher, and receive a digital certificate of completion." },
+    // Contact page
+    { key: "contact.email", value: "support@elearning.com" },
+    { key: "contact.phone", value: "+66 2-000-0000" },
+    { key: "contact.address", value: "123 Learning Street, Bangkok, Thailand 10110" },
+    // Privacy Policy
+    { key: "privacy.title", value: "Privacy Policy" },
+    { key: "privacy.content", value: "Last updated: January 1, 2026\n\n1. Information We Collect\n\nWe collect information you provide directly to us when you create an account, including your name, email address, and password. We also collect usage data such as video watch history and course progress.\n\n2. How We Use Your Information\n\nWe use the information we collect to:\n- Provide, maintain, and improve our services\n- Process your account registration and manage your account\n- Track your learning progress and generate completion certificates\n- Send you technical notices and support messages\n\n3. Data Security\n\nWe implement appropriate technical and organizational measures to protect the security of your personal information. All data is transmitted over encrypted connections (TLS/SSL), and passwords are stored using industry-standard hashing algorithms.\n\n4. Contact Us\n\nIf you have any questions about this Privacy Policy, please contact us at support@elearning.com." },
+    // Terms of Use
+    { key: "terms.title", value: "Terms of Use" },
+    // App name (configurable)
+    { key: "app.name", value: "อีเลิร์นนิง" },
+    // Footer about section
+    { key: "footer.about.heading", value: "เกี่ยวกับ" },
+    { key: "footer.about.description", value: "แพลตฟอร์มอีเลิร์นนิงมอบคอร์สวิดีโอจากผู้เชี่ยวชาญด้านการเงิน การลงทุน และการวางแผนภาษี ช่วยให้คุณสร้างความรู้ที่ยั่งยืนตามจังหวะของคุณ" },
+    { key: "footer.about.address", value: "123 Learning Street,\nBangkok, Thailand 10110" },
+    { key: "footer.copyright", value: "แพลตฟอร์มอีเลิร์นนิง สงวนลิขสิทธิ์" },
+    { key: "terms.content", value: "Last updated: January 1, 2026\n\n1. Acceptance of Terms\n\nBy accessing or using the E-Learning Platform, you agree to be bound by these Terms of Use. If you do not agree to these terms, please do not use our services.\n\n2. Account Registration\n\nTo access video courses, you must create an account with a valid email address and password. You are responsible for maintaining the confidentiality of your account credentials.\n\n3. Use of Content\n\nAll video courses and materials are provided for personal, non-commercial educational use only. You may not:\n- Download, copy, or redistribute any video content\n- Share your account credentials with others\n- Use automated tools to access or scrape content\n\n4. Intellectual Property\n\nAll content on this platform is the property of E-Learning Platform or its content creators and is protected by copyright and intellectual property laws.\n\n5. Contact\n\nFor questions about these Terms of Use, contact us at support@elearning.com." },
+  ];
+
+  for (const item of siteContentData) {
+    await prisma.siteContent.upsert({
+      where: { key: item.key },
+      update: { value: item.value },
+      create: item,
+    });
+  }
+  console.log(`Seeded ${siteContentData.length} site content entries.`);
+
+  // -------------------------
+  // FAQ entries
+  // -------------------------
+  const faqData = [
+    {
+      question: "How do I access the video courses?",
+      answer: "After registering and logging in, navigate to your Dashboard. You will see all videos that have been assigned to you. Click on any video to start watching.",
+      sortOrder: 0,
+    },
+    {
+      question: "What devices can I use to watch courses?",
+      answer: "Our platform works on any modern web browser — Chrome, Firefox, Safari, or Edge. You can use a desktop computer, laptop, tablet, or smartphone.",
+      sortOrder: 1,
+    },
+    {
+      question: "How are video permissions granted?",
+      answer: "Video access is managed by administrators. Once an admin grants you permission to a specific video, it will appear in your Dashboard automatically.",
+      sortOrder: 2,
+    },
+    {
+      question: "Can I download videos for offline viewing?",
+      answer: "Currently, videos are available for streaming only. They cannot be downloaded. This ensures content security and prevents unauthorized distribution.",
+      sortOrder: 3,
+    },
+    {
+      question: "How do I get a certificate of completion?",
+      answer: "Complete all lessons in a course and pass the final assessment with a score of 80% or higher. Your certificate will be generated automatically and available for download.",
+      sortOrder: 4,
+    },
+    {
+      question: "What if I forget my password?",
+      answer: "On the login page, use the 'Forgot Password' link to receive a password reset email. Follow the instructions in the email to set a new password.",
+      sortOrder: 5,
+    },
+    {
+      question: "Who do I contact for technical support?",
+      answer: "Visit our Contact page or email support@elearning.com. Our support team responds within 24 business hours.",
+      sortOrder: 6,
+    },
+    {
+      question: "Is there a mobile app available?",
+      answer: "We do not have a dedicated mobile app at this time, but the platform is fully responsive and works great in mobile browsers.",
+      sortOrder: 7,
+    },
+  ];
+
+  for (const item of faqData) {
+    const existing = await prisma.faq.findFirst({
+      where: { question: item.question },
+    });
+    if (!existing) {
+      await prisma.faq.create({
+        data: { ...item, isActive: true },
+      });
+    }
+  }
+  console.log(`Seeded ${faqData.length} FAQ entries.`);
+
   console.log("\nDatabase seeding complete.");
 }
 
@@ -272,4 +454,5 @@ main()
   })
   .finally(async () => {
     await prisma.$disconnect();
+    await pool.end();
   });

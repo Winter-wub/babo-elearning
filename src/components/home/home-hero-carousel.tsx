@@ -9,15 +9,33 @@ import { HERO_SLIDES } from "./hero-slides";
 
 const AUTOPLAY_INTERVAL_MS = 5000;
 
-export function HomeHeroCarousel() {
+interface HomeHeroCarouselProps {
+  /** CMS content map — keys like hero.slide1.headline, hero.slide2.sub, etc. */
+  content?: Record<string, string>;
+}
+
+export function HomeHeroCarousel({ content }: HomeHeroCarouselProps) {
   const [activeIndex, setActiveIndex] = React.useState(0);
   const [isPaused, setIsPaused] = React.useState(false);
 
-  const totalSlides = HERO_SLIDES.length;
+  // Build slides from CMS content with hardcoded fallbacks
+  const slides = React.useMemo(() => {
+    return HERO_SLIDES.map((fallback, i) => {
+      const n = i + 1;
+      return {
+        ...fallback,
+        headline: content?.[`hero.slide${n}.headline`] || fallback.headline,
+        subHeadline: content?.[`hero.slide${n}.sub`] || fallback.subHeadline,
+        ctaLabel: content?.[`hero.slide${n}.cta`] || fallback.ctaLabel,
+        ctaHref: content?.[`hero.slide${n}.ctaHref`] || fallback.ctaHref,
+      };
+    });
+  }, [content]);
+
+  const totalSlides = slides.length;
 
   const goTo = React.useCallback(
     (index: number) => {
-      // Wrap around in both directions
       setActiveIndex((index + totalSlides) % totalSlides);
     },
     [totalSlides]
@@ -33,7 +51,7 @@ export function HomeHeroCarousel() {
     return () => clearInterval(id);
   }, [activeIndex, isPaused, goTo]);
 
-  const activeSlide = HERO_SLIDES[activeIndex];
+  const activeSlide = slides[activeIndex];
 
   return (
     <section
@@ -44,7 +62,7 @@ export function HomeHeroCarousel() {
       onMouseLeave={() => setIsPaused(false)}
       onFocusCapture={() => setIsPaused(true)}
       onBlurCapture={() => setIsPaused(false)}
-      aria-label="Featured content carousel"
+      aria-label="คอนเทนต์แนะนำ"
       aria-roledescription="carousel"
     >
       {/* Slide background — gradient placeholder (real hero images dropped in later) */}
@@ -71,7 +89,7 @@ export function HomeHeroCarousel() {
           <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl lg:text-6xl">
             {activeSlide.headline}
           </h1>
-          <p className="mt-6 text-lg leading-8 text-muted-foreground">
+          <p className="mt-6 text-lg leading-8 text-foreground/70">
             {activeSlide.subHeadline}
           </p>
           <div className="mt-10 flex items-center justify-center">
@@ -85,7 +103,7 @@ export function HomeHeroCarousel() {
         <button
           type="button"
           onClick={goPrev}
-          aria-label="Previous slide"
+          aria-label="สไลด์ก่อนหน้า"
           className={cn(
             "absolute left-4 top-1/2 -translate-y-1/2",
             "flex h-12 w-12 items-center justify-center rounded-full",
@@ -100,7 +118,7 @@ export function HomeHeroCarousel() {
         <button
           type="button"
           onClick={goNext}
-          aria-label="Next slide"
+          aria-label="สไลด์ถัดไป"
           className={cn(
             "absolute right-4 top-1/2 -translate-y-1/2",
             "flex h-12 w-12 items-center justify-center rounded-full",
@@ -117,24 +135,31 @@ export function HomeHeroCarousel() {
       <div
         className="relative flex items-center justify-center gap-2 pb-8"
         role="tablist"
-        aria-label="Carousel slides"
+        aria-label="สไลด์ทั้งหมด"
       >
-        {HERO_SLIDES.map((slide, i) => (
+        {slides.map((slide, i) => (
           <button
             key={slide.id}
             type="button"
             role="tab"
             aria-selected={i === activeIndex}
-            aria-label={`Go to slide ${i + 1}: ${slide.headline}`}
+            aria-label={`ไปที่สไลด์ ${i + 1}: ${slide.headline}`}
             onClick={() => goTo(i)}
             className={cn(
-              "h-2 rounded-full transition-all duration-300 focus-visible:outline-none",
-              "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-              i === activeIndex
-                ? "w-6 bg-foreground"
-                : "w-2 bg-foreground/30 hover:bg-foreground/60"
+              "flex items-center justify-center p-[18px]",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+              "rounded-full transition-all duration-300"
             )}
-          />
+          >
+            <span
+              className={cn(
+                "block h-2 rounded-full transition-all duration-300",
+                i === activeIndex
+                  ? "w-6 bg-foreground"
+                  : "w-2 bg-foreground/30 hover:bg-foreground/60"
+              )}
+            />
+          </button>
         ))}
       </div>
     </section>

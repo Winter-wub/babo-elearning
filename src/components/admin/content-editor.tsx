@@ -392,7 +392,7 @@ export function ContentEditor({ entries }: ContentEditorProps) {
   // ---- Refs: updated instantly on every keystroke, zero re-renders ----
   const valuesRef = React.useRef<Record<string, string>>({ ...savedValues });
   const dirtyRef = React.useRef<Set<string>>(new Set());
-  const flushTimerRef = React.useRef<ReturnType<typeof setTimeout>>();
+  const flushTimerRef = React.useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   // ---- State: only updated via debounced flush (300ms after last keystroke) ----
   const [displayState, setDisplayState] = React.useState(() => ({

@@ -31,7 +31,7 @@ export default async function HomePage() {
         "hero.slide1.headline", "hero.slide1.sub", "hero.slide1.cta", "hero.slide1.ctaHref",
         "hero.slide2.headline", "hero.slide2.sub", "hero.slide2.cta", "hero.slide2.ctaHref",
         "hero.slide3.headline", "hero.slide3.sub", "hero.slide3.cta", "hero.slide3.ctaHref",
-      ]),
+      ]).catch(() => ({} as Record<string, string>)),
     ]);
 
   const isAuthenticated = !!session?.user;

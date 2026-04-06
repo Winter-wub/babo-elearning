@@ -146,20 +146,22 @@ function groupEntries(entries: { key: string; value: string }[]): ContentGroup[]
     }));
 }
 
-/** Keys that should use the rich text editor */
-const RICH_TEXT_KEYS = ["description", "content", "body", "about", "text", "detail"];
+/** Key suffixes (last segment) that should use the rich text editor */
+const RICH_TEXT_SUFFIXES = new Set(["description", "content", "body", "text", "detail"]);
 
 /** Decide whether a content field should use the rich text editor */
 function isRichTextField(key: string): boolean {
-  return RICH_TEXT_KEYS.some((k) => key.includes(k));
+  const suffix = key.split(".").pop() ?? "";
+  return RICH_TEXT_SUFFIXES.has(suffix);
 }
 
 /** Decide whether a content value should use a Textarea (long) or Input (short) */
 function isLongValue(key: string, value: string): boolean {
+  const suffix = key.split(".").pop() ?? "";
   return (
     value.length > 80 ||
-    key.includes("description") ||
-    key.includes("address") ||
+    suffix === "description" ||
+    suffix === "address" ||
     isRichTextField(key)
   );
 }
@@ -177,7 +179,7 @@ interface ContentSectionProps {
   onResetField: (key: string) => void;
   onSaveSection: (prefix: string) => void;
   isSaving: boolean;
-  resetKey: number;
+  resetKeys: Record<string, number>;
 }
 
 const ContentSection = React.memo(function ContentSection({
@@ -189,7 +191,7 @@ const ContentSection = React.memo(function ContentSection({
   onResetField,
   onSaveSection,
   isSaving,
-  resetKey,
+  resetKeys,
 }: ContentSectionProps) {
   const [isOpen, setIsOpen] = React.useState(true);
   const dirtyCount = group.entries.filter((e) => dirty.has(e.key)).length;
@@ -307,7 +309,7 @@ const ContentSection = React.memo(function ContentSection({
                 {/* Input / RichText / Textarea — uncontrolled for performance */}
                 {isRichTextField(entry.key) ? (
                   <RichTextEditor
-                    key={`${entry.key}-${resetKey}`}
+                    key={`${entry.key}-${resetKeys[entry.key] ?? 0}`}
                     value={values[entry.key] ?? ""}
                     onChange={(html) => onValueChange(entry.key, html)}
                     isDirty={isDirty}
@@ -315,7 +317,7 @@ const ContentSection = React.memo(function ContentSection({
                   />
                 ) : usesTextarea ? (
                   <textarea
-                    key={`${entry.key}-${resetKey}`}
+                    key={`${entry.key}-${resetKeys[entry.key] ?? 0}`}
                     id={`content-${entry.key}`}
                     defaultValue={values[entry.key] ?? ""}
                     onChange={(e) => onValueChange(entry.key, e.target.value)}
@@ -332,7 +334,7 @@ const ContentSection = React.memo(function ContentSection({
                   />
                 ) : (
                   <Input
-                    key={`${entry.key}-${resetKey}`}
+                    key={`${entry.key}-${resetKeys[entry.key] ?? 0}`}
                     id={`content-${entry.key}`}
                     defaultValue={values[entry.key] ?? ""}
                     onChange={(e) => onValueChange(entry.key, e.target.value)}
@@ -378,12 +380,14 @@ export function ContentEditor({ entries }: ContentEditorProps) {
   // State
   // ---------------------------------------------------------------------------
 
-  // Canonical saved values (updated after a successful save)
-  const [savedValues] = React.useState<Record<string, string>>(() => {
+  // Canonical saved values — ref because we mutate in-place after saves
+  const savedValuesRef = React.useRef<Record<string, string> | null>(null);
+  if (savedValuesRef.current === null) {
     const map: Record<string, string> = {};
     for (const e of entries) map[e.key] = e.value;
-    return map;
-  });
+    savedValuesRef.current = map;
+  }
+  const savedValues = savedValuesRef.current;
 
   // ---- Refs: updated instantly on every keystroke, zero re-renders ----
   const valuesRef = React.useRef<Record<string, string>>({ ...savedValues });
@@ -394,11 +398,11 @@ export function ContentEditor({ entries }: ContentEditorProps) {
   const [displayState, setDisplayState] = React.useState(() => ({
     values: { ...savedValues } as Record<string, string>,
     dirty: new Set<string>(),
-    resetKey: 0,
+    resetKeys: {} as Record<string, number>,
   }));
 
   // Shorthand accessors for render
-  const { values, dirty, resetKey } = displayState;
+  const { values, dirty, resetKeys } = displayState;
 
   // Search / filter query
   const [search, setSearch] = React.useState("");
@@ -471,11 +475,11 @@ export function ContentEditor({ entries }: ContentEditorProps) {
       const original = savedValues[key] ?? "";
       valuesRef.current[key] = original;
       dirtyRef.current.delete(key);
-      // Immediate flush + remount the field
+      // Immediate flush + remount only the affected field
       setDisplayState((prev) => ({
         values: { ...valuesRef.current },
         dirty: new Set(dirtyRef.current),
-        resetKey: prev.resetKey + 1,
+        resetKeys: { ...prev.resetKeys, [key]: (prev.resetKeys[key] ?? 0) + 1 },
       }));
     },
     [savedValues]
@@ -484,11 +488,16 @@ export function ContentEditor({ entries }: ContentEditorProps) {
   function handleResetAll() {
     valuesRef.current = { ...savedValues };
     dirtyRef.current = new Set();
-    setDisplayState((prev) => ({
+    // Bump all reset keys so all fields remount
+    const bumpedKeys: Record<string, number> = {};
+    for (const key of Object.keys(savedValues)) {
+      bumpedKeys[key] = (displayState.resetKeys[key] ?? 0) + 1;
+    }
+    setDisplayState({
       values: { ...savedValues },
       dirty: new Set(),
-      resetKey: prev.resetKey + 1,
-    }));
+      resetKeys: bumpedKeys,
+    });
     toast({ title: "รีเซ็ตแล้ว", description: "ยกเลิกการเปลี่ยนแปลงทั้งหมดแล้ว" });
   }
 
@@ -650,7 +659,7 @@ export function ContentEditor({ entries }: ContentEditorProps) {
               onResetField={handleResetField}
               onSaveSection={handleSaveSection}
               isSaving={isPending}
-              resetKey={resetKey}
+              resetKeys={resetKeys}
             />
           ))
         )}

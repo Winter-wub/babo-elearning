@@ -269,7 +269,7 @@ export async function getPlaylistById(
 ): Promise<
   ActionResult<
     Playlist & {
-      videos: { videoId: string; position: number; video: Video }[];
+      videos: { videoId: string; position: number; video: Omit<Video, "s3Key"> }[];
     }
   >
 > {

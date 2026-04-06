@@ -15,6 +15,7 @@ import {
   HelpCircle,
   FileText,
   Mail,
+  Palette,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -33,6 +34,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: "สิทธิ์การเข้าถึง", href: "/admin/permissions", icon: Shield },
   { label: "คำถามที่พบบ่อย", href: "/admin/faq", icon: HelpCircle },
   { label: "เนื้อหา", href: "/admin/content", icon: FileText },
+  { label: "ตั้งค่าธีม", href: "/admin/theme", icon: Palette },
   { label: "ข้อความติดต่อ", href: "/admin/contacts", icon: Mail },
   { label: "วิเคราะห์", href: "/admin/analytics", icon: BarChart3 },
 ];
@@ -90,17 +92,17 @@ export function AdminSidebar({ open, onClose, appName = "อีเลิร์�
         role="navigation"
         aria-label="Admin navigation"
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-slate-900 transition-transform duration-200 ease-in-out lg:translate-x-0 lg:transition-none",
+          "fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-sidebar-background text-sidebar-foreground transition-transform duration-200 ease-in-out lg:translate-x-0 lg:transition-none",
           open ? "translate-x-0" : "-translate-x-full"
         )}
       >
         {/* Brand header */}
-        <div className="flex h-16 items-center justify-between border-b border-slate-800 px-6">
+        <div className="flex h-16 items-center justify-between border-b border-sidebar-border px-6">
           <Link
             href="/admin/dashboard"
-            className="flex items-center gap-2 text-white"
+            className="flex items-center gap-2 text-sidebar-foreground"
           >
-            <GraduationCap className="h-6 w-6 text-indigo-400" />
+            <GraduationCap className="h-6 w-6 text-sidebar-primary" />
             <span className="text-base font-semibold tracking-tight">
               {appName} แอดมิน
             </span>
@@ -109,7 +111,7 @@ export function AdminSidebar({ open, onClose, appName = "อีเลิร์�
             variant="ghost"
             size="icon"
             onClick={onClose}
-            className="text-slate-400 hover:bg-slate-800 hover:text-white lg:hidden"
+            className="text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground lg:hidden"
             aria-label="Close navigation"
           >
             <X className="h-5 w-5" />
@@ -129,8 +131,8 @@ export function AdminSidebar({ open, onClose, appName = "อีเลิร์�
                 className={cn(
                   "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
                   active
-                    ? "bg-slate-800 text-white"
-                    : "text-slate-400 hover:bg-slate-800/60 hover:text-white"
+                    ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                    : "text-sidebar-foreground/60 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
                 )}
                 aria-current={active ? "page" : undefined}
               >
@@ -142,8 +144,8 @@ export function AdminSidebar({ open, onClose, appName = "อีเลิร์�
         </nav>
 
         {/* Sidebar footer */}
-        <div className="border-t border-slate-800 px-6 py-4">
-          <p className="text-xs text-slate-500">แผงควบคุมผู้ดูแลระบบ</p>
+        <div className="border-t border-sidebar-border px-6 py-4">
+          <p className="text-xs text-sidebar-foreground/40">แผงควบคุมผู้ดูแลระบบ</p>
         </div>
       </aside>
     </>

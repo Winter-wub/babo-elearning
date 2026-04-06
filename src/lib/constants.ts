@@ -41,3 +41,37 @@ export const SESSION_MAX_AGE = 30 * 24 * 60 * 60;
 export const APP_NAME = "E Learning";
 export const APP_DESCRIPTION =
   "เข้าถึงคอร์สวิดีโอคุณภาพจากผู้เชี่ยวชาญ สร้างทักษะจริงตามจังหวะของคุณ";
+
+// -----------------------------------------------------------------------
+// Theme defaults (matches the base tokens in globals.css)
+// -----------------------------------------------------------------------
+
+export const THEME_DEFAULTS = {
+  primaryColor: "#1a1a1a",
+  defaultMode: "light" as "light" | "dark",
+  radius: "0.625",
+  sidebarBg: "#0f172a",
+  sidebarFg: "#ffffff",
+  logoUrl: "",
+} as const;
+
+/** SiteContent keys used for theme storage. */
+export const THEME_KEYS = {
+  primaryColor: "theme.primaryColor",
+  defaultMode: "theme.defaultMode",
+  radius: "theme.radius",
+  sidebarBg: "theme.sidebarBg",
+  sidebarFg: "theme.sidebarFg",
+  logoUrl: "theme.logoUrl",
+} as const;
+
+/** Max logo upload size in bytes (2 MB). */
+export const MAX_LOGO_SIZE_BYTES = 2 * 1024 * 1024;
+
+/** Accepted logo MIME types. */
+export const ACCEPTED_LOGO_MIME_TYPES = [
+  "image/png",
+  "image/svg+xml",
+  "image/webp",
+  "image/jpeg",
+] as const;

@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { APP_NAME, APP_DESCRIPTION } from "@/lib/constants";
+import { getThemeSettings } from "@/actions/theme.actions";
+import { ThemeStyle } from "@/components/providers/theme-style";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -23,16 +25,21 @@ export const metadata: Metadata = {
   description: APP_DESCRIPTION,
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const themeSettings = await getThemeSettings();
+
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased${themeSettings.defaultMode === "dark" ? " dark" : ""}`}
     >
+      <head>
+        <ThemeStyle settings={themeSettings} />
+      </head>
       <body className="min-h-full flex flex-col bg-background text-foreground">
         {children}
       </body>

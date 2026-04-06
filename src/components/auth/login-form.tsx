@@ -38,9 +38,10 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 
 interface LoginFormProps {
   callbackUrl?: string;
+  enabledProviders?: string[];
 }
 
-export function LoginForm({ callbackUrl = "/dashboard" }: LoginFormProps) {
+export function LoginForm({ callbackUrl = "/dashboard", enabledProviders }: LoginFormProps) {
   const router = useRouter();
   const [serverError, setServerError] = useState<string | null>(null);
 
@@ -90,8 +91,8 @@ export function LoginForm({ callbackUrl = "/dashboard" }: LoginFormProps) {
       </CardHeader>
 
       <CardContent>
-        <SocialLoginButtons callbackUrl={callbackUrl} />
-        <SocialDivider />
+        <SocialLoginButtons callbackUrl={callbackUrl} enabledProviders={enabledProviders} />
+        {enabledProviders === undefined || enabledProviders.length > 0 ? <SocialDivider /> : null}
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
           {/* Server error banner */}

@@ -92,13 +92,21 @@ const PROVIDERS: ProviderConfig[] = [
 
 interface SocialLoginButtonsProps {
   callbackUrl?: string;
+  enabledProviders?: string[];
 }
 
 export function SocialLoginButtons({
   callbackUrl = "/dashboard",
+  enabledProviders,
 }: SocialLoginButtonsProps) {
   const [loadingProvider, setLoadingProvider] = useState<Provider | null>(null);
   const isAnyLoading = loadingProvider !== null;
+
+  const visibleProviders = enabledProviders
+    ? PROVIDERS.filter((p) => enabledProviders.includes(p.id))
+    : PROVIDERS;
+
+  if (visibleProviders.length === 0) return null;
 
   async function handleSignIn(provider: Provider) {
     setLoadingProvider(provider);
@@ -112,7 +120,7 @@ export function SocialLoginButtons({
 
   return (
     <div className="flex flex-col gap-2">
-      {PROVIDERS.map(({ id, label, Icon }) => (
+      {visibleProviders.map(({ id, label, Icon }) => (
         <Button
           key={id}
           type="button"

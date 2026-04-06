@@ -16,6 +16,7 @@ import {
   FileText,
   Mail,
   Palette,
+  LogIn,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -32,6 +33,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: "วิดีโอ", href: "/admin/videos", icon: Video },
   { label: "เพลย์ลิสต์", href: "/admin/playlists", icon: ListVideo },
   { label: "สิทธิ์การเข้าถึง", href: "/admin/permissions", icon: Shield },
+  { label: "ผู้ให้บริการล็อกอิน", href: "/admin/oauth", icon: LogIn },
   { label: "คำถามที่พบบ่อย", href: "/admin/faq", icon: HelpCircle },
   { label: "เนื้อหา", href: "/admin/content", icon: FileText },
   { label: "ตั้งค่าธีม", href: "/admin/theme", icon: Palette },

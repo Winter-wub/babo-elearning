@@ -65,6 +65,64 @@ export const THEME_KEYS = {
   logoUrl: "theme.logoUrl",
 } as const;
 
+// -----------------------------------------------------------------------
+// OAuth provider configuration
+// -----------------------------------------------------------------------
+
+/** OAuth provider IDs supported by the platform. */
+export const OAUTH_PROVIDER_IDS = ["google", "facebook", "apple"] as const;
+export type OAuthProviderId = (typeof OAUTH_PROVIDER_IDS)[number];
+
+/** SiteContent keys used for OAuth provider storage. */
+export const OAUTH_KEYS = {
+  google: {
+    enabled: "oauth.google.enabled",
+    clientId: "oauth.google.clientId",
+    clientSecret: "oauth.google.clientSecret",
+  },
+  facebook: {
+    enabled: "oauth.facebook.enabled",
+    clientId: "oauth.facebook.clientId",
+    clientSecret: "oauth.facebook.clientSecret",
+  },
+  apple: {
+    enabled: "oauth.apple.enabled",
+    clientId: "oauth.apple.clientId",
+    clientSecret: "oauth.apple.clientSecret",
+  },
+} as const;
+
+/** Default OAuth provider settings — all disabled. */
+export const OAUTH_DEFAULTS: Record<
+  OAuthProviderId,
+  { enabled: boolean; clientId: string; clientSecret: string }
+> = {
+  google: { enabled: false, clientId: "", clientSecret: "" },
+  facebook: { enabled: false, clientId: "", clientSecret: "" },
+  apple: { enabled: false, clientId: "", clientSecret: "" },
+};
+
+/** Environment variable names for OAuth providers (used as seed values for migration). */
+export const OAUTH_ENV_KEYS: Record<
+  OAuthProviderId,
+  { id: string; secret: string }
+> = {
+  google: { id: "AUTH_GOOGLE_ID", secret: "AUTH_GOOGLE_SECRET" },
+  facebook: { id: "AUTH_FACEBOOK_ID", secret: "AUTH_FACEBOOK_SECRET" },
+  apple: { id: "AUTH_APPLE_ID", secret: "AUTH_APPLE_SECRET" },
+};
+
+/** Display labels for OAuth providers. */
+export const OAUTH_LABELS: Record<OAuthProviderId, string> = {
+  google: "Google",
+  facebook: "Facebook",
+  apple: "Apple",
+};
+
+// -----------------------------------------------------------------------
+// Logo upload
+// -----------------------------------------------------------------------
+
 /** Max logo upload size in bytes (2 MB). */
 export const MAX_LOGO_SIZE_BYTES = 2 * 1024 * 1024;
 

@@ -104,7 +104,11 @@ const strengthTextColors: Record<number, string> = {
 // Component
 // ---------------------------------------------------------------------------
 
-export function RegisterForm() {
+interface RegisterFormProps {
+  enabledProviders?: string[];
+}
+
+export function RegisterForm({ enabledProviders }: RegisterFormProps = {}) {
   const router = useRouter();
   const [serverError, setServerError] = useState<string | null>(null);
 
@@ -166,8 +170,8 @@ export function RegisterForm() {
       </CardHeader>
 
       <CardContent>
-        <SocialLoginButtons callbackUrl="/dashboard" />
-        <SocialDivider />
+        <SocialLoginButtons callbackUrl="/dashboard" enabledProviders={enabledProviders} />
+        {enabledProviders === undefined || enabledProviders.length > 0 ? <SocialDivider /> : null}
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
           {/* Server error banner */}

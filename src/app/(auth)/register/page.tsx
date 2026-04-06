@@ -1,15 +1,18 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { RegisterForm } from "@/components/auth/register-form";
+import { getEnabledOAuthProviders } from "@/actions/oauth.actions";
 
 export const metadata: Metadata = {
   title: "สร้างบัญชี",
 };
 
-export default function RegisterPage() {
+export default async function RegisterPage() {
+  const enabledProviders = await getEnabledOAuthProviders();
+
   return (
     <>
-      <RegisterForm />
+      <RegisterForm enabledProviders={enabledProviders} />
 
       <p className="text-center text-sm text-muted-foreground">
         มีบัญชีอยู่แล้ว?{" "}

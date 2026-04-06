@@ -6,6 +6,8 @@ import { getAnalyticsData } from "@/actions/analytics.actions";
 import { AnalyticsCharts } from "@/components/admin/analytics-charts";
 import { Spinner } from "@/components/ui/spinner";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "วิเคราะห์",
 };

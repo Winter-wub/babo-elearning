@@ -6,8 +6,9 @@ export const metadata: Metadata = {
   title: "เพลย์ลิสต์",
 };
 
-export default async function PlaylistsPage() {
-  const result = await getActivePlaylists();
+export default async function PlaylistsPage({ params }: { params: Promise<{ tenantSlug: string }> }) {
+  const { tenantSlug } = await params;
+  const result = await getActivePlaylists(tenantSlug);
   const playlists = result.success ? result.data : [];
 
   return (

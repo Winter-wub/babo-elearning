@@ -45,6 +45,7 @@ Prisma 7 separates datasource config from the schema. The DB connection is confi
 - Student routes: `/dashboard`, `/videos/*` — requires authenticated session.
 - Public routes: `/login`, `/register`.
 - Never pass raw `passwordHash` to the client.
+- Note: We are transitioning to a multi-tenant B2B2C architecture and using `TenantMember` for roles instead of the global `Role` enum for most features.
 
 ## Code Conventions
 

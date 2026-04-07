@@ -86,7 +86,7 @@ export async function acceptPolicy(): Promise<ActionResult<{ id: string }>> {
     "unknown";
 
   const agreement = await db.policyAgreement.create({
-    data: { userId: session.user.id, ipAddress },
+    data: { userId: session.user.id, ipAddress, tenantId: session.user.activeTenantId! },
   });
 
   return { success: true, data: { id: agreement.id } };

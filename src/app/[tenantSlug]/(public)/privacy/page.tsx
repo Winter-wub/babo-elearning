@@ -58,8 +58,9 @@ const CONTENT_KEYS: Record<string, string> = {
 หากคุณมีคำถามเกี่ยวกับนโยบายความเป็นส่วนตัวนี้ กรุณาติดต่อเราที่ support@elearning.com`,
 };
 
-export default async function PrivacyPage() {
-  const content = await getSiteContent(Object.keys(CONTENT_KEYS));
+export default async function PrivacyPage({ params }: { params: Promise<{ tenantSlug: string }> }) {
+  const { tenantSlug } = await params;
+  const content = await getSiteContent(Object.keys(CONTENT_KEYS), tenantSlug);
 
   function c(key: string): string {
     return content[key] ?? CONTENT_KEYS[key] ?? "";

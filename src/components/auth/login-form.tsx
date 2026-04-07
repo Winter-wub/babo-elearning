@@ -39,9 +39,10 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 interface LoginFormProps {
   callbackUrl?: string;
   enabledProviders?: string[];
+  tenantSlug?: string;
 }
 
-export function LoginForm({ callbackUrl = "/dashboard", enabledProviders }: LoginFormProps) {
+export function LoginForm({ callbackUrl = "/dashboard", enabledProviders, tenantSlug = "default" }: LoginFormProps) {
   const router = useRouter();
   const [serverError, setServerError] = useState<string | null>(null);
 
@@ -61,6 +62,7 @@ export function LoginForm({ callbackUrl = "/dashboard", enabledProviders }: Logi
       const result = await signIn("credentials", {
         email: data.email,
         password: data.password,
+        tenantSlug: tenantSlug,
         redirect: false,
       });
 

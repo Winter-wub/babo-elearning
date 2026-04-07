@@ -53,6 +53,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth(async () => {
         credentials: {
           email: { label: "Email", type: "email" },
           password: { label: "Password", type: "password" },
+          tenantSlug: { label: "Tenant", type: "text" },
         },
         async authorize(credentials) {
           if (!credentials?.email || !credentials?.password) return null;
@@ -72,12 +73,41 @@ export const { handlers, auth, signIn, signOut } = NextAuth(async () => {
 
           if (!passwordValid) return null;
 
-          return {
+          const baseUser = {
             id: user.id,
             email: user.email,
             name: user.name,
             role: user.role,
           };
+
+          const tenantSlug = credentials.tenantSlug as string | undefined;
+
+          if (tenantSlug) {
+            const tenant = await db.tenant.findUnique({
+              where: { slug: tenantSlug },
+            });
+
+            if (tenant) {
+              const tenantMember = await db.tenantMember.findUnique({
+                where: {
+                  tenantId_userId: {
+                    tenantId: tenant.id,
+                    userId: user.id,
+                  },
+                },
+              });
+
+              if (tenantMember) {
+                return {
+                  ...baseUser,
+                  activeTenantId: tenant.id,
+                  tenantRole: tenantMember.role,
+                };
+              }
+            }
+          }
+
+          return baseUser;
         },
       }),
     ],

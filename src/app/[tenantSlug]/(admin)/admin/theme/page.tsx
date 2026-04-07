@@ -17,8 +17,8 @@ export const metadata: Metadata = {
 // Async data-fetching sub-component
 // -----------------------------------------------------------------------
 
-async function ThemeEditorLoader() {
-  const settings = await getThemeSettings();
+async function ThemeEditorLoader({ tenantSlug }: { tenantSlug: string }) {
+  const settings = await getThemeSettings(tenantSlug);
   return <ThemeEditor settings={settings} />;
 }
 
@@ -26,7 +26,8 @@ async function ThemeEditorLoader() {
 // Page — Server Component
 // -----------------------------------------------------------------------
 
-export default function AdminThemePage() {
+export default async function AdminThemePage({ params }: { params: Promise<{ tenantSlug: string }> }) {
+  const { tenantSlug } = await params;
   return (
     <div className="space-y-6">
       {/* Page header */}
@@ -50,7 +51,7 @@ export default function AdminThemePage() {
           </div>
         }
       >
-        <ThemeEditorLoader />
+        <ThemeEditorLoader tenantSlug={tenantSlug} />
       </Suspense>
     </div>
   );

@@ -7,8 +7,9 @@ export const metadata: Metadata = {
   title: "สร้างบัญชี",
 };
 
-export default async function RegisterPage() {
-  const enabledProviders = await getEnabledOAuthProviders();
+export default async function RegisterPage({ params }: { params: Promise<{ tenantSlug: string }> }) {
+  const { tenantSlug } = await params;
+  const enabledProviders = await getEnabledOAuthProviders(tenantSlug);
 
   return (
     <>

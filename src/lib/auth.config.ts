@@ -58,12 +58,25 @@ export const authConfig: NextAuthConfig = {
       return true;
     },
 
-    jwt({ token, user }) {
+    jwt({ token, user, trigger, session }) {
       if (user) {
         token.id = user.id;
         // Default to STUDENT for new OAuth users where role may be undefined
         token.role = user.role ?? "STUDENT";
+
+        // Add multi-tenant fields from the user object returned by authorize
+        if (user.activeTenantId) {
+          token.activeTenantId = user.activeTenantId;
+          token.tenantRole = user.tenantRole;
+        }
       }
+
+      // Handle session updates (e.g. changing active tenant)
+      if (trigger === "update" && session?.activeTenantId) {
+        token.activeTenantId = session.activeTenantId;
+        token.tenantRole = session.tenantRole;
+      }
+
       return token;
     },
 
@@ -71,6 +84,12 @@ export const authConfig: NextAuthConfig = {
       if (token && session.user) {
         session.user.id = token.id as string;
         session.user.role = token.role as "STUDENT" | "ADMIN";
+
+        // Pass multi-tenant fields to the client session
+        if (token.activeTenantId) {
+          session.user.activeTenantId = token.activeTenantId as string;
+          session.user.tenantRole = token.tenantRole as any;
+        }
       }
       return session;
     },

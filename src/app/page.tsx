@@ -20,18 +20,21 @@ import { getAppName } from "@/lib/app-config";
  * Fetches trending videos, featured playlists, and category playlists in parallel.
  */
 export default async function HomePage() {
-  const [session, trendingResult, featuredResult, categoryResult, appName, heroContent] =
+  const session = await auth();
+  const tenantSlug = "default"; // TODO: This should be resolved from headers or domain if page.tsx is outside [tenantSlug]
+  const tenantId = session?.user?.activeTenantId ?? "default-tenant-id"; // Placeholder, real impl depends on multi-tenant architecture details
+
+  const [trendingResult, featuredResult, categoryResult, appName, heroContent] =
     await Promise.all([
-      auth(),
-      getPublicTrendingVideos(10),
-      getPublicFeaturedPlaylists(4),
-      getPublicCategoryPlaylists(8),
-      getAppName(),
+      getPublicTrendingVideos(tenantId, 10),
+      getPublicFeaturedPlaylists(tenantId, 4),
+      getPublicCategoryPlaylists(tenantId, 8),
+      getAppName(tenantId),
       getSiteContent([
         "hero.slide1.headline", "hero.slide1.sub", "hero.slide1.cta", "hero.slide1.ctaHref",
         "hero.slide2.headline", "hero.slide2.sub", "hero.slide2.cta", "hero.slide2.ctaHref",
         "hero.slide3.headline", "hero.slide3.sub", "hero.slide3.cta", "hero.slide3.ctaHref",
-      ]).catch(() => ({} as Record<string, string>)),
+      ], tenantId).catch(() => ({} as Record<string, string>)),
     ]);
 
   const isAuthenticated = !!session?.user;

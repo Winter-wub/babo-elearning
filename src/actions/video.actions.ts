@@ -69,10 +69,11 @@ export async function getVideos(
   filters: z.input<typeof GetVideosSchema> = {}
 ): Promise<ActionResult<PaginatedResult<Video>>> {
   try {
-    await requireAdmin();
+    const session = await requireAdmin();
     const { page, pageSize, search, isActive } = GetVideosSchema.parse(filters);
 
     const where = {
+      tenantId: session.user.activeTenantId!,
       ...(search && { title: { contains: search, mode: "insensitive" as const } }),
       ...(isActive !== undefined && { isActive }),
     };
@@ -111,7 +112,7 @@ export async function getPermittedVideos(): Promise<ActionResult<PermittedVideo[
     const session = await requireAuth();
 
     const permissions = await db.videoPermission.findMany({
-      where: { userId: session.user.id },
+      where: { userId: session.user.id, tenantId: session.user.activeTenantId! },
       include: { video: true },
     });
 
@@ -139,7 +140,7 @@ export async function getVideoById(
     const isAdmin = session.user.role === "ADMIN";
 
     const video = await db.video.findUnique({
-      where: { id, ...(!isAdmin && { isActive: true }) },
+      where: { id, tenantId: session.user.activeTenantId!, ...(!isAdmin && { isActive: true }) },
       include: { permissions: { include: { user: { omit: { passwordHash: true } } } } },
     });
 
@@ -164,13 +165,13 @@ export async function createVideo(
   data: z.infer<typeof CreateVideoSchema>
 ): Promise<ActionResult<Video>> {
   try {
-    await requireAdmin();
+    const session = await requireAdmin();
     const parsed = CreateVideoSchema.safeParse(data);
     if (!parsed.success) {
       return { success: false, error: parsed.error.issues[0]?.message ?? "ข้อมูลไม่ถูกต้อง" };
     }
 
-    const video = await db.video.create({ data: parsed.data });
+    const video = await db.video.create({ data: { ...parsed.data, tenantId: session.user.activeTenantId! } });
     return { success: true, data: video };
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : "ไม่สามารถสร้างวิดีโอได้" };
@@ -183,13 +184,13 @@ export async function updateVideo(
   data: z.infer<typeof UpdateVideoSchema>
 ): Promise<ActionResult<Video>> {
   try {
-    await requireAdmin();
+    const session = await requireAdmin();
     const parsed = UpdateVideoSchema.safeParse(data);
     if (!parsed.success) {
       return { success: false, error: parsed.error.issues[0]?.message ?? "ข้อมูลไม่ถูกต้อง" };
     }
 
-    const video = await db.video.update({ where: { id }, data: parsed.data });
+    const video = await db.video.update({ where: { id, tenantId: session.user.activeTenantId! }, data: parsed.data });
     revalidatePath("/admin/videos");
     return { success: true, data: video };
   } catch (err) {
@@ -200,8 +201,8 @@ export async function updateVideo(
 /** Soft-delete: set isActive=false. ADMIN only. */
 export async function deleteVideo(id: string): Promise<ActionResult<undefined>> {
   try {
-    await requireAdmin();
-    await db.video.update({ where: { id }, data: { isActive: false } });
+    const session = await requireAdmin();
+    await db.video.update({ where: { id, tenantId: session.user.activeTenantId! }, data: { isActive: false } });
     revalidatePath("/admin/videos");
     return { success: true, data: undefined };
   } catch (err) {
@@ -230,11 +231,12 @@ const PUBLIC_VIDEO_SELECT = {
 
 /** Latest active videos, newest first. No auth required. */
 export async function getPublicLatestVideos(
+  tenantId: string,
   limit = 8
 ): Promise<ActionResult<PublicVideo[]>> {
   try {
     const videos = await db.video.findMany({
-      where: { isActive: true },
+      where: { isActive: true, tenantId },
       orderBy: { createdAt: "desc" },
       take: limit,
       select: PUBLIC_VIDEO_SELECT,
@@ -247,11 +249,12 @@ export async function getPublicLatestVideos(
 
 /** Most-played active videos, highest play count first. No auth required. */
 export async function getPublicMostPlayedVideos(
+  tenantId: string,
   limit = 8
 ): Promise<ActionResult<PublicVideo[]>> {
   try {
     const videos = await db.video.findMany({
-      where: { isActive: true, playCount: { gt: 0 } },
+      where: { isActive: true, playCount: { gt: 0 }, tenantId },
       orderBy: { playCount: "desc" },
       take: limit,
       select: PUBLIC_VIDEO_SELECT,
@@ -263,10 +266,10 @@ export async function getPublicMostPlayedVideos(
 }
 
 /** Featured active videos, newest first. No auth required. */
-export async function getPublicFeaturedVideos(): Promise<ActionResult<PublicVideo[]>> {
+export async function getPublicFeaturedVideos(tenantId: string): Promise<ActionResult<PublicVideo[]>> {
   try {
     const videos = await db.video.findMany({
-      where: { isActive: true, isFeatured: true },
+      where: { isActive: true, isFeatured: true, tenantId },
       orderBy: { createdAt: "desc" },
       select: PUBLIC_VIDEO_SELECT,
     });
@@ -278,11 +281,12 @@ export async function getPublicFeaturedVideos(): Promise<ActionResult<PublicVide
 
 /** Trending active videos, highest play count first. No auth required. */
 export async function getPublicTrendingVideos(
+  tenantId: string,
   limit = 10
 ): Promise<ActionResult<PublicVideo[]>> {
   try {
     const videos = await db.video.findMany({
-      where: { isActive: true },
+      where: { isActive: true, tenantId },
       orderBy: { playCount: "desc" },
       take: limit,
       select: PUBLIC_VIDEO_SELECT,
@@ -296,9 +300,9 @@ export async function getPublicTrendingVideos(
 /** Increment the play count for a video by 1. Auth required. */
 export async function incrementPlayCount(videoId: string): Promise<ActionResult<undefined>> {
   try {
-    await requireAuth();
+    const session = await requireAuth();
     await db.video.update({
-      where: { id: videoId },
+      where: { id: videoId, tenantId: session.user.activeTenantId! },
       data: { playCount: { increment: 1 } },
     });
     return { success: true, data: undefined };

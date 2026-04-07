@@ -38,10 +38,11 @@ const UpdateSiteContentSchema = z.object({
  * Missing keys are simply absent from the result — callers should use fallback defaults.
  */
 export async function getSiteContent(
-  keys: string[]
+  keys: string[],
+  tenantId: string
 ): Promise<Record<string, string>> {
   const items = await db.siteContent.findMany({
-    where: { key: { in: keys } },
+    where: { key: { in: keys }, tenantId },
   });
 
   const map: Record<string, string> = {};
@@ -60,9 +61,9 @@ export async function getSiteContentByPrefix(
   prefix: string
 ): Promise<ActionResult<SiteContent[]>> {
   try {
-    await requireAdmin();
+    const session = await requireAdmin();
     const items = await db.siteContent.findMany({
-      where: { key: { startsWith: prefix } },
+      where: { key: { startsWith: prefix }, tenantId: session.user.activeTenantId! },
       orderBy: { key: "asc" },
     });
     return { success: true, data: items };
@@ -77,8 +78,8 @@ export async function getSiteContentByPrefix(
 /** Get all SiteContent entries (admin). */
 export async function getAllSiteContent(): Promise<ActionResult<SiteContent[]>> {
   try {
-    await requireAdmin();
-    const items = await db.siteContent.findMany({ orderBy: { key: "asc" } });
+    const session = await requireAdmin();
+    const items = await db.siteContent.findMany({ where: { tenantId: session.user.activeTenantId! }, orderBy: { key: "asc" } });
     return { success: true, data: items };
   } catch (err) {
     return {
@@ -94,13 +95,13 @@ export async function updateSiteContent(
   value: string
 ): Promise<ActionResult<SiteContent>> {
   try {
-    await requireAdmin();
+    const session = await requireAdmin();
     UpdateSiteContentSchema.parse({ key, value });
 
     const item = await db.siteContent.upsert({
-      where: { key },
+      where: { tenantId_key: { tenantId: session.user.activeTenantId!, key } },
       update: { value },
-      create: { key, value },
+      create: { key, value, tenantId: session.user.activeTenantId! },
     });
 
     revalidatePath("/admin/content");
@@ -124,7 +125,7 @@ export async function bulkUpdateSiteContent(
   entries: { key: string; value: string }[]
 ): Promise<ActionResult<undefined>> {
   try {
-    await requireAdmin();
+    const session = await requireAdmin();
 
     // Validate all entries
     for (const entry of entries) {
@@ -134,9 +135,9 @@ export async function bulkUpdateSiteContent(
     await db.$transaction(
       entries.map((entry) =>
         db.siteContent.upsert({
-          where: { key: entry.key },
+          where: { tenantId_key: { tenantId: session.user.activeTenantId!, key: entry.key } },
           update: { value: entry.value },
-          create: { key: entry.key, value: entry.value },
+          create: { key: entry.key, value: entry.value, tenantId: session.user.activeTenantId! },
         })
       )
     );

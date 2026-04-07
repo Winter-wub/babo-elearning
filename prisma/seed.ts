@@ -22,6 +22,18 @@ async function main() {
   // Admin user
   // -------------------------
   const adminPassword = await hashPassword("Admin123!");
+
+  // First ensure default tenant exists
+  const defaultTenant = await prisma.tenant.upsert({
+    where: { slug: "default" },
+    update: {},
+    create: {
+      id: "default",
+      name: "Default Tenant",
+      slug: "default",
+    },
+  });
+
   const admin = await prisma.user.upsert({
     where: { email: "admin@elearning.com" },
     update: {},
@@ -130,9 +142,10 @@ async function main() {
   const videos = await Promise.all(
     videosData.map((v) =>
       prisma.video.upsert({
-        where: { s3Key: v.s3Key },
+        where: { tenantId_s3Key: { tenantId: defaultTenant.id, s3Key: v.s3Key } },
         update: { playCount: v.playCount },
         create: {
+          tenantId: defaultTenant.id,
           title: v.title,
           description: v.description,
           s3Key: v.s3Key,
@@ -214,9 +227,10 @@ async function main() {
 
   for (const { student, video, timeFields, label } of permissionsData) {
     const permission = await prisma.videoPermission.upsert({
-      where: { userId_videoId: { userId: student.id, videoId: video.id } },
+      where: { tenantId_userId_videoId: { tenantId: defaultTenant.id, userId: student.id, videoId: video.id } },
       update: { ...timeFields },
       create: {
+        tenantId: defaultTenant.id,
         userId: student.id,
         videoId: video.id,
         grantedBy: admin.id,
@@ -241,9 +255,10 @@ async function main() {
   const featuredPlaylists = await Promise.all(
     featuredPlaylistsData.map((p) =>
       prisma.playlist.upsert({
-        where: { slug: p.slug },
+        where: { tenantId_slug: { tenantId: defaultTenant.id, slug: p.slug } },
         update: {},
         create: {
+          tenantId: defaultTenant.id,
           title: p.title,
           slug: p.slug,
           description: `Curated playlist: ${p.title}`,
@@ -277,9 +292,10 @@ async function main() {
   const categoryPlaylists = await Promise.all(
     categoryPlaylistsData.map((p) =>
       prisma.playlist.upsert({
-        where: { slug: p.slug },
+        where: { tenantId_slug: { tenantId: defaultTenant.id, slug: p.slug } },
         update: {},
         create: {
+          tenantId: defaultTenant.id,
           title: p.title,
           slug: p.slug,
           description: `Category playlist: ${p.title}`,
@@ -379,9 +395,9 @@ async function main() {
 
   for (const item of siteContentData) {
     await prisma.siteContent.upsert({
-      where: { key: item.key },
+      where: { tenantId_key: { tenantId: defaultTenant.id, key: item.key } },
       update: { value: item.value },
-      create: item,
+      create: { tenantId: defaultTenant.id, ...item },
     });
   }
   console.log(`Seeded ${siteContentData.length} site content entries.`);
@@ -434,11 +450,11 @@ async function main() {
 
   for (const item of faqData) {
     const existing = await prisma.faq.findFirst({
-      where: { question: item.question },
+      where: { tenantId: defaultTenant.id, question: item.question },
     });
     if (!existing) {
       await prisma.faq.create({
-        data: { ...item, isActive: true },
+        data: { tenantId: defaultTenant.id, ...item, isActive: true },
       });
     }
   }

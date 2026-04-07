@@ -38,7 +38,7 @@ const CONTENT_KEYS: Record<string, string> = {
 };
 
 export async function HomeFooter() {
-  const content = await getSiteContent(Object.keys(CONTENT_KEYS));
+  const content = await getSiteContent(Object.keys(CONTENT_KEYS), "default");
 
   function c(key: string): string {
     return content[key] ?? CONTENT_KEYS[key] ?? "";

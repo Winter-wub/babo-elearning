@@ -51,8 +51,9 @@ const HIGHLIGHT_ICONS = [
   Monitor,
 ] as const;
 
-export default async function AboutPage() {
-  const content = await getSiteContent(Object.keys(CONTENT_KEYS));
+export default async function AboutPage({ params }: { params: Promise<{ tenantSlug: string }> }) {
+  const { tenantSlug } = await params;
+  const content = await getSiteContent(Object.keys(CONTENT_KEYS), tenantSlug);
 
   // Helper: resolve content from DB or fall back to default
   function c(key: string): string {

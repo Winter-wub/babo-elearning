@@ -68,10 +68,10 @@ const ThemeSettingsSchema = z.object({
  * Fetch current theme settings from SiteContent.
  * Returns defaults for any missing keys.
  */
-export async function getThemeSettings(): Promise<ThemeSettings> {
+export async function getThemeSettings(tenantId: string): Promise<ThemeSettings> {
   try {
     const keys = Object.values(THEME_KEYS);
-    const raw = await getSiteContent(keys);
+    const raw = await getSiteContent(keys, tenantId);
 
     return {
       primaryColor: raw[THEME_KEYS.primaryColor] || THEME_DEFAULTS.primaryColor,

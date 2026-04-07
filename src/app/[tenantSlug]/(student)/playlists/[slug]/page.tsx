@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 // ---------------------------------------------------------------------------
 
 interface PlaylistDetailPageProps {
-  params: Promise<{ slug: string }>;
+  params: Promise<{ slug: string; tenantSlug: string }>;
 }
 
 // ---------------------------------------------------------------------------
@@ -21,8 +21,8 @@ interface PlaylistDetailPageProps {
 export async function generateMetadata({
   params,
 }: PlaylistDetailPageProps): Promise<Metadata> {
-  const { slug } = await params;
-  const result = await getPlaylistBySlug(slug);
+  const { slug, tenantSlug } = await params;
+  const result = await getPlaylistBySlug(slug, tenantSlug);
 
   if (!result.success || !result.data) {
     return { title: "Playlist Not Found" };
@@ -41,8 +41,8 @@ export async function generateMetadata({
 export default async function PlaylistDetailPage({
   params,
 }: PlaylistDetailPageProps) {
-  const { slug } = await params;
-  const result = await getPlaylistBySlug(slug);
+  const { slug, tenantSlug } = await params;
+  const result = await getPlaylistBySlug(slug, tenantSlug);
 
   if (!result.success || !result.data) {
     notFound();

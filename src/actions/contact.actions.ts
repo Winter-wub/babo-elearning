@@ -28,6 +28,7 @@ export async function submitContactForm(
     email: formData.get("email"),
     subject: formData.get("subject"),
     message: formData.get("message"),
+    tenantSlug: formData.get("tenantSlug"),
   };
 
   const parsed = contactSchema.safeParse(raw);
@@ -38,8 +39,20 @@ export async function submitContactForm(
   }
 
   try {
+    const tenant = await db.tenant.findUnique({
+      where: { slug: raw.tenantSlug as string },
+      select: { id: true }
+    });
+
+    if (!tenant) {
+      return { success: false, error: "ไม่พบผู้เช่า" };
+    }
+
     const submission = await db.contactSubmission.create({
-      data: parsed.data,
+      data: {
+        ...parsed.data,
+        tenantId: tenant.id
+      },
     });
 
     return { success: true, data: { id: submission.id } };
@@ -74,14 +87,14 @@ export async function getContactSubmissions(
   filter?: "all" | "read" | "unread"
 ): Promise<ActionResult<PaginatedResult<ContactSubmission>>> {
   try {
-    await requireAdmin();
+    const session = await requireAdmin();
 
     const where =
       filter === "read"
-        ? { isRead: true }
+        ? { isRead: true, tenantId: session.user.activeTenantId! }
         : filter === "unread"
-        ? { isRead: false }
-        : {};
+        ? { isRead: false, tenantId: session.user.activeTenantId! }
+        : { tenantId: session.user.activeTenantId! };
 
     const [items, total] = await Promise.all([
       db.contactSubmission.findMany({
@@ -119,8 +132,8 @@ export async function markSubmissionRead(
   isRead: boolean = true
 ): Promise<ActionResult<undefined>> {
   try {
-    await requireAdmin();
-    await db.contactSubmission.update({ where: { id }, data: { isRead } });
+    const session = await requireAdmin();
+    await db.contactSubmission.update({ where: { id, tenantId: session.user.activeTenantId! }, data: { isRead } });
     revalidatePath("/admin/contacts");
     return { success: true, data: undefined };
   } catch (err) {
@@ -136,8 +149,8 @@ export async function deleteSubmission(
   id: string
 ): Promise<ActionResult<undefined>> {
   try {
-    await requireAdmin();
-    await db.contactSubmission.delete({ where: { id } });
+    const session = await requireAdmin();
+    await db.contactSubmission.delete({ where: { id, tenantId: session.user.activeTenantId! } });
     revalidatePath("/admin/contacts");
     return { success: true, data: undefined };
   } catch (err) {

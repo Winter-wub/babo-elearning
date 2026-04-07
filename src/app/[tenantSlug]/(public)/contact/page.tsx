@@ -18,8 +18,9 @@ const CONTACT_KEYS: Record<string, string> = {
     "มีคำถามหรือข้อเสนอแนะ? เรายินดีรับฟังจากคุณ กรอกแบบฟอร์มหรือติดต่อเราผ่านช่องทางด้านล่าง",
 };
 
-export default async function ContactPage() {
-  const content = await getSiteContent(Object.keys(CONTACT_KEYS));
+export default async function ContactPage({ params }: { params: Promise<{ tenantSlug: string }> }) {
+  const { tenantSlug } = await params;
+  const content = await getSiteContent(Object.keys(CONTACT_KEYS), tenantSlug);
 
   function c(key: string): string {
     return content[key] ?? CONTACT_KEYS[key] ?? "";

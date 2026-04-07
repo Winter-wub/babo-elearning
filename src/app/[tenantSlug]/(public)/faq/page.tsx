@@ -9,8 +9,9 @@ export const metadata: Metadata = {
     "ค้นหาคำตอบสำหรับคำถามที่พบบ่อยเกี่ยวกับแพลตฟอร์มอีเลิร์นนิง คอร์สเรียน และใบรับรองของเรา",
 };
 
-export default async function FaqPage() {
-  const faqs = await getActiveFaqs();
+export default async function FaqPage({ params }: { params: Promise<{ tenantSlug: string }> }) {
+  const { tenantSlug } = await params;
+  const faqs = await getActiveFaqs(tenantSlug);
 
   return (
     <>

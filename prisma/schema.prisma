@@ -11,17 +11,61 @@ enum Role {
   ADMIN
 }
 
+enum TenantRole {
+  OWNER
+  ADMIN
+  STUDENT
+}
+
+model Tenant {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  name      String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  members            TenantMember[]
+  videos             Video[]
+  playlists          Playlist[]
+  siteContent        SiteContent[]
+  faqs               Faq[]
+  contactSubmissions ContactSubmission[]
+  videoPermissions   VideoPermission[]
+  policyAgreements   PolicyAgreement[]
+
+  @@index([isActive])
+}
+
+model TenantMember {
+  id        String     @id @default(cuid())
+  tenantId  String
+  userId    String
+  role      TenantRole @default(STUDENT)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, userId])
+  @@index([tenantId])
+  @@index([userId])
+  @@index([role])
+}
+
 model User {
-  id                 String            @id @default(cuid())
-  email              String            @unique
-  passwordHash       String?
-  name               String?
-  role               Role              @default(STUDENT)
-  isActive           Boolean           @default(true)
-  createdAt          DateTime          @default(now())
-  updatedAt          DateTime          @updatedAt
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String?
+  name         String?
+  role         Role     @default(STUDENT)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   accounts           Account[]
+  tenantMembers      TenantMember[]
   videoPermissions   VideoPermission[] @relation("UserPermissions")
   grantedPermissions VideoPermission[] @relation("GrantedByAdmin")
   policyAgreements   PolicyAgreement[]
@@ -51,43 +95,50 @@ model Account {
 }
 
 model Video {
-  id           String            @id @default(cuid())
+  id           String   @id @default(cuid())
+  tenantId     String
   title        String
   description  String?
-  s3Key        String            @unique
-  duration     Int               // seconds, max 3600
+  s3Key        String
+  duration     Int // seconds, max 3600
   thumbnailUrl String?
-  isActive     Boolean           @default(true)
-  playCount    Int               @default(0)
-  isFeatured   Boolean           @default(false)
-  createdAt    DateTime          @default(now())
-  updatedAt    DateTime          @updatedAt
+  isActive     Boolean  @default(true)
+  playCount    Int      @default(0)
+  isFeatured   Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  permissions  VideoPermission[]
-  playlists    PlaylistVideo[]
+  tenant      Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  permissions VideoPermission[]
+  playlists   PlaylistVideo[]
 
+  @@unique([tenantId, s3Key])
+  @@index([tenantId])
   @@index([isActive])
   @@index([isFeatured])
   @@index([playCount])
 }
 
 model VideoPermission {
-  id           String    @id @default(cuid())
-  userId       String
-  videoId      String
-  grantedAt    DateTime  @default(now())
-  grantedBy    String
+  id        String   @id @default(cuid())
+  tenantId  String
+  userId    String
+  videoId   String
+  grantedAt DateTime @default(now())
+  grantedBy String
 
   // Time-based access control (all nullable = permanent access)
   validFrom    DateTime? // null = immediately valid from grantedAt
   validUntil   DateTime? // null = never expires (permanent)
-  durationDays Int?      // audit hint: original admin-chosen duration in days
+  durationDays Int? // audit hint: original admin-chosen duration in days
 
-  user      User     @relation("UserPermissions", fields: [userId], references: [id], onDelete: Cascade)
-  video     Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
-  admin     User     @relation("GrantedByAdmin", fields: [grantedBy], references: [id])
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User   @relation("UserPermissions", fields: [userId], references: [id], onDelete: Cascade)
+  video  Video  @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  admin  User   @relation("GrantedByAdmin", fields: [grantedBy], references: [id])
 
-  @@unique([userId, videoId])
+  @@unique([tenantId, userId, videoId])
+  @@index([tenantId])
   @@index([userId])
   @@index([videoId])
   @@index([validUntil])
@@ -95,29 +146,37 @@ model VideoPermission {
 
 model PolicyAgreement {
   id        String   @id @default(cuid())
+  tenantId  String
   userId    String
   agreedAt  DateTime @default(now())
   ipAddress String
 
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@unique([tenantId, userId])
+  @@index([tenantId])
   @@index([userId])
 }
 
 model Playlist {
   id           String   @id @default(cuid())
+  tenantId     String
   title        String
   description  String?
   thumbnailUrl String?
-  slug         String   @unique
+  slug         String
   isActive     Boolean  @default(true)
   isFeatured   Boolean  @default(false)
   sortOrder    Int      @default(0)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
+  tenant Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   videos PlaylistVideo[]
 
+  @@unique([tenantId, slug])
+  @@index([tenantId])
   @@index([isActive])
   @@index([isFeatured])
 }
@@ -140,15 +199,21 @@ model PlaylistVideo {
 
 model SiteContent {
   id        String   @id @default(cuid())
-  key       String   @unique // e.g. "about.hero.title", "about.highlight.1"
+  tenantId  String
+  key       String // e.g. "about.hero.title", "about.highlight.1"
   value     String   @db.Text
   updatedAt DateTime @updatedAt
 
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, key])
+  @@index([tenantId])
   @@index([key])
 }
 
 model Faq {
   id        String   @id @default(cuid())
+  tenantId  String
   question  String
   answer    String   @db.Text
   sortOrder Int      @default(0)
@@ -156,11 +221,15 @@ model Faq {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
   @@index([isActive, sortOrder])
 }
 
 model ContactSubmission {
   id        String   @id @default(cuid())
+  tenantId  String
   name      String
   email     String
   subject   String
@@ -168,6 +237,9 @@ model ContactSubmission {
   isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
 
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
   @@index([isRead])
   @@index([createdAt])
 }

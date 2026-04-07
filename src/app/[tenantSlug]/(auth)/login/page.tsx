@@ -7,12 +7,13 @@ export const metadata: Metadata = {
   title: "เข้าสู่ระบบ",
 };
 
-export default async function LoginPage() {
-  const enabledProviders = await getEnabledOAuthProviders();
+export default async function LoginPage({ params }: { params: Promise<{ tenantSlug: string }> }) {
+  const { tenantSlug } = await params;
+  const enabledProviders = await getEnabledOAuthProviders(tenantSlug);
 
   return (
     <>
-      <LoginForm enabledProviders={enabledProviders} />
+      <LoginForm enabledProviders={enabledProviders} tenantSlug={tenantSlug} />
 
       <p className="text-center text-sm text-muted-foreground">
         ยังไม่มีบัญชี?{" "}

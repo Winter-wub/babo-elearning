@@ -45,9 +45,9 @@ const UpdateFaqSchema = z.object({
  * Fetch all active FAQs, ordered by sortOrder ascending.
  * Used on the public /faq page.
  */
-export async function getActiveFaqs(): Promise<Faq[]> {
+export async function getActiveFaqs(tenantId: string): Promise<Faq[]> {
   return db.faq.findMany({
-    where: { isActive: true },
+    where: { isActive: true, tenantId },
     orderBy: { sortOrder: "asc" },
   });
 }
@@ -61,8 +61,8 @@ export async function getFaqs(
   includeInactive: boolean = true
 ): Promise<ActionResult<Faq[]>> {
   try {
-    await requireAdmin();
-    const where = includeInactive ? {} : { isActive: true };
+    const session = await requireAdmin();
+    const where = includeInactive ? { tenantId: session.user.activeTenantId! } : { isActive: true, tenantId: session.user.activeTenantId! };
     const faqs = await db.faq.findMany({
       where,
       orderBy: { sortOrder: "asc" },
@@ -81,9 +81,9 @@ export async function createFaq(
   input: z.input<typeof CreateFaqSchema>
 ): Promise<ActionResult<Faq>> {
   try {
-    await requireAdmin();
+    const session = await requireAdmin();
     const data = CreateFaqSchema.parse(input);
-    const faq = await db.faq.create({ data });
+    const faq = await db.faq.create({ data: { ...data, tenantId: session.user.activeTenantId! } });
     revalidatePath("/admin/faq");
     revalidatePath("/faq");
     return { success: true, data: faq };
@@ -101,9 +101,9 @@ export async function updateFaq(
   input: z.input<typeof UpdateFaqSchema>
 ): Promise<ActionResult<Faq>> {
   try {
-    await requireAdmin();
+    const session = await requireAdmin();
     const data = UpdateFaqSchema.parse(input);
-    const faq = await db.faq.update({ where: { id }, data });
+    const faq = await db.faq.update({ where: { id, tenantId: session.user.activeTenantId! }, data });
     revalidatePath("/admin/faq");
     revalidatePath("/faq");
     return { success: true, data: faq };
@@ -118,8 +118,8 @@ export async function updateFaq(
 /** Delete a FAQ. */
 export async function deleteFaq(id: string): Promise<ActionResult<undefined>> {
   try {
-    await requireAdmin();
-    await db.faq.delete({ where: { id } });
+    const session = await requireAdmin();
+    await db.faq.delete({ where: { id, tenantId: session.user.activeTenantId! } });
     revalidatePath("/admin/faq");
     revalidatePath("/faq");
     return { success: true, data: undefined };

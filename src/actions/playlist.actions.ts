@@ -14,11 +14,12 @@ import type { Playlist, Video } from "@prisma/client";
 
 /** Featured active playlists, ordered by sortOrder. No auth required. */
 export async function getPublicFeaturedPlaylists(
+  tenantId: string,
   limit = 4
 ): Promise<ActionResult<PublicPlaylist[]>> {
   try {
     const playlists = await db.playlist.findMany({
-      where: { isActive: true, isFeatured: true },
+      where: { isActive: true, isFeatured: true, tenantId },
       orderBy: { sortOrder: "asc" },
       take: limit,
       include: { _count: { select: { videos: true } } },
@@ -43,11 +44,12 @@ export async function getPublicFeaturedPlaylists(
 
 /** All active playlists (category browsing), ordered by sortOrder. No auth required. */
 export async function getPublicCategoryPlaylists(
+  tenantId: string,
   limit = 8
 ): Promise<ActionResult<PublicPlaylist[]>> {
   try {
     const playlists = await db.playlist.findMany({
-      where: { isActive: true },
+      where: { isActive: true, tenantId },
       orderBy: { sortOrder: "asc" },
       take: limit,
       include: { _count: { select: { videos: true } } },
@@ -75,10 +77,10 @@ export async function getPublicCategoryPlaylists(
 // -----------------------------------------------------------------------
 
 /** All active playlists with their videos expanded. Used on /playlists browse page. */
-export async function getActivePlaylists(): Promise<ActionResult<PlaylistWithVideos[]>> {
+export async function getActivePlaylists(tenantId: string): Promise<ActionResult<PlaylistWithVideos[]>> {
   try {
     const playlists = await db.playlist.findMany({
-      where: { isActive: true },
+      where: { isActive: true, tenantId },
       orderBy: { sortOrder: "asc" },
       include: {
         videos: {
@@ -122,11 +124,12 @@ export async function getActivePlaylists(): Promise<ActionResult<PlaylistWithVid
 
 /** Single playlist by slug with videos expanded. Used on /playlists/[slug] detail page. */
 export async function getPlaylistBySlug(
-  slug: string
+  slug: string,
+  tenantId: string
 ): Promise<ActionResult<PlaylistWithVideos | null>> {
   try {
     const playlist = await db.playlist.findUnique({
-      where: { slug, isActive: true },
+      where: { tenantId_slug: { tenantId, slug }, isActive: true },
       include: {
         videos: {
           include: {
@@ -230,12 +233,12 @@ export async function getPlaylists(
   input: z.input<typeof GetPlaylistsSchema> = {}
 ): Promise<ActionResult<PaginatedResult<PlaylistWithCount>>> {
   try {
-    await requireAdmin();
+    const session = await requireAdmin();
     const { page, pageSize, search } = GetPlaylistsSchema.parse(input);
 
     const where = search
-      ? { title: { contains: search, mode: "insensitive" as const } }
-      : {};
+      ? { title: { contains: search, mode: "insensitive" as const }, tenantId: session.user.activeTenantId! }
+      : { tenantId: session.user.activeTenantId! };
 
     const [items, total] = await Promise.all([
       db.playlist.findMany({
@@ -274,9 +277,9 @@ export async function getPlaylistById(
   >
 > {
   try {
-    await requireAdmin();
+    const session = await requireAdmin();
     const playlist = await db.playlist.findUnique({
-      where: { id },
+      where: { id, tenantId: session.user.activeTenantId! },
       include: {
         videos: {
           orderBy: { position: "asc" },
@@ -300,11 +303,11 @@ export async function createPlaylist(
   input: z.input<typeof CreatePlaylistSchema>
 ): Promise<ActionResult<Playlist>> {
   try {
-    await requireAdmin();
+    const session = await requireAdmin();
     const data = CreatePlaylistSchema.parse(input);
     const slug = generateSlug(data.title);
 
-    const existing = await db.playlist.findUnique({ where: { slug } });
+    const existing = await db.playlist.findUnique({ where: { tenantId_slug: { tenantId: session.user.activeTenantId!, slug } } });
     if (existing) {
       return {
         success: false,
@@ -312,7 +315,7 @@ export async function createPlaylist(
       };
     }
 
-    const playlist = await db.playlist.create({ data: { ...data, slug } });
+    const playlist = await db.playlist.create({ data: { ...data, slug, tenantId: session.user.activeTenantId! } });
 
     revalidatePath("/admin/playlists");
     return { success: true, data: playlist };
@@ -330,7 +333,7 @@ export async function updatePlaylist(
   input: z.input<typeof UpdatePlaylistSchema>
 ): Promise<ActionResult<Playlist>> {
   try {
-    await requireAdmin();
+    const session = await requireAdmin();
     const data = UpdatePlaylistSchema.parse(input);
 
     // If title changed, regenerate slug unless slug was explicitly provided
@@ -338,7 +341,7 @@ export async function updatePlaylist(
       data.slug = generateSlug(data.title);
     }
 
-    const playlist = await db.playlist.update({ where: { id }, data });
+    const playlist = await db.playlist.update({ where: { id, tenantId: session.user.activeTenantId! }, data });
 
     revalidatePath("/admin/playlists");
     revalidatePath(`/admin/playlists/${id}`);
@@ -354,8 +357,8 @@ export async function updatePlaylist(
 /** Delete a playlist. */
 export async function deletePlaylist(id: string): Promise<ActionResult<undefined>> {
   try {
-    await requireAdmin();
-    await db.playlist.delete({ where: { id } });
+    const session = await requireAdmin();
+    await db.playlist.delete({ where: { id, tenantId: session.user.activeTenantId! } });
     revalidatePath("/admin/playlists");
     return { success: true, data: undefined };
   } catch (err) {
@@ -435,9 +438,9 @@ export async function getAllVideosForPicker(): Promise<
   ActionResult<Pick<Video, "id" | "title" | "thumbnailUrl" | "duration">[]>
 > {
   try {
-    await requireAdmin();
+    const session = await requireAdmin();
     const videos = await db.video.findMany({
-      where: { isActive: true },
+      where: { isActive: true, tenantId: session.user.activeTenantId! },
       orderBy: { title: "asc" },
       select: { id: true, title: true, thumbnailUrl: true, duration: true },
     });

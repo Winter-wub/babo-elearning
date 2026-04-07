@@ -61,8 +61,9 @@ const CONTENT_KEYS: Record<string, string> = {
 หากมีคำถามเกี่ยวกับข้อกำหนดการใช้งานเหล่านี้ ติดต่อเราได้ที่ support@elearning.com`,
 };
 
-export default async function TermsPage() {
-  const content = await getSiteContent(Object.keys(CONTENT_KEYS));
+export default async function TermsPage({ params }: { params: Promise<{ tenantSlug: string }> }) {
+  const { tenantSlug } = await params;
+  const content = await getSiteContent(Object.keys(CONTENT_KEYS), tenantSlug);
 
   function c(key: string): string {
     return content[key] ?? CONTENT_KEYS[key] ?? "";

@@ -30,7 +30,9 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const themeSettings = await getThemeSettings();
+  // TODO: Fix tenant resolution in root layout. It should probably be moved to [tenantSlug]/layout.tsx
+  const tenantSlug = "default";
+  const themeSettings = await getThemeSettings(tenantSlug);
 
   return (
     <html

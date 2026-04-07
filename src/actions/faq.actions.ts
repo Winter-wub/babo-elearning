@@ -3,21 +3,9 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
-import { auth } from "@/lib/auth";
+import { requireAdmin } from "@/actions/helpers";
 import type { Faq } from "@prisma/client";
 import type { ActionResult } from "@/types";
-
-// -----------------------------------------------------------------------
-// Helpers
-// -----------------------------------------------------------------------
-
-async function requireAdmin() {
-  const session = await auth();
-  if (!session?.user || session.user.role !== "ADMIN") {
-    throw new Error("ไม่มีสิทธิ์");
-  }
-  return session;
-}
 
 // -----------------------------------------------------------------------
 // Schemas
@@ -45,9 +33,9 @@ const UpdateFaqSchema = z.object({
  * Fetch all active FAQs, ordered by sortOrder ascending.
  * Used on the public /faq page.
  */
-export async function getActiveFaqs(): Promise<Faq[]> {
+export async function getActiveFaqs(tenantId: string): Promise<Faq[]> {
   return db.faq.findMany({
-    where: { isActive: true },
+    where: { isActive: true, tenantId },
     orderBy: { sortOrder: "asc" },
   });
 }
@@ -61,8 +49,8 @@ export async function getFaqs(
   includeInactive: boolean = true
 ): Promise<ActionResult<Faq[]>> {
   try {
-    await requireAdmin();
-    const where = includeInactive ? {} : { isActive: true };
+    const { tenantId } = await requireAdmin();
+    const where = includeInactive ? { tenantId } : { isActive: true, tenantId };
     const faqs = await db.faq.findMany({
       where,
       orderBy: { sortOrder: "asc" },
@@ -81,9 +69,9 @@ export async function createFaq(
   input: z.input<typeof CreateFaqSchema>
 ): Promise<ActionResult<Faq>> {
   try {
-    await requireAdmin();
+    const { tenantId } = await requireAdmin();
     const data = CreateFaqSchema.parse(input);
-    const faq = await db.faq.create({ data });
+    const faq = await db.faq.create({ data: { ...data, tenantId } });
     revalidatePath("/admin/faq");
     revalidatePath("/faq");
     return { success: true, data: faq };
@@ -101,9 +89,9 @@ export async function updateFaq(
   input: z.input<typeof UpdateFaqSchema>
 ): Promise<ActionResult<Faq>> {
   try {
-    await requireAdmin();
+    const { tenantId } = await requireAdmin();
     const data = UpdateFaqSchema.parse(input);
-    const faq = await db.faq.update({ where: { id }, data });
+    const faq = await db.faq.update({ where: { id, tenantId }, data });
     revalidatePath("/admin/faq");
     revalidatePath("/faq");
     return { success: true, data: faq };
@@ -118,8 +106,8 @@ export async function updateFaq(
 /** Delete a FAQ. */
 export async function deleteFaq(id: string): Promise<ActionResult<undefined>> {
   try {
-    await requireAdmin();
-    await db.faq.delete({ where: { id } });
+    const { tenantId } = await requireAdmin();
+    await db.faq.delete({ where: { id, tenantId } });
     revalidatePath("/admin/faq");
     revalidatePath("/faq");
     return { success: true, data: undefined };

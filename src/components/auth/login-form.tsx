@@ -73,7 +73,7 @@ export function LoginForm({ callbackUrl = "/dashboard", enabledProviders }: Logi
       // and redirect to the appropriate dashboard.
       const session = await getSession();
       const destination =
-        session?.user?.role === "ADMIN" ? "/admin/dashboard" : "/dashboard";
+        (session?.user?.role === "ADMIN" || session?.user?.role === "SUPER_ADMIN" || session?.user?.tenantRole === "OWNER" || session?.user?.tenantRole === "ADMIN") ? "/admin/dashboard" : "/dashboard";
       router.push(destination);
       router.refresh();
     } catch {

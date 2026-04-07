@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { ShieldCheck } from "lucide-react";
 import { getSiteContent } from "@/actions/content.actions";
 import { APP_NAME } from "@/lib/constants";
+import { getDeploymentTenantId } from "@/lib/tenant";
 
 export const metadata: Metadata = {
   title: "นโยบายความเป็นส่วนตัว",
@@ -59,7 +60,8 @@ const CONTENT_KEYS: Record<string, string> = {
 };
 
 export default async function PrivacyPage() {
-  const content = await getSiteContent(Object.keys(CONTENT_KEYS));
+  const tenantId = await getDeploymentTenantId();
+  const content = await getSiteContent(Object.keys(CONTENT_KEYS), tenantId);
 
   function c(key: string): string {
     return content[key] ?? CONTENT_KEYS[key] ?? "";

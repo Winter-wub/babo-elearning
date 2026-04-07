@@ -67,7 +67,7 @@ export default async function AdminPermissionsPage(
 ) {
   // Defence-in-depth auth check
   const session = await auth();
-  if (!session?.user || session.user.role !== "ADMIN") {
+  if (!session?.user || (session.user.role !== "ADMIN" && session.user.role !== "SUPER_ADMIN" && session.user.tenantRole !== "OWNER" && session.user.tenantRole !== "ADMIN")) {
     redirect("/dashboard");
   }
 

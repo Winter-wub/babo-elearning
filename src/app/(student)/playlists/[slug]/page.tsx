@@ -5,6 +5,7 @@ import { ArrowLeft, ListVideo } from "lucide-react";
 import { getPlaylistBySlug } from "@/actions/playlist.actions";
 import { PlaylistVideoList } from "@/components/student/playlist-video-list";
 import { Button } from "@/components/ui/button";
+import { getDeploymentTenantId } from "@/lib/tenant";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -22,7 +23,8 @@ export async function generateMetadata({
   params,
 }: PlaylistDetailPageProps): Promise<Metadata> {
   const { slug } = await params;
-  const result = await getPlaylistBySlug(slug);
+  const tenantId = await getDeploymentTenantId();
+  const result = await getPlaylistBySlug(slug, tenantId);
 
   if (!result.success || !result.data) {
     return { title: "Playlist Not Found" };
@@ -42,7 +44,8 @@ export default async function PlaylistDetailPage({
   params,
 }: PlaylistDetailPageProps) {
   const { slug } = await params;
-  const result = await getPlaylistBySlug(slug);
+  const tenantId = await getDeploymentTenantId();
+  const result = await getPlaylistBySlug(slug, tenantId);
 
   if (!result.success || !result.data) {
     notFound();

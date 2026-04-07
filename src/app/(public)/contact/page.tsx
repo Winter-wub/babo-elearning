@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Mail, Phone, MapPin } from "lucide-react";
 import { getSiteContent } from "@/actions/content.actions";
 import { ContactForm } from "@/components/contact/ContactForm";
+import { getDeploymentTenantId } from "@/lib/tenant";
 
 export const metadata: Metadata = {
   title: "ติดต่อเรา",
@@ -19,7 +20,8 @@ const CONTACT_KEYS: Record<string, string> = {
 };
 
 export default async function ContactPage() {
-  const content = await getSiteContent(Object.keys(CONTACT_KEYS));
+  const tenantId = await getDeploymentTenantId();
+  const content = await getSiteContent(Object.keys(CONTACT_KEYS), tenantId);
 
   function c(key: string): string {
     return content[key] ?? CONTACT_KEYS[key] ?? "";

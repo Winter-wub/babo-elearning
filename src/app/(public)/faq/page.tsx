@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { HelpCircle } from "lucide-react";
 import { getActiveFaqs } from "@/actions/faq.actions";
 import { FaqList } from "@/components/faq/FaqList";
+import { getDeploymentTenantId } from "@/lib/tenant";
 
 export const metadata: Metadata = {
   title: "คำถามที่พบบ่อย",
@@ -10,7 +11,8 @@ export const metadata: Metadata = {
 };
 
 export default async function FaqPage() {
-  const faqs = await getActiveFaqs();
+  const tenantId = await getDeploymentTenantId();
+  const faqs = await getActiveFaqs(tenantId);
 
   return (
     <>

@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
-import { auth } from "@/lib/auth";
+import { requireAdmin } from "@/actions/helpers";
 import { getSiteContent, bulkUpdateSiteContent } from "@/actions/content.actions";
 import { getUploadUrl } from "@/lib/r2";
 import {
@@ -12,18 +12,6 @@ import {
   ACCEPTED_LOGO_MIME_TYPES,
 } from "@/lib/constants";
 import type { ActionResult } from "@/types";
-
-// -----------------------------------------------------------------------
-// Helpers
-// -----------------------------------------------------------------------
-
-async function requireAdmin() {
-  const session = await auth();
-  if (!session?.user || session.user.role !== "ADMIN") {
-    throw new Error("ไม่มีสิทธิ์");
-  }
-  return session;
-}
 
 // -----------------------------------------------------------------------
 // Types
@@ -68,10 +56,10 @@ const ThemeSettingsSchema = z.object({
  * Fetch current theme settings from SiteContent.
  * Returns defaults for any missing keys.
  */
-export async function getThemeSettings(): Promise<ThemeSettings> {
+export async function getThemeSettings(tenantId: string): Promise<ThemeSettings> {
   try {
     const keys = Object.values(THEME_KEYS);
-    const raw = await getSiteContent(keys);
+    const raw = await getSiteContent(keys, tenantId);
 
     return {
       primaryColor: raw[THEME_KEYS.primaryColor] || THEME_DEFAULTS.primaryColor,

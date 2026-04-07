@@ -3,7 +3,7 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
-import { auth } from "@/lib/auth";
+import { requireAdmin } from "@/actions/helpers";
 import type { ContactSubmission } from "@prisma/client";
 import type { ActionResult, PaginatedResult } from "@/types";
 
@@ -28,6 +28,7 @@ export async function submitContactForm(
     email: formData.get("email"),
     subject: formData.get("subject"),
     message: formData.get("message"),
+    tenantSlug: formData.get("tenantSlug"),
   };
 
   const parsed = contactSchema.safeParse(raw);
@@ -38,8 +39,20 @@ export async function submitContactForm(
   }
 
   try {
+    const tenant = await db.tenant.findUnique({
+      where: { slug: raw.tenantSlug as string },
+      select: { id: true }
+    });
+
+    if (!tenant) {
+      return { success: false, error: "ไม่พบผู้เช่า" };
+    }
+
     const submission = await db.contactSubmission.create({
-      data: parsed.data,
+      data: {
+        ...parsed.data,
+        tenantId: tenant.id
+      },
     });
 
     return { success: true, data: { id: submission.id } };
@@ -49,18 +62,6 @@ export async function submitContactForm(
       error: "ไม่สามารถส่งข้อความได้ กรุณาลองใหม่อีกครั้ง",
     };
   }
-}
-
-// -----------------------------------------------------------------------
-// Admin helpers
-// -----------------------------------------------------------------------
-
-async function requireAdmin() {
-  const session = await auth();
-  if (!session?.user || session.user.role !== "ADMIN") {
-    throw new Error("ไม่มีสิทธิ์");
-  }
-  return session;
 }
 
 // -----------------------------------------------------------------------
@@ -74,14 +75,14 @@ export async function getContactSubmissions(
   filter?: "all" | "read" | "unread"
 ): Promise<ActionResult<PaginatedResult<ContactSubmission>>> {
   try {
-    await requireAdmin();
+    const { tenantId } = await requireAdmin();
 
     const where =
       filter === "read"
-        ? { isRead: true }
+        ? { isRead: true, tenantId }
         : filter === "unread"
-        ? { isRead: false }
-        : {};
+        ? { isRead: false, tenantId }
+        : { tenantId };
 
     const [items, total] = await Promise.all([
       db.contactSubmission.findMany({
@@ -119,8 +120,8 @@ export async function markSubmissionRead(
   isRead: boolean = true
 ): Promise<ActionResult<undefined>> {
   try {
-    await requireAdmin();
-    await db.contactSubmission.update({ where: { id }, data: { isRead } });
+    const { tenantId } = await requireAdmin();
+    await db.contactSubmission.update({ where: { id, tenantId }, data: { isRead } });
     revalidatePath("/admin/contacts");
     return { success: true, data: undefined };
   } catch (err) {
@@ -136,8 +137,8 @@ export async function deleteSubmission(
   id: string
 ): Promise<ActionResult<undefined>> {
   try {
-    await requireAdmin();
-    await db.contactSubmission.delete({ where: { id } });
+    const { tenantId } = await requireAdmin();
+    await db.contactSubmission.delete({ where: { id, tenantId } });
     revalidatePath("/admin/contacts");
     return { success: true, data: undefined };
   } catch (err) {

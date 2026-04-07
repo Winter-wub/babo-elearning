@@ -77,10 +77,10 @@ export default async function VideoPage({ params }: VideoPageProps) {
   }
 
   // ---- 3. Authorisation (with time-based check) ---------------------------
-  if (session.user.role === "STUDENT") {
+  if (session.user.role === "STUDENT" && session.user.tenantRole === "STUDENT") {
     const permission = await db.videoPermission.findUnique({
       where: {
-        userId_videoId: { userId: session.user.id, videoId },
+        tenantId_userId_videoId: { userId: session.user.id, videoId, tenantId: session.user.activeTenantId! },
       },
       select: { id: true, validFrom: true, validUntil: true },
     });

@@ -15,7 +15,7 @@ export default async function PublicLayout({
     <div className="min-h-screen flex flex-col">
       <HomeHeader
         isAuthenticated={!!session?.user}
-        userRole={session?.user?.role}
+        userRole={session?.user?.role as any}
         userName={session?.user?.name ?? undefined}
         appName={appName}
       />

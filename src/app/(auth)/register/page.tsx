@@ -2,13 +2,15 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { RegisterForm } from "@/components/auth/register-form";
 import { getEnabledOAuthProviders } from "@/actions/oauth.actions";
+import { getDeploymentTenantId } from "@/lib/tenant";
 
 export const metadata: Metadata = {
   title: "สร้างบัญชี",
 };
 
 export default async function RegisterPage() {
-  const enabledProviders = await getEnabledOAuthProviders();
+  const tenantId = await getDeploymentTenantId();
+  const enabledProviders = await getEnabledOAuthProviders(tenantId);
 
   return (
     <>

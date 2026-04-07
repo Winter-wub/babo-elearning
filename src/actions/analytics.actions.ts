@@ -1,15 +1,7 @@
 "use server";
 
 import { db } from "@/lib/db";
-import { auth } from "@/lib/auth";
-
-async function requireAdmin() {
-  const session = await auth();
-  if (!session?.user || session.user.role !== "ADMIN") {
-    throw new Error("ไม่มีสิทธิ์");
-  }
-  return session;
-}
+import { requireAdmin } from "@/actions/helpers";
 
 export type AnalyticsSummary = {
   totalUsers: number;
@@ -38,18 +30,21 @@ export type AnalyticsData = {
 };
 
 export async function getAnalyticsData(): Promise<AnalyticsData> {
-  await requireAdmin();
+  const { tenantId } = await requireAdmin();
 
   const [totalUsers, totalVideos, totalPermissions, activeVideos] =
     await Promise.all([
-      db.user.count(),
-      db.video.count(),
-      db.videoPermission.count(),
-      db.video.count({ where: { isActive: true } }),
+      db.user.count({
+        where: { tenantMembers: { some: { tenantId } } },
+      }),
+      db.video.count({ where: { tenantId } }),
+      db.videoPermission.count({ where: { tenantId } }),
+      db.video.count({ where: { tenantId, isActive: true } }),
     ]);
 
   // Top 10 videos by play count
   const topVideos = await db.video.findMany({
+    where: { tenantId },
     orderBy: { playCount: "desc" },
     take: 10,
     select: { id: true, title: true, playCount: true },
@@ -59,20 +54,20 @@ export async function getAnalyticsData(): Promise<AnalyticsData> {
   const sixMonthsAgo = new Date();
   sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
 
-  const recentUsers = await db.user.findMany({
-    where: { createdAt: { gte: sixMonthsAgo } },
+  const recentMembers = await db.tenantMember.findMany({
+    where: { tenantId, createdAt: { gte: sixMonthsAgo } },
     select: { createdAt: true },
   });
 
   const usersByMonth: Record<string, number> = {};
-  for (const user of recentUsers) {
-    const key = user.createdAt.toISOString().slice(0, 7); // YYYY-MM
+  for (const member of recentMembers) {
+    const key = member.createdAt.toISOString().slice(0, 7); // YYYY-MM
     usersByMonth[key] = (usersByMonth[key] || 0) + 1;
   }
 
   // Permissions by month (last 6 months)
   const recentPermissions = await db.videoPermission.findMany({
-    where: { grantedAt: { gte: sixMonthsAgo } },
+    where: { tenantId, grantedAt: { gte: sixMonthsAgo } },
     select: { grantedAt: true },
   });
 
@@ -82,10 +77,10 @@ export async function getAnalyticsData(): Promise<AnalyticsData> {
     permissionsByMonth[key] = (permissionsByMonth[key] || 0) + 1;
   }
 
-  // Role distribution
+  // Role distribution (by TenantMember role, not global role)
   const [students, admins] = await Promise.all([
-    db.user.count({ where: { role: "STUDENT" } }),
-    db.user.count({ where: { role: "ADMIN" } }),
+    db.tenantMember.count({ where: { tenantId, role: "STUDENT" } }),
+    db.tenantMember.count({ where: { tenantId, role: { in: ["ADMIN", "OWNER"] } } }),
   ]);
 
   return {

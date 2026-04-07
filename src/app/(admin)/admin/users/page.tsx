@@ -3,6 +3,8 @@ import { Suspense } from "react";
 import { UsersTable } from "@/components/admin/users-table";
 import { Spinner } from "@/components/ui/spinner";
 import { getUsers } from "@/actions/user.actions";
+import { auth } from "@/lib/auth";
+import { redirect } from "next/navigation";
 
 export const metadata: Metadata = {
   title: "จัดการผู้ใช้",
@@ -11,7 +13,7 @@ export const metadata: Metadata = {
 interface AdminUsersPageProps {
   searchParams: Promise<{
     search?: string;
-    role?: "STUDENT" | "ADMIN";
+    role?: "STUDENT" | "ADMIN" | "SUPER_ADMIN";
     isActive?: string;
     page?: string;
     sortBy?: "name" | "email" | "createdAt";
@@ -24,7 +26,7 @@ async function UsersContent({ searchParams }: AdminUsersPageProps) {
 
   const result = await getUsers({
     search: params.search,
-    role: params.role,
+    role: params.role as "STUDENT" | "ADMIN" | undefined,
     isActive:
       params.isActive === "true"
         ? true
@@ -49,7 +51,12 @@ async function UsersContent({ searchParams }: AdminUsersPageProps) {
   );
 }
 
-export default function AdminUsersPage(props: AdminUsersPageProps) {
+export default async function AdminUsersPage(props: AdminUsersPageProps) {
+  const session = await auth();
+  if (!session?.user || (session.user.role !== "ADMIN" && session.user.role !== "SUPER_ADMIN" && session.user.tenantRole !== "OWNER" && session.user.tenantRole !== "ADMIN")) {
+    redirect("/dashboard");
+  }
+
   return (
     <div className="space-y-6">
       <div>

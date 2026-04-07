@@ -1,7 +1,7 @@
 import { PrismaClient, Role } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
-import pg from "pg";
-import bcrypt from "bcryptjs";
+import * as pg from "pg";
+import * as bcrypt from "bcryptjs";
 
 const connectionString = process.env.DATABASE_URL;
 if (!connectionString) {
@@ -22,6 +22,93 @@ async function main() {
   // Admin user
   // -------------------------
   const adminPassword = await hashPassword("Admin123!");
+
+  // First ensure default tenant exists
+  const defaultTenant = await prisma.tenant.upsert({
+    where: { slug: "default" },
+    update: {},
+    create: {
+      id: "default",
+      name: "Default Tenant",
+      slug: "default",
+    },
+  });
+
+  const tenantA = await prisma.tenant.upsert({
+    where: { slug: "tenant-a" },
+    update: {},
+    create: {
+      name: "Tenant A",
+      slug: "tenant-a",
+    },
+  });
+
+  const tenantB = await prisma.tenant.upsert({
+    where: { slug: "tenant-b" },
+    update: {},
+    create: {
+      name: "Tenant B",
+      slug: "tenant-b",
+    },
+  });
+
+  const superAdmin = await prisma.user.upsert({
+    where: { email: "superadmin@elearning.com" },
+    update: {},
+    create: {
+      email: "superadmin@elearning.com",
+      passwordHash: adminPassword,
+      name: "Super Admin",
+      role: Role.SUPER_ADMIN,
+      isActive: true,
+    },
+  });
+  console.log(`Super Admin user: ${superAdmin.email} (id: ${superAdmin.id})`);
+
+  const ownerA = await prisma.user.upsert({
+    where: { email: "owner-a@elearning.com" },
+    update: {},
+    create: {
+      email: "owner-a@elearning.com",
+      passwordHash: adminPassword,
+      name: "Tenant A Owner",
+      role: Role.STUDENT,
+      isActive: true,
+    },
+  });
+  await prisma.tenantMember.upsert({
+    where: { tenantId_userId: { tenantId: tenantA.id, userId: ownerA.id } },
+    update: { role: "OWNER" },
+    create: {
+      tenantId: tenantA.id,
+      userId: ownerA.id,
+      role: "OWNER",
+    },
+  });
+  console.log(`Tenant A Owner: ${ownerA.email} (id: ${ownerA.id})`);
+
+  const ownerB = await prisma.user.upsert({
+    where: { email: "owner-b@elearning.com" },
+    update: {},
+    create: {
+      email: "owner-b@elearning.com",
+      passwordHash: adminPassword,
+      name: "Tenant B Owner",
+      role: Role.STUDENT,
+      isActive: true,
+    },
+  });
+  await prisma.tenantMember.upsert({
+    where: { tenantId_userId: { tenantId: tenantB.id, userId: ownerB.id } },
+    update: { role: "OWNER" },
+    create: {
+      tenantId: tenantB.id,
+      userId: ownerB.id,
+      role: "OWNER",
+    },
+  });
+  console.log(`Tenant B Owner: ${ownerB.email} (id: ${ownerB.id})`);
+
   const admin = await prisma.user.upsert({
     where: { email: "admin@elearning.com" },
     update: {},
@@ -31,6 +118,16 @@ async function main() {
       name: "Admin",
       role: Role.ADMIN,
       isActive: true,
+    },
+  });
+  // Admin needs a TenantMember on the default tenant for per-tenant deployment model
+  await prisma.tenantMember.upsert({
+    where: { tenantId_userId: { tenantId: defaultTenant.id, userId: admin.id } },
+    update: { role: "ADMIN" },
+    create: {
+      tenantId: defaultTenant.id,
+      userId: admin.id,
+      role: "ADMIN",
     },
   });
   console.log(`Admin user: ${admin.email} (id: ${admin.id})`);
@@ -43,19 +140,45 @@ async function main() {
       email: "alice@student.com",
       name: "Alice Johnson",
       password: "Student123!",
+      tenantId: defaultTenant.id,
     },
-    { email: "bob@student.com", name: "Bob Smith", password: "Student123!" },
+    { email: "bob@student.com", name: "Bob Smith", password: "Student123!", tenantId: defaultTenant.id },
     {
       email: "carol@student.com",
       name: "Carol White",
       password: "Student123!",
+      tenantId: defaultTenant.id,
+    },
+    {
+      email: "student-a1@tenant-a.com",
+      name: "Student A1",
+      password: "Student123!",
+      tenantId: tenantA.id,
+    },
+    {
+      email: "student-a2@tenant-a.com",
+      name: "Student A2",
+      password: "Student123!",
+      tenantId: tenantA.id,
+    },
+    {
+      email: "student-b1@tenant-b.com",
+      name: "Student B1",
+      password: "Student123!",
+      tenantId: tenantB.id,
+    },
+    {
+      email: "student-b2@tenant-b.com",
+      name: "Student B2",
+      password: "Student123!",
+      tenantId: tenantB.id,
     },
   ];
 
   const students = await Promise.all(
     studentsData.map(async (s) => {
       const passwordHash = await hashPassword(s.password);
-      return prisma.user.upsert({
+      const user = await prisma.user.upsert({
         where: { email: s.email },
         update: {},
         create: {
@@ -66,6 +189,18 @@ async function main() {
           isActive: true,
         },
       });
+
+      await prisma.tenantMember.upsert({
+        where: { tenantId_userId: { tenantId: s.tenantId, userId: user.id } },
+        update: {},
+        create: {
+          tenantId: s.tenantId,
+          userId: user.id,
+          role: "STUDENT",
+        },
+      });
+
+      return user;
     })
   );
 
@@ -83,6 +218,7 @@ async function main() {
       duration: 1800, // 30 minutes
       thumbnailUrl: null,
       playCount: 245,
+      tenantId: defaultTenant.id,
     },
     {
       title: "Advanced React Patterns",
@@ -92,6 +228,7 @@ async function main() {
       duration: 3200, // ~53 minutes
       thumbnailUrl: null,
       playCount: 412,
+      tenantId: defaultTenant.id,
     },
     {
       title: "TypeScript Fundamentals",
@@ -100,6 +237,7 @@ async function main() {
       duration: 2400,
       thumbnailUrl: null,
       playCount: 189,
+      tenantId: defaultTenant.id,
     },
     {
       title: "CSS Grid & Flexbox Mastery",
@@ -108,6 +246,7 @@ async function main() {
       duration: 1500,
       thumbnailUrl: null,
       playCount: 67,
+      tenantId: defaultTenant.id,
     },
     {
       title: "Node.js REST API Design",
@@ -116,6 +255,7 @@ async function main() {
       duration: 2700,
       thumbnailUrl: null,
       playCount: 321,
+      tenantId: defaultTenant.id,
     },
     {
       title: "Database Design Principles",
@@ -124,15 +264,35 @@ async function main() {
       duration: 2100,
       thumbnailUrl: null,
       playCount: 98,
+      tenantId: defaultTenant.id,
+    },
+    {
+      title: "Tenant A Exclusive Course",
+      description: "Course available only to Tenant A.",
+      s3Key: "videos/tenant-a/exclusive.mp4",
+      duration: 1200,
+      thumbnailUrl: null,
+      playCount: 15,
+      tenantId: tenantA.id,
+    },
+    {
+      title: "Tenant B Advanced Course",
+      description: "Advanced topics for Tenant B.",
+      s3Key: "videos/tenant-b/advanced.mp4",
+      duration: 1600,
+      thumbnailUrl: null,
+      playCount: 42,
+      tenantId: tenantB.id,
     },
   ];
 
   const videos = await Promise.all(
     videosData.map((v) =>
       prisma.video.upsert({
-        where: { s3Key: v.s3Key },
+        where: { tenantId_s3Key: { tenantId: v.tenantId, s3Key: v.s3Key } },
         update: { playCount: v.playCount },
         create: {
+          tenantId: v.tenantId,
           title: v.title,
           description: v.description,
           s3Key: v.s3Key,
@@ -214,9 +374,10 @@ async function main() {
 
   for (const { student, video, timeFields, label } of permissionsData) {
     const permission = await prisma.videoPermission.upsert({
-      where: { userId_videoId: { userId: student.id, videoId: video.id } },
+      where: { tenantId_userId_videoId: { tenantId: video.tenantId, userId: student.id, videoId: video.id } },
       update: { ...timeFields },
       create: {
+        tenantId: video.tenantId,
         userId: student.id,
         videoId: video.id,
         grantedBy: admin.id,
@@ -228,22 +389,55 @@ async function main() {
     );
   }
 
+  const tenantAStudent = students.find((s) => s.email === "student-a1@tenant-a.com");
+  const tenantAVideo = videos.find((v) => v.tenantId === tenantA.id);
+  if (tenantAStudent && tenantAVideo) {
+    await prisma.videoPermission.upsert({
+      where: { tenantId_userId_videoId: { tenantId: tenantA.id, userId: tenantAStudent.id, videoId: tenantAVideo.id } },
+      update: {},
+      create: {
+        tenantId: tenantA.id,
+        userId: tenantAStudent.id,
+        videoId: tenantAVideo.id,
+        grantedBy: ownerA.id,
+      },
+    });
+  }
+
+  const tenantBStudent = students.find((s) => s.email === "student-b1@tenant-b.com");
+  const tenantBVideo = videos.find((v) => v.tenantId === tenantB.id);
+  if (tenantBStudent && tenantBVideo) {
+    await prisma.videoPermission.upsert({
+      where: { tenantId_userId_videoId: { tenantId: tenantB.id, userId: tenantBStudent.id, videoId: tenantBVideo.id } },
+      update: {},
+      create: {
+        tenantId: tenantB.id,
+        userId: tenantBStudent.id,
+        videoId: tenantBVideo.id,
+        grantedBy: ownerB.id,
+      },
+    });
+  }
+
   // -------------------------
   // Featured playlists (4)
   // -------------------------
   const featuredPlaylistsData = [
-    { title: "Web Development Essentials", slug: "web-dev-essentials", sortOrder: 0 },
-    { title: "React Masterclass", slug: "react-masterclass", sortOrder: 1 },
-    { title: "Backend Engineering", slug: "backend-engineering", sortOrder: 2 },
-    { title: "Full-Stack Project", slug: "full-stack-project", sortOrder: 3 },
+    { title: "Web Development Essentials", slug: "web-dev-essentials", sortOrder: 0, tenantId: defaultTenant.id },
+    { title: "React Masterclass", slug: "react-masterclass", sortOrder: 1, tenantId: defaultTenant.id },
+    { title: "Backend Engineering", slug: "backend-engineering", sortOrder: 2, tenantId: defaultTenant.id },
+    { title: "Full-Stack Project", slug: "full-stack-project", sortOrder: 3, tenantId: defaultTenant.id },
+    { title: "Tenant A Featured", slug: "tenant-a-featured", sortOrder: 0, tenantId: tenantA.id },
+    { title: "Tenant B Featured", slug: "tenant-b-featured", sortOrder: 0, tenantId: tenantB.id },
   ];
 
   const featuredPlaylists = await Promise.all(
     featuredPlaylistsData.map((p) =>
       prisma.playlist.upsert({
-        where: { slug: p.slug },
+        where: { tenantId_slug: { tenantId: p.tenantId, slug: p.slug } },
         update: {},
         create: {
+          tenantId: p.tenantId,
           title: p.title,
           slug: p.slug,
           description: `Curated playlist: ${p.title}`,
@@ -264,22 +458,25 @@ async function main() {
   // Category playlists (8, not featured)
   // -------------------------
   const categoryPlaylistsData = [
-    { title: "HTML & CSS Basics", slug: "html-css-basics", sortOrder: 10 },
-    { title: "JavaScript Deep Dive", slug: "javascript-deep-dive", sortOrder: 11 },
-    { title: "TypeScript in Practice", slug: "typescript-in-practice", sortOrder: 12 },
-    { title: "Database Fundamentals", slug: "database-fundamentals", sortOrder: 13 },
-    { title: "DevOps & Deployment", slug: "devops-deployment", sortOrder: 14 },
-    { title: "Testing Strategies", slug: "testing-strategies", sortOrder: 15 },
-    { title: "API Design Patterns", slug: "api-design-patterns", sortOrder: 16 },
-    { title: "Security Best Practices", slug: "security-best-practices", sortOrder: 17 },
+    { title: "HTML & CSS Basics", slug: "html-css-basics", sortOrder: 10, tenantId: defaultTenant.id },
+    { title: "JavaScript Deep Dive", slug: "javascript-deep-dive", sortOrder: 11, tenantId: defaultTenant.id },
+    { title: "TypeScript in Practice", slug: "typescript-in-practice", sortOrder: 12, tenantId: defaultTenant.id },
+    { title: "Database Fundamentals", slug: "database-fundamentals", sortOrder: 13, tenantId: defaultTenant.id },
+    { title: "DevOps & Deployment", slug: "devops-deployment", sortOrder: 14, tenantId: defaultTenant.id },
+    { title: "Testing Strategies", slug: "testing-strategies", sortOrder: 15, tenantId: defaultTenant.id },
+    { title: "API Design Patterns", slug: "api-design-patterns", sortOrder: 16, tenantId: defaultTenant.id },
+    { title: "Security Best Practices", slug: "security-best-practices", sortOrder: 17, tenantId: defaultTenant.id },
+    { title: "Tenant A Category", slug: "tenant-a-category", sortOrder: 10, tenantId: tenantA.id },
+    { title: "Tenant B Category", slug: "tenant-b-category", sortOrder: 10, tenantId: tenantB.id },
   ];
 
   const categoryPlaylists = await Promise.all(
     categoryPlaylistsData.map((p) =>
       prisma.playlist.upsert({
-        where: { slug: p.slug },
+        where: { tenantId_slug: { tenantId: p.tenantId, slug: p.slug } },
         update: {},
         create: {
+          tenantId: p.tenantId,
           title: p.title,
           slug: p.slug,
           description: `Category playlist: ${p.title}`,
@@ -301,8 +498,9 @@ async function main() {
   // -------------------------
   // Each featured playlist gets 3+ videos from the seeded video pool.
   for (const playlist of featuredPlaylists) {
+    const tenantVideos = videos.filter((v) => v.tenantId === playlist.tenantId);
     // Pick at least 3 videos; cycle through if needed.
-    const videoSubset = videos.slice(0, Math.max(3, videos.length));
+    const videoSubset = tenantVideos.slice(0, Math.max(3, tenantVideos.length));
     for (let i = 0; i < videoSubset.length; i++) {
       await prisma.playlistVideo.upsert({
         where: {
@@ -379,9 +577,21 @@ async function main() {
 
   for (const item of siteContentData) {
     await prisma.siteContent.upsert({
-      where: { key: item.key },
+      where: { tenantId_key: { tenantId: defaultTenant.id, key: item.key } },
       update: { value: item.value },
-      create: item,
+      create: { tenantId: defaultTenant.id, ...item },
+    });
+
+    await prisma.siteContent.upsert({
+      where: { tenantId_key: { tenantId: tenantA.id, key: item.key } },
+      update: { value: item.value },
+      create: { tenantId: tenantA.id, ...item },
+    });
+
+    await prisma.siteContent.upsert({
+      where: { tenantId_key: { tenantId: tenantB.id, key: item.key } },
+      update: { value: item.value },
+      create: { tenantId: tenantB.id, ...item },
     });
   }
   console.log(`Seeded ${siteContentData.length} site content entries.`);
@@ -433,12 +643,30 @@ async function main() {
   ];
 
   for (const item of faqData) {
-    const existing = await prisma.faq.findFirst({
-      where: { question: item.question },
+    const existingDefault = await prisma.faq.findFirst({
+      where: { tenantId: defaultTenant.id, question: item.question },
     });
-    if (!existing) {
+    if (!existingDefault) {
       await prisma.faq.create({
-        data: { ...item, isActive: true },
+        data: { tenantId: defaultTenant.id, ...item, isActive: true },
+      });
+    }
+
+    const existingA = await prisma.faq.findFirst({
+      where: { tenantId: tenantA.id, question: item.question },
+    });
+    if (!existingA) {
+      await prisma.faq.create({
+        data: { tenantId: tenantA.id, ...item, isActive: true },
+      });
+    }
+
+    const existingB = await prisma.faq.findFirst({
+      where: { tenantId: tenantB.id, question: item.question },
+    });
+    if (!existingB) {
+      await prisma.faq.create({
+        data: { tenantId: tenantB.id, ...item, isActive: true },
       });
     }
   }

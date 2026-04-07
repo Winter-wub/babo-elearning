@@ -1,13 +1,15 @@
 import type { Metadata } from "next";
 import { getActivePlaylists } from "@/actions/playlist.actions";
 import { PlaylistBrowseCard } from "@/components/student/playlist-browse-card";
+import { getDeploymentTenantId } from "@/lib/tenant";
 
 export const metadata: Metadata = {
   title: "เพลย์ลิสต์",
 };
 
 export default async function PlaylistsPage() {
-  const result = await getActivePlaylists();
+  const tenantId = await getDeploymentTenantId();
+  const result = await getActivePlaylists(tenantId);
   const playlists = result.success ? result.data : [];
 
   return (

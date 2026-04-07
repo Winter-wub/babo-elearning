@@ -8,9 +8,7 @@ import { authConfig } from "@/lib/auth.config";
  * This file MUST NOT import Node-only modules (Prisma, bcryptjs) — it runs on
  * the Edge Runtime.
  */
-const { auth } = NextAuth(authConfig);
-
-export default auth;
+export default NextAuth(authConfig).auth;
 
 export const config = {
   matcher: [

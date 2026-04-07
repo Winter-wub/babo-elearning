@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Scale } from "lucide-react";
 import { getSiteContent } from "@/actions/content.actions";
 import { APP_NAME } from "@/lib/constants";
+import { getDeploymentTenantId } from "@/lib/tenant";
 
 export const metadata: Metadata = {
   title: "ข้อกำหนดการใช้งาน",
@@ -62,7 +63,8 @@ const CONTENT_KEYS: Record<string, string> = {
 };
 
 export default async function TermsPage() {
-  const content = await getSiteContent(Object.keys(CONTENT_KEYS));
+  const tenantId = await getDeploymentTenantId();
+  const content = await getSiteContent(Object.keys(CONTENT_KEYS), tenantId);
 
   function c(key: string): string {
     return content[key] ?? CONTENT_KEYS[key] ?? "";

@@ -3,21 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { auth } from "@/lib/auth";
+import { requireAdmin } from "@/actions/helpers";
 import { DEFAULT_PAGE_SIZE } from "@/lib/constants";
 import type { ActionResult, PaginatedResult, SafeUser, SafeUserWithPermissions } from "@/types";
-
-// -----------------------------------------------------------------------
-// Helpers
-// -----------------------------------------------------------------------
-
-async function requireAdmin() {
-  const session = await auth();
-  if (!session?.user || session.user.role !== "ADMIN") {
-    throw new Error("ไม่มีสิทธิ์");
-  }
-  return session;
-}
 
 // -----------------------------------------------------------------------
 // Schemas
@@ -56,16 +44,18 @@ export type SafeUserWithCount = SafeUser & { _count: { videoPermissions: number 
 // Actions
 // -----------------------------------------------------------------------
 
-/** Paginated user list with permission counts. ADMIN only. */
+/** Paginated user list with permission counts. ADMIN only. Scoped to tenant. */
 export async function getUsers(
   filters: z.input<typeof GetUsersSchema> = {}
 ): Promise<ActionResult<PaginatedResult<SafeUserWithCount>>> {
   try {
-    await requireAdmin();
+    const { tenantId } = await requireAdmin();
     const { page, pageSize, search, role, isActive, sortBy, sortOrder } =
       GetUsersSchema.parse(filters);
 
     const where = {
+      // Scope to users who are members of this tenant
+      tenantMembers: { some: { tenantId } },
       ...(search && {
         OR: [
           { name: { contains: search, mode: "insensitive" as const } },
@@ -81,7 +71,7 @@ export async function getUsers(
       db.user.findMany({
         where,
         omit: { passwordHash: true },
-        include: { _count: { select: { videoPermissions: true } } },
+        include: { _count: { select: { videoPermissions: { where: { tenantId } } } } },
         orderBy: { [sortBy]: sortOrder },
         skip: (page - 1) * pageSize,
         take: pageSize,
@@ -100,18 +90,26 @@ export async function getUsers(
   }
 }
 
-/** Single user with their video permissions. ADMIN only. */
+/** Single user with their video permissions. ADMIN only. Scoped to tenant. */
 export async function getUserById(
   id: string
 ): Promise<ActionResult<SafeUserWithPermissions>> {
   try {
-    await requireAdmin();
+    const { tenantId } = await requireAdmin();
+
+    // Verify the user is a member of this tenant
+    const membership = await db.tenantMember.findUnique({
+      where: { tenantId_userId: { tenantId, userId: id } },
+    });
+
+    if (!membership) return { success: false, error: "ไม่พบผู้ใช้" };
 
     const user = await db.user.findUnique({
       where: { id },
       omit: { passwordHash: true },
       include: {
         videoPermissions: {
+          where: { tenantId },
           include: { video: true },
           orderBy: { grantedAt: "desc" },
         },
@@ -126,13 +124,13 @@ export async function getUserById(
   }
 }
 
-/** Edit name, email, isActive. ADMIN only. Cannot change own role. */
+/** Edit name, email, isActive. ADMIN only. Scoped to tenant. */
 export async function updateUser(
   id: string,
   data: z.infer<typeof UpdateUserSchema>
 ): Promise<ActionResult<SafeUser>> {
   try {
-    const session = await requireAdmin();
+    const { session, tenantId } = await requireAdmin();
     const parsed = UpdateUserSchema.safeParse(data);
     if (!parsed.success) {
       return { success: false, error: parsed.error.issues[0]?.message ?? "ข้อมูลไม่ถูกต้อง" };
@@ -141,6 +139,15 @@ export async function updateUser(
     // Prevent admin from deactivating themselves
     if (session.user.id === id && parsed.data.isActive === false) {
       return { success: false, error: "ไม่สามารถปิดใช้งานบัญชีของตัวเองได้" };
+    }
+
+    // Verify the user is a member of this tenant
+    const membership = await db.tenantMember.findUnique({
+      where: { tenantId_userId: { tenantId, userId: id } },
+    });
+
+    if (!membership) {
+      return { success: false, error: "ไม่พบผู้ใช้ในระบบนี้" };
     }
 
     const user = await db.user.update({
@@ -165,15 +172,32 @@ export async function createUser(
   data: z.infer<typeof CreateUserSchema>
 ): Promise<ActionResult<SafeUser>> {
   try {
-    await requireAdmin();
+    const { tenantId } = await requireAdmin();
     const parsed = CreateUserSchema.safeParse(data);
     if (!parsed.success) {
       return { success: false, error: parsed.error.issues[0]?.message ?? "ข้อมูลไม่ถูกต้อง" };
     }
 
     const existing = await db.user.findUnique({ where: { email: parsed.data.email } });
+
     if (existing) {
-      return { success: false, error: "มีบัญชีที่ใช้อีเมลนี้อยู่แล้ว" };
+      // User exists globally — check if already a member of this tenant
+      const existingMember = await db.tenantMember.findUnique({
+        where: { tenantId_userId: { tenantId, userId: existing.id } },
+      });
+
+      if (existingMember) {
+        return { success: false, error: "มีบัญชีที่ใช้อีเมลนี้อยู่แล้วในระบบนี้" };
+      }
+
+      // Add existing user to this tenant
+      const tenantRole = parsed.data.role === "ADMIN" ? "ADMIN" as const : "STUDENT" as const;
+      await db.tenantMember.create({
+        data: { tenantId, userId: existing.id, role: tenantRole },
+      });
+
+      revalidatePath("/admin/users");
+      return { success: true, data: { ...existing, passwordHash: undefined } as unknown as SafeUser };
     }
 
     // Lazily import bcrypt only when needed (keeps edge bundle lean)
@@ -181,14 +205,24 @@ export async function createUser(
     const { BCRYPT_SALT_ROUNDS } = await import("@/lib/constants");
     const passwordHash = await bcrypt.hash(parsed.data.password, BCRYPT_SALT_ROUNDS);
 
-    const user = await db.user.create({
-      data: {
-        name: parsed.data.name,
-        email: parsed.data.email,
-        passwordHash,
-        role: parsed.data.role,
-      },
-      omit: { passwordHash: true },
+    const tenantRole = parsed.data.role === "ADMIN" ? "ADMIN" as const : "STUDENT" as const;
+
+    const user = await db.$transaction(async (tx) => {
+      const newUser = await tx.user.create({
+        data: {
+          name: parsed.data.name,
+          email: parsed.data.email,
+          passwordHash,
+          role: parsed.data.role,
+        },
+        omit: { passwordHash: true },
+      });
+
+      await tx.tenantMember.create({
+        data: { tenantId, userId: newUser.id, role: tenantRole },
+      });
+
+      return newUser;
     });
 
     revalidatePath("/admin/users");
@@ -198,16 +232,28 @@ export async function createUser(
   }
 }
 
-/** Soft-delete: set isActive=false. ADMIN only. Cannot delete self. */
+/** Remove user from this tenant. ADMIN only. Cannot remove self. */
 export async function deleteUser(id: string): Promise<ActionResult<undefined>> {
   try {
-    const session = await requireAdmin();
+    const { session, tenantId } = await requireAdmin();
 
     if (session.user.id === id) {
       return { success: false, error: "ไม่สามารถปิดใช้งานบัญชีของตัวเองได้" };
     }
 
-    await db.user.update({ where: { id }, data: { isActive: false } });
+    // Verify the user is a member of this tenant
+    const membership = await db.tenantMember.findUnique({
+      where: { tenantId_userId: { tenantId, userId: id } },
+    });
+
+    if (!membership) {
+      return { success: false, error: "ไม่พบผู้ใช้ในระบบนี้" };
+    }
+
+    // Remove from this tenant (not global deactivation)
+    await db.tenantMember.delete({
+      where: { tenantId_userId: { tenantId, userId: id } },
+    });
 
     revalidatePath("/admin/users");
     revalidatePath(`/admin/users/${id}`);

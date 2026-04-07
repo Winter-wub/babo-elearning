@@ -36,7 +36,7 @@ export async function GET(
   // 1. Authenticate — must have a valid session
   // -----------------------------------------------------------------------
   const session = await auth();
-  if (!session?.user) {
+  if (!session?.user || !session.user.activeTenantId) {
     return NextResponse.json(
       { error: "ไม่มีสิทธิ์" },
       {
@@ -45,6 +45,8 @@ export async function GET(
       }
     );
   }
+
+  const activeTenantId = session.user.activeTenantId;
 
   // -----------------------------------------------------------------------
   // 2. Validate Origin / Referer to prevent hotlinking from other origins.
@@ -77,10 +79,14 @@ export async function GET(
   const { videoId } = await params;
 
   // -----------------------------------------------------------------------
-  // 4. Verify the video exists and is active
+  // 4. Verify the video exists and is active and belongs to the tenant
   // -----------------------------------------------------------------------
-  const video = await db.video.findUnique({
-    where: { id: videoId, isActive: true },
+  const video = await db.video.findFirst({
+    where: {
+      id: videoId,
+      isActive: true,
+      tenantId: activeTenantId,
+    },
     select: { id: true, s3Key: true },
   });
 
@@ -98,10 +104,14 @@ export async function GET(
   // 5. Authorise — STUDENT needs an explicit VideoPermission row that is
   //               currently valid (time-based check); ADMIN bypasses.
   // -----------------------------------------------------------------------
-  if (session.user.role === "STUDENT") {
+  if (session.user.tenantRole === "STUDENT") {
     const permission = await db.videoPermission.findUnique({
       where: {
-        userId_videoId: { userId: session.user.id, videoId },
+        tenantId_userId_videoId: {
+          tenantId: activeTenantId,
+          userId: session.user.id,
+          videoId,
+        },
       },
       select: { id: true, validFrom: true, validUntil: true },
     });

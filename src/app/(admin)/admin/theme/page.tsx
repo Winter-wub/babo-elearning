@@ -4,6 +4,7 @@ import { Palette } from "lucide-react";
 import { ThemeEditor } from "@/components/admin/theme-editor";
 import { Spinner } from "@/components/ui/spinner";
 import { getThemeSettings } from "@/actions/theme.actions";
+import { getDeploymentTenantId } from "@/lib/tenant";
 
 // -----------------------------------------------------------------------
 // Metadata
@@ -18,7 +19,8 @@ export const metadata: Metadata = {
 // -----------------------------------------------------------------------
 
 async function ThemeEditorLoader() {
-  const settings = await getThemeSettings();
+  const tenantId = await getDeploymentTenantId();
+  const settings = await getThemeSettings(tenantId);
   return <ThemeEditor settings={settings} />;
 }
 
@@ -26,7 +28,7 @@ async function ThemeEditorLoader() {
 // Page — Server Component
 // -----------------------------------------------------------------------
 
-export default function AdminThemePage() {
+export default async function AdminThemePage() {
   return (
     <div className="space-y-6">
       {/* Page header */}

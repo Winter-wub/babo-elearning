@@ -61,8 +61,8 @@ async function UserInfoCard({ userId }: { userId: string }) {
             icon={<Shield className="h-4 w-4" />}
             label="Role"
             value={
-              <Badge variant={user.role === "ADMIN" ? "default" : "secondary"}>
-                {user.role === "ADMIN" ? "Admin" : "Student"}
+              <Badge variant={user.role === "ADMIN" || user.role === "SUPER_ADMIN" ? "default" : "secondary"}>
+                {user.role === "SUPER_ADMIN" ? "Super Admin" : user.role === "ADMIN" ? "Admin" : "Student"}
               </Badge>
             }
           />

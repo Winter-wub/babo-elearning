@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { getSiteContent } from "@/actions/content.actions";
 import { APP_NAME } from "@/lib/constants";
+import { getDeploymentTenantId } from "@/lib/tenant";
 
 export const metadata: Metadata = {
   title: "เกี่ยวกับเรา",
@@ -52,7 +53,8 @@ const HIGHLIGHT_ICONS = [
 ] as const;
 
 export default async function AboutPage() {
-  const content = await getSiteContent(Object.keys(CONTENT_KEYS));
+  const tenantId = await getDeploymentTenantId();
+  const content = await getSiteContent(Object.keys(CONTENT_KEYS), tenantId);
 
   // Helper: resolve content from DB or fall back to default
   function c(key: string): string {

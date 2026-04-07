@@ -14,24 +14,27 @@ import {
   HomeFooter,
 } from "@/components/home";
 import { getAppName } from "@/lib/app-config";
+import { getDeploymentTenantId } from "@/lib/tenant";
 
 /**
  * Public home page — visible to authenticated and unauthenticated users alike.
  * Fetches trending videos, featured playlists, and category playlists in parallel.
  */
 export default async function HomePage() {
-  const [session, trendingResult, featuredResult, categoryResult, appName, heroContent] =
+  const session = await auth();
+  const tenantId = await getDeploymentTenantId();
+
+  const [trendingResult, featuredResult, categoryResult, appName, heroContent] =
     await Promise.all([
-      auth(),
-      getPublicTrendingVideos(10),
-      getPublicFeaturedPlaylists(4),
-      getPublicCategoryPlaylists(8),
-      getAppName(),
+      getPublicTrendingVideos(tenantId, 10),
+      getPublicFeaturedPlaylists(tenantId, 4),
+      getPublicCategoryPlaylists(tenantId, 8),
+      getAppName(tenantId),
       getSiteContent([
         "hero.slide1.headline", "hero.slide1.sub", "hero.slide1.cta", "hero.slide1.ctaHref",
         "hero.slide2.headline", "hero.slide2.sub", "hero.slide2.cta", "hero.slide2.ctaHref",
         "hero.slide3.headline", "hero.slide3.sub", "hero.slide3.cta", "hero.slide3.ctaHref",
-      ]).catch(() => ({} as Record<string, string>)),
+      ], tenantId).catch(() => ({} as Record<string, string>)),
     ]);
 
   const isAuthenticated = !!session?.user;

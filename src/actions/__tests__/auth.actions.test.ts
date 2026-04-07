@@ -5,7 +5,6 @@
  * these tests run without a database or auth server.
  */
 
-import { describe, it, expect, vi, beforeEach } from "vitest";
 import { makeUser, makePolicyAgreement, makeAdminSession, makeStudentSession, resetFactoryCounters } from "@/__tests__/helpers";
 
 // ---------------------------------------------------------------------------
@@ -48,9 +47,6 @@ vi.mock("bcryptjs", () => ({
 // Mock: next-auth (auth())
 // ---------------------------------------------------------------------------
 
-vi.mock("@/lib/auth", () => ({
-  auth: vi.fn(),
-}));
 
 // ---------------------------------------------------------------------------
 // Imports after mocks are registered
@@ -61,11 +57,32 @@ import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import bcrypt from "bcryptjs";
 import { headers } from "next/headers";
+import { vi, describe, it, expect, beforeEach } from "vitest";
 
-const mockDb = vi.mocked(db);
-const mockAuth = vi.mocked(auth);
-const mockBcrypt = vi.mocked(bcrypt);
-const mockHeaders = vi.mocked(headers);
+const mockDb = db as unknown as {
+  user: {
+    findUnique: import("vitest").MockInstance;
+    create: import("vitest").MockInstance;
+  };
+  policyAgreement: {
+    findFirst: import("vitest").MockInstance;
+    create: import("vitest").MockInstance;
+  };
+};
+
+const mockAuthFn = vi.fn();
+vi.mock("@/lib/auth", () => ({
+  auth: (...args: any[]) => mockAuthFn(...args),
+}));
+
+const mockAuth = mockAuthFn as unknown as import("vitest").MockInstance;
+
+const mockBcrypt = bcrypt as unknown as {
+  hash: import("vitest").MockInstance;
+  compare: import("vitest").MockInstance;
+};
+
+const mockHeaders = headers as unknown as import("vitest").MockInstance;
 
 /** Returns a mock ReadonlyHeaders-like object for the given header map. */
 function makeHeadersMap(entries: Record<string, string> = {}) {
@@ -206,7 +223,7 @@ describe("acceptPolicy()", () => {
   });
 
   it("creates a policy agreement record when the user is authenticated", async () => {
-    const session = makeStudentSession({ id: "student_1" });
+    const session = makeStudentSession({ id: "student_1" }, "tenant_1");
     mockAuth.mockResolvedValue(session);
     mockHeaders.mockResolvedValue(makeHeadersMap({ "x-forwarded-for": "192.168.1.1" }));
 
@@ -242,7 +259,7 @@ describe("acceptPolicy()", () => {
   });
 
   it("reads the IP from x-forwarded-for and stores it in the record", async () => {
-    const session = makeStudentSession({ id: "student_2" });
+    const session = makeStudentSession({ id: "student_2" }, "tenant_1");
     mockAuth.mockResolvedValue(session);
     mockHeaders.mockResolvedValue(makeHeadersMap({ "x-forwarded-for": "10.0.0.5, 172.16.0.1" }));
     mockDb.policyAgreement.create.mockResolvedValue(
@@ -258,7 +275,7 @@ describe("acceptPolicy()", () => {
   });
 
   it("falls back to x-real-ip when x-forwarded-for is absent", async () => {
-    const session = makeStudentSession({ id: "student_3" });
+    const session = makeStudentSession({ id: "student_3" }, "tenant_1");
     mockAuth.mockResolvedValue(session);
     mockHeaders.mockResolvedValue(makeHeadersMap({ "x-real-ip": "203.0.113.5" }));
     mockDb.policyAgreement.create.mockResolvedValue(
@@ -273,7 +290,7 @@ describe("acceptPolicy()", () => {
   });
 
   it("stores 'unknown' when no IP header is present", async () => {
-    const session = makeStudentSession({ id: "student_4" });
+    const session = makeStudentSession({ id: "student_4" }, "tenant_1");
     mockAuth.mockResolvedValue(session);
     mockHeaders.mockResolvedValue(makeHeadersMap({}));
     mockDb.policyAgreement.create.mockResolvedValue(
@@ -299,7 +316,7 @@ describe("checkPolicyAgreement()", () => {
   });
 
   it("returns true when a policy agreement record exists for the session user", async () => {
-    const session = makeStudentSession({ id: "student_3" });
+    const session = makeStudentSession({ id: "student_3" }, "tenant_1");
     mockAuth.mockResolvedValue(session);
     mockDb.policyAgreement.findFirst.mockResolvedValue(
       makePolicyAgreement({ userId: "student_3" })
@@ -311,7 +328,7 @@ describe("checkPolicyAgreement()", () => {
   });
 
   it("returns false when no policy agreement record exists", async () => {
-    const session = makeStudentSession({ id: "student_4" });
+    const session = makeStudentSession({ id: "student_4" }, "tenant_1");
     mockAuth.mockResolvedValue(session);
     mockDb.policyAgreement.findFirst.mockResolvedValue(null);
 

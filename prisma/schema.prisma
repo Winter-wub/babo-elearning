@@ -6,33 +6,25 @@ datasource db {
   provider = "postgresql"
 }
 
-enum Role {
-  STUDENT
-  ADMIN
-}
-
-enum TenantRole {
-  OWNER
-  ADMIN
-  STUDENT
-}
-
 model Tenant {
-  id        String   @id @default(cuid())
-  slug      String   @unique
-  name      String
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
+  id                 String              @id @default(cuid())
+  slug               String              @unique
+  name               String
+  description        String?
+  contactEmail       String?
+  logoUrl            String?
+  maxMembers         Int?
+  isActive           Boolean             @default(true)
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  contactSubmissions ContactSubmission[]
+  faqs               Faq[]
+  playlists          Playlist[]
+  policyAgreements   PolicyAgreement[]
+  siteContent        SiteContent[]
   members            TenantMember[]
   videos             Video[]
-  playlists          Playlist[]
-  siteContent        SiteContent[]
-  faqs               Faq[]
-  contactSubmissions ContactSubmission[]
   videoPermissions   VideoPermission[]
-  policyAgreements   PolicyAgreement[]
 
   @@index([isActive])
 }
@@ -44,9 +36,8 @@ model TenantMember {
   role      TenantRole @default(STUDENT)
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
-
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant    Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([tenantId, userId])
   @@index([tenantId])
@@ -55,20 +46,19 @@ model TenantMember {
 }
 
 model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  passwordHash String?
-  name         String?
-  role         Role     @default(STUDENT)
-  isActive     Boolean  @default(true)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
+  id                 String            @id @default(cuid())
+  email              String            @unique
+  passwordHash       String?
+  name               String?
+  role               Role              @default(STUDENT)
+  isActive           Boolean           @default(true)
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
   accounts           Account[]
-  tenantMembers      TenantMember[]
-  videoPermissions   VideoPermission[] @relation("UserPermissions")
-  grantedPermissions VideoPermission[] @relation("GrantedByAdmin")
   policyAgreements   PolicyAgreement[]
+  tenantMembers      TenantMember[]
+  grantedPermissions VideoPermission[] @relation("GrantedByAdmin")
+  videoPermissions   VideoPermission[] @relation("UserPermissions")
 
   @@index([email])
   @@index([role])
@@ -80,37 +70,35 @@ model Account {
   type              String
   provider          String
   providerAccountId String
-  refresh_token     String? @db.Text
-  access_token      String? @db.Text
+  refresh_token     String?
+  access_token      String?
   expires_at        Int?
   token_type        String?
   scope             String?
-  id_token          String? @db.Text
+  id_token          String?
   session_state     String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
   @@index([userId])
 }
 
 model Video {
-  id           String   @id @default(cuid())
+  id           String            @id @default(cuid())
   tenantId     String
   title        String
   description  String?
   s3Key        String
-  duration     Int // seconds, max 3600
+  duration     Int
   thumbnailUrl String?
-  isActive     Boolean  @default(true)
-  playCount    Int      @default(0)
-  isFeatured   Boolean  @default(false)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  tenant      Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  permissions VideoPermission[]
-  playlists   PlaylistVideo[]
+  isActive     Boolean           @default(true)
+  playCount    Int               @default(0)
+  isFeatured   Boolean           @default(false)
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  playlists    PlaylistVideo[]
+  tenant       Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  permissions  VideoPermission[]
 
   @@unique([tenantId, s3Key])
   @@index([tenantId])
@@ -120,22 +108,19 @@ model Video {
 }
 
 model VideoPermission {
-  id        String   @id @default(cuid())
-  tenantId  String
-  userId    String
-  videoId   String
-  grantedAt DateTime @default(now())
-  grantedBy String
-
-  // Time-based access control (all nullable = permanent access)
-  validFrom    DateTime? // null = immediately valid from grantedAt
-  validUntil   DateTime? // null = never expires (permanent)
-  durationDays Int? // audit hint: original admin-chosen duration in days
-
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  user   User   @relation("UserPermissions", fields: [userId], references: [id], onDelete: Cascade)
-  video  Video  @relation(fields: [videoId], references: [id], onDelete: Cascade)
-  admin  User   @relation("GrantedByAdmin", fields: [grantedBy], references: [id])
+  id           String    @id @default(cuid())
+  tenantId     String
+  userId       String
+  videoId      String
+  grantedAt    DateTime  @default(now())
+  grantedBy    String
+  validFrom    DateTime?
+  validUntil   DateTime?
+  durationDays Int?
+  admin        User      @relation("GrantedByAdmin", fields: [grantedBy], references: [id])
+  tenant       Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user         User      @relation("UserPermissions", fields: [userId], references: [id], onDelete: Cascade)
+  video        Video     @relation(fields: [videoId], references: [id], onDelete: Cascade)
 
   @@unique([tenantId, userId, videoId])
   @@index([tenantId])
@@ -150,9 +135,8 @@ model PolicyAgreement {
   userId    String
   agreedAt  DateTime @default(now())
   ipAddress String
-
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([tenantId, userId])
   @@index([tenantId])
@@ -160,20 +144,19 @@ model PolicyAgreement {
 }
 
 model Playlist {
-  id           String   @id @default(cuid())
+  id           String          @id @default(cuid())
   tenantId     String
   title        String
   description  String?
   thumbnailUrl String?
   slug         String
-  isActive     Boolean  @default(true)
-  isFeatured   Boolean  @default(false)
-  sortOrder    Int      @default(0)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  tenant Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  videos PlaylistVideo[]
+  isActive     Boolean         @default(true)
+  isFeatured   Boolean         @default(false)
+  sortOrder    Int             @default(0)
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  tenant       Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  videos       PlaylistVideo[]
 
   @@unique([tenantId, slug])
   @@index([tenantId])
@@ -184,27 +167,21 @@ model Playlist {
 model PlaylistVideo {
   playlistId String
   videoId    String
-  position   Int    @default(0)
-
-  playlist Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
-  video    Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  position   Int      @default(0)
+  playlist   Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  video      Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
 
   @@id([playlistId, videoId])
   @@index([playlistId])
 }
 
-// -----------------------------------------------------------------------
-// CMS — Admin-managed site content
-// -----------------------------------------------------------------------
-
 model SiteContent {
   id        String   @id @default(cuid())
   tenantId  String
-  key       String // e.g. "about.hero.title", "about.highlight.1"
-  value     String   @db.Text
+  key       String
+  value     String
   updatedAt DateTime @updatedAt
-
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@unique([tenantId, key])
   @@index([tenantId])
@@ -215,13 +192,12 @@ model Faq {
   id        String   @id @default(cuid())
   tenantId  String
   question  String
-  answer    String   @db.Text
+  answer    String
   sortOrder Int      @default(0)
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])
   @@index([isActive, sortOrder])
@@ -233,13 +209,24 @@ model ContactSubmission {
   name      String
   email     String
   subject   String
-  message   String   @db.Text
+  message   String
   isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
-
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])
   @@index([isRead])
   @@index([createdAt])
+}
+
+enum Role {
+  STUDENT
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum TenantRole {
+  OWNER
+  ADMIN
+  STUDENT
 }

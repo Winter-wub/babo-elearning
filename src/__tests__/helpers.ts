@@ -48,7 +48,7 @@ export function makeAdminUser(overrides: Partial<User> = {}): User {
 
 let _videoCounter = 0;
 
-export function makeVideo(overrides: Partial<Video> = {}): Video {
+export function makeVideo(overrides: Partial<Video> = {}, tenantId = "tenant_1"): Video {
   const n = ++_videoCounter;
   return {
     id: `video_${n}`,
@@ -60,6 +60,7 @@ export function makeVideo(overrides: Partial<Video> = {}): Video {
     isActive: true,
     playCount: 0,
     isFeatured: false,
+    tenantId: tenantId,
     createdAt: BASE_DATE,
     updatedAt: BASE_DATE,
     ...overrides,
@@ -73,11 +74,13 @@ export function makeVideo(overrides: Partial<Video> = {}): Video {
 let _permissionCounter = 0;
 
 export function makeVideoPermission(
-  overrides: Partial<VideoPermission> = {}
+  overrides: Partial<VideoPermission> = {},
+  tenantId = "tenant_1"
 ): VideoPermission {
   const n = ++_permissionCounter;
   return {
     id: `perm_${n}`,
+    tenantId: tenantId,
     userId: `user_1`,
     videoId: `video_1`,
     grantedBy: `admin_1`,
@@ -96,11 +99,13 @@ export function makeVideoPermission(
 let _policyCounter = 0;
 
 export function makePolicyAgreement(
-  overrides: Partial<PolicyAgreement> = {}
+  overrides: Partial<PolicyAgreement> = {},
+  tenantId = "tenant_1"
 ): PolicyAgreement {
   const n = ++_policyCounter;
   return {
     id: `policy_${n}`,
+    tenantId: tenantId,
     userId: `user_1`,
     ipAddress: "127.0.0.1",
     agreedAt: BASE_DATE,
@@ -114,7 +119,7 @@ export function makePolicyAgreement(
 
 let _playlistCounter = 0;
 
-export function makePlaylist(overrides: Partial<Playlist> = {}): Playlist {
+export function makePlaylist(overrides: Partial<Playlist> = {}, tenantId = "tenant_1"): Playlist {
   const n = ++_playlistCounter;
   return {
     id: `playlist_${n}`,
@@ -122,6 +127,7 @@ export function makePlaylist(overrides: Partial<Playlist> = {}): Playlist {
     description: `Description for playlist ${n}`,
     thumbnailUrl: null,
     slug: `test-playlist-${n}`,
+    tenantId: tenantId,
     isActive: true,
     isFeatured: false,
     sortOrder: n,
@@ -153,7 +159,7 @@ export function makePlaylistVideo(
 // Session factories
 // ---------------------------------------------------------------------------
 
-export function makeStudentSession(overrides: Partial<User> = {}): Session {
+export function makeStudentSession(overrides: Partial<User> = {}, tenantId = "tenant_1"): Session {
   const user = makeUser({ role: "STUDENT", ...overrides });
   return {
     user: {
@@ -161,12 +167,14 @@ export function makeStudentSession(overrides: Partial<User> = {}): Session {
       email: user.email,
       name: user.name,
       role: user.role,
+      activeTenantId: tenantId,
+      tenantRole: "STUDENT",
     },
     expires: new Date(Date.now() + 86400 * 1000).toISOString(),
   };
 }
 
-export function makeAdminSession(overrides: Partial<User> = {}): Session {
+export function makeAdminSession(overrides: Partial<User> = {}, tenantId = "tenant_1"): Session {
   const user = makeUser({ role: "ADMIN", ...overrides });
   return {
     user: {
@@ -174,6 +182,8 @@ export function makeAdminSession(overrides: Partial<User> = {}): Session {
       email: user.email,
       name: user.name,
       role: user.role,
+      activeTenantId: tenantId,
+      tenantRole: "ADMIN",
     },
     expires: new Date(Date.now() + 86400 * 1000).toISOString(),
   };

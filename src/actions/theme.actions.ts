@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
-import { auth } from "@/lib/auth";
+import { requireAdmin } from "@/actions/helpers";
 import { getSiteContent, bulkUpdateSiteContent } from "@/actions/content.actions";
 import { getUploadUrl } from "@/lib/r2";
 import {
@@ -12,18 +12,6 @@ import {
   ACCEPTED_LOGO_MIME_TYPES,
 } from "@/lib/constants";
 import type { ActionResult } from "@/types";
-
-// -----------------------------------------------------------------------
-// Helpers
-// -----------------------------------------------------------------------
-
-async function requireAdmin() {
-  const session = await auth();
-  if (!session?.user || session.user.role !== "ADMIN") {
-    throw new Error("ไม่มีสิทธิ์");
-  }
-  return session;
-}
 
 // -----------------------------------------------------------------------
 // Types

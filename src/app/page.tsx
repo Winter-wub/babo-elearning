@@ -14,6 +14,7 @@ import {
   HomeFooter,
 } from "@/components/home";
 import { getAppName } from "@/lib/app-config";
+import { getDeploymentTenantId } from "@/lib/tenant";
 
 /**
  * Public home page — visible to authenticated and unauthenticated users alike.
@@ -21,8 +22,7 @@ import { getAppName } from "@/lib/app-config";
  */
 export default async function HomePage() {
   const session = await auth();
-  const tenantSlug = "default"; // TODO: This should be resolved from headers or domain if page.tsx is outside [tenantSlug]
-  const tenantId = session?.user?.activeTenantId ?? "default-tenant-id"; // Placeholder, real impl depends on multi-tenant architecture details
+  const tenantId = await getDeploymentTenantId();
 
   const [trendingResult, featuredResult, categoryResult, appName, heroContent] =
     await Promise.all([

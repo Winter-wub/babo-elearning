@@ -3,21 +3,9 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
-import { auth } from "@/lib/auth";
+import { requireAdmin } from "@/actions/helpers";
 import type { SiteContent } from "@prisma/client";
 import type { ActionResult } from "@/types";
-
-// -----------------------------------------------------------------------
-// Helpers
-// -----------------------------------------------------------------------
-
-async function requireAdmin() {
-  const session = await auth();
-  if (!session?.user || session.user.role !== "ADMIN") {
-    throw new Error("ไม่มีสิทธิ์");
-  }
-  return session;
-}
 
 // -----------------------------------------------------------------------
 // Schemas
@@ -61,9 +49,9 @@ export async function getSiteContentByPrefix(
   prefix: string
 ): Promise<ActionResult<SiteContent[]>> {
   try {
-    const session = await requireAdmin();
+    const { tenantId } = await requireAdmin();
     const items = await db.siteContent.findMany({
-      where: { key: { startsWith: prefix }, tenantId: session.user.activeTenantId! },
+      where: { key: { startsWith: prefix }, tenantId },
       orderBy: { key: "asc" },
     });
     return { success: true, data: items };
@@ -78,8 +66,8 @@ export async function getSiteContentByPrefix(
 /** Get all SiteContent entries (admin). */
 export async function getAllSiteContent(): Promise<ActionResult<SiteContent[]>> {
   try {
-    const session = await requireAdmin();
-    const items = await db.siteContent.findMany({ where: { tenantId: session.user.activeTenantId! }, orderBy: { key: "asc" } });
+    const { tenantId } = await requireAdmin();
+    const items = await db.siteContent.findMany({ where: { tenantId }, orderBy: { key: "asc" } });
     return { success: true, data: items };
   } catch (err) {
     return {
@@ -95,13 +83,13 @@ export async function updateSiteContent(
   value: string
 ): Promise<ActionResult<SiteContent>> {
   try {
-    const session = await requireAdmin();
+    const { tenantId } = await requireAdmin();
     UpdateSiteContentSchema.parse({ key, value });
 
     const item = await db.siteContent.upsert({
-      where: { tenantId_key: { tenantId: session.user.activeTenantId!, key } },
+      where: { tenantId_key: { tenantId, key } },
       update: { value },
-      create: { key, value, tenantId: session.user.activeTenantId! },
+      create: { key, value, tenantId },
     });
 
     revalidatePath("/admin/content");
@@ -125,7 +113,7 @@ export async function bulkUpdateSiteContent(
   entries: { key: string; value: string }[]
 ): Promise<ActionResult<undefined>> {
   try {
-    const session = await requireAdmin();
+    const { tenantId } = await requireAdmin();
 
     // Validate all entries
     for (const entry of entries) {
@@ -135,9 +123,9 @@ export async function bulkUpdateSiteContent(
     await db.$transaction(
       entries.map((entry) =>
         db.siteContent.upsert({
-          where: { tenantId_key: { tenantId: session.user.activeTenantId!, key: entry.key } },
+          where: { tenantId_key: { tenantId, key: entry.key } },
           update: { value: entry.value },
-          create: { key: entry.key, value: entry.value, tenantId: session.user.activeTenantId! },
+          create: { key: entry.key, value: entry.value, tenantId },
         })
       )
     );

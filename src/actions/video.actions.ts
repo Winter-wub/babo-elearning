@@ -6,6 +6,7 @@ import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
+import { requireAdmin } from "@/actions/helpers";
 import { getR2Client, R2_BUCKET_NAME } from "@/lib/r2";
 import { DEFAULT_PAGE_SIZE, MAX_VIDEO_DURATION, SIGNED_URL_EXPIRY } from "@/lib/constants";
 import { isPermissionCurrentlyValid } from "@/lib/permission-utils";
@@ -15,14 +16,6 @@ import type { Video } from "@prisma/client";
 // -----------------------------------------------------------------------
 // Helpers
 // -----------------------------------------------------------------------
-
-async function requireAdmin() {
-  const session = await auth();
-  if (!session?.user || session.user.role !== "ADMIN") {
-    throw new Error("ไม่มีสิทธิ์");
-  }
-  return session;
-}
 
 async function requireAuth() {
   const session = await auth();
@@ -69,11 +62,11 @@ export async function getVideos(
   filters: z.input<typeof GetVideosSchema> = {}
 ): Promise<ActionResult<PaginatedResult<Video>>> {
   try {
-    const session = await requireAdmin();
+    const { tenantId } = await requireAdmin();
     const { page, pageSize, search, isActive } = GetVideosSchema.parse(filters);
 
     const where = {
-      tenantId: session.user.activeTenantId!,
+      tenantId,
       ...(search && { title: { contains: search, mode: "insensitive" as const } }),
       ...(isActive !== undefined && { isActive }),
     };
@@ -165,13 +158,13 @@ export async function createVideo(
   data: z.infer<typeof CreateVideoSchema>
 ): Promise<ActionResult<Video>> {
   try {
-    const session = await requireAdmin();
+    const { tenantId } = await requireAdmin();
     const parsed = CreateVideoSchema.safeParse(data);
     if (!parsed.success) {
       return { success: false, error: parsed.error.issues[0]?.message ?? "ข้อมูลไม่ถูกต้อง" };
     }
 
-    const video = await db.video.create({ data: { ...parsed.data, tenantId: session.user.activeTenantId! } });
+    const video = await db.video.create({ data: { ...parsed.data, tenantId } });
     return { success: true, data: video };
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : "ไม่สามารถสร้างวิดีโอได้" };
@@ -184,13 +177,13 @@ export async function updateVideo(
   data: z.infer<typeof UpdateVideoSchema>
 ): Promise<ActionResult<Video>> {
   try {
-    const session = await requireAdmin();
+    const { tenantId } = await requireAdmin();
     const parsed = UpdateVideoSchema.safeParse(data);
     if (!parsed.success) {
       return { success: false, error: parsed.error.issues[0]?.message ?? "ข้อมูลไม่ถูกต้อง" };
     }
 
-    const video = await db.video.update({ where: { id, tenantId: session.user.activeTenantId! }, data: parsed.data });
+    const video = await db.video.update({ where: { id, tenantId }, data: parsed.data });
     revalidatePath("/admin/videos");
     return { success: true, data: video };
   } catch (err) {
@@ -201,8 +194,8 @@ export async function updateVideo(
 /** Soft-delete: set isActive=false. ADMIN only. */
 export async function deleteVideo(id: string): Promise<ActionResult<undefined>> {
   try {
-    const session = await requireAdmin();
-    await db.video.update({ where: { id, tenantId: session.user.activeTenantId! }, data: { isActive: false } });
+    const { tenantId } = await requireAdmin();
+    await db.video.update({ where: { id, tenantId }, data: { isActive: false } });
     revalidatePath("/admin/videos");
     return { success: true, data: undefined };
   } catch (err) {

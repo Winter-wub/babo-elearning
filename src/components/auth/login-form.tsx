@@ -39,10 +39,9 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 interface LoginFormProps {
   callbackUrl?: string;
   enabledProviders?: string[];
-  tenantSlug?: string;
 }
 
-export function LoginForm({ callbackUrl = "/dashboard", enabledProviders, tenantSlug = "default" }: LoginFormProps) {
+export function LoginForm({ callbackUrl = "/dashboard", enabledProviders }: LoginFormProps) {
   const router = useRouter();
   const [serverError, setServerError] = useState<string | null>(null);
 
@@ -62,7 +61,6 @@ export function LoginForm({ callbackUrl = "/dashboard", enabledProviders, tenant
       const result = await signIn("credentials", {
         email: data.email,
         password: data.password,
-        tenantSlug: tenantSlug,
         redirect: false,
       });
 
@@ -75,7 +73,7 @@ export function LoginForm({ callbackUrl = "/dashboard", enabledProviders, tenant
       // and redirect to the appropriate dashboard.
       const session = await getSession();
       const destination =
-        session?.user?.role === "ADMIN" ? "/admin/dashboard" : "/dashboard";
+        (session?.user?.role === "ADMIN" || session?.user?.role === "SUPER_ADMIN" || session?.user?.tenantRole === "OWNER" || session?.user?.tenantRole === "ADMIN") ? "/admin/dashboard" : "/dashboard";
       router.push(destination);
       router.refresh();
     } catch {

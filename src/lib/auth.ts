@@ -8,6 +8,7 @@ import { PrismaAdapter } from "@auth/prisma-adapter";
 import { db } from "@/lib/db";
 import { authConfig } from "@/lib/auth.config";
 import { SESSION_MAX_AGE } from "@/lib/constants";
+import { getDeploymentTenantSlug } from "@/lib/tenant";
 import {
   getEnabledOAuthProviders,
   type ResolvedOAuthProvider,
@@ -53,7 +54,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth(async () => {
         credentials: {
           email: { label: "Email", type: "email" },
           password: { label: "Password", type: "password" },
-          tenantSlug: { label: "Tenant", type: "text" },
         },
         async authorize(credentials) {
           if (!credentials?.email || !credentials?.password) return null;
@@ -80,34 +80,46 @@ export const { handlers, auth, signIn, signOut } = NextAuth(async () => {
             role: user.role,
           };
 
-          const tenantSlug = credentials.tenantSlug as string | undefined;
+          // Per-tenant deployment: resolve tenant from env var
+          const tenantSlug = getDeploymentTenantSlug();
 
-          if (tenantSlug) {
-            const tenant = await db.tenant.findUnique({
-              where: { slug: tenantSlug },
-            });
+          const tenant = await db.tenant.findUnique({
+            where: { slug: tenantSlug },
+          });
 
-            if (tenant) {
-              const tenantMember = await db.tenantMember.findUnique({
-                where: {
-                  tenantId_userId: {
-                    tenantId: tenant.id,
-                    userId: user.id,
-                  },
-                },
-              });
-
-              if (tenantMember) {
-                return {
-                  ...baseUser,
-                  activeTenantId: tenant.id,
-                  tenantRole: tenantMember.role,
-                };
-              }
-            }
+          if (!tenant) {
+            console.error(`[auth] Deployment tenant not found: ${tenantSlug}`);
+            return null;
           }
 
-          return baseUser;
+          const tenantMember = await db.tenantMember.findUnique({
+            where: {
+              tenantId_userId: {
+                tenantId: tenant.id,
+                userId: user.id,
+              },
+            },
+          });
+
+          if (tenantMember) {
+            return {
+              ...baseUser,
+              activeTenantId: tenant.id,
+              tenantRole: tenantMember.role,
+            };
+          }
+
+          // SUPER_ADMIN can access any tenant without membership
+          if (user.role === "SUPER_ADMIN") {
+            return {
+              ...baseUser,
+              activeTenantId: tenant.id,
+              tenantRole: "OWNER" as const, // Grant full access on this deployment
+            };
+          }
+
+          // User is not a member of this tenant — deny access
+          return null;
         },
       }),
     ],
@@ -116,7 +128,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth(async () => {
       // Preserve all existing callbacks from authConfig (authorized, jwt, session)
       ...authConfig.callbacks,
 
-      // signIn callback: handles OAuth account linking.
+      // signIn callback: handles OAuth account linking + tenant membership check.
       // Must live here (not auth.config.ts) because it uses Prisma (Node.js only).
       async signIn({ user, account, profile }) {
         // Only apply linking logic to OAuth providers
@@ -167,6 +179,40 @@ export const { handlers, auth, signIn, signOut } = NextAuth(async () => {
           // Overwrite so jwt callback receives the existing DB user's id and role
           user.id = existingUser.id;
           (user as Record<string, unknown>).role = existingUser.role;
+
+          // Resolve tenant membership for OAuth users (same as credentials flow)
+          const tenantSlug = getDeploymentTenantSlug();
+          const tenant = await db.tenant.findUnique({ where: { slug: tenantSlug } });
+
+          if (tenant) {
+            const tenantMember = await db.tenantMember.findUnique({
+              where: {
+                tenantId_userId: { tenantId: tenant.id, userId: existingUser.id },
+              },
+            });
+
+            if (tenantMember) {
+              (user as Record<string, unknown>).activeTenantId = tenant.id;
+              (user as Record<string, unknown>).tenantRole = tenantMember.role;
+            } else if (existingUser.role === "SUPER_ADMIN") {
+              (user as Record<string, unknown>).activeTenantId = tenant.id;
+              (user as Record<string, unknown>).tenantRole = "OWNER";
+            } else {
+              // User exists but is not a member of this tenant — deny OAuth sign-in
+              return false;
+            }
+          }
+        } else {
+          // New OAuth user — check if auto-registration for this tenant is allowed
+          const tenantSlug = getDeploymentTenantSlug();
+          const tenant = await db.tenant.findUnique({ where: { slug: tenantSlug } });
+
+          if (tenant) {
+            // PrismaAdapter will create the user. We need to create TenantMember
+            // after user creation. Set tenant info on the user object so jwt callback picks it up.
+            (user as Record<string, unknown>).activeTenantId = tenant.id;
+            (user as Record<string, unknown>).tenantRole = "STUDENT";
+          }
         }
 
         return true;

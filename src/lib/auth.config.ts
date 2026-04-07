@@ -23,13 +23,27 @@ export const authConfig: NextAuthConfig = {
       const role = auth?.user?.role;
       const { pathname } = nextUrl;
 
+      // Cross-deployment token guard: reject JWTs issued for a different tenant.
+      // SUPER_ADMIN is exempt — they can switch tenant context via the switcher.
+      const deploymentTenantId = process.env.TENANT_ID;
+      if (
+        deploymentTenantId &&
+        isLoggedIn &&
+        role !== "SUPER_ADMIN" &&
+        auth?.user?.activeTenantId &&
+        auth.user.activeTenantId !== deploymentTenantId
+      ) {
+        // Token belongs to a different deployment — force re-login
+        return false;
+      }
+
       // ── Admin routes ────────────────────────────────────────────────────
       // Only ADMIN users may access /admin/*. Any other authenticated user
       // (i.e. a STUDENT) is redirected to their own dashboard so they don't
       // land on the login page with a confusing "not authorised" state.
       if (pathname.startsWith("/admin")) {
         if (!isLoggedIn) return false; // → redirects to /login
-        if (role === "ADMIN") return true;
+        if (role === "ADMIN" || role === "SUPER_ADMIN" || auth?.user?.tenantRole === "OWNER" || auth?.user?.tenantRole === "ADMIN") return true;
         // Authenticated non-admin: send them to the student dashboard.
         return Response.redirect(new URL("/dashboard", nextUrl));
       }
@@ -49,7 +63,7 @@ export const authConfig: NextAuthConfig = {
         pathname.startsWith("/login") || pathname.startsWith("/register");
       if (isAuthPage && isLoggedIn) {
         const redirectTo =
-          role === "ADMIN" ? "/admin/dashboard" : "/dashboard";
+          (role === "ADMIN" || role === "SUPER_ADMIN" || auth?.user?.tenantRole === "OWNER" || auth?.user?.tenantRole === "ADMIN") ? "/admin/dashboard" : "/dashboard";
         return Response.redirect(new URL(redirectTo, nextUrl));
       }
 
@@ -71,8 +85,9 @@ export const authConfig: NextAuthConfig = {
         }
       }
 
-      // Handle session updates (e.g. changing active tenant)
-      if (trigger === "update" && session?.activeTenantId) {
+      // Handle session updates (e.g. SUPER_ADMIN switching active tenant).
+      // Only SUPER_ADMIN can change activeTenantId via session update.
+      if (trigger === "update" && session?.activeTenantId && token.role === "SUPER_ADMIN") {
         token.activeTenantId = session.activeTenantId;
         token.tenantRole = session.tenantRole;
       }
@@ -83,7 +98,7 @@ export const authConfig: NextAuthConfig = {
     session({ session, token }) {
       if (token && session.user) {
         session.user.id = token.id as string;
-        session.user.role = token.role as "STUDENT" | "ADMIN";
+        session.user.role = token.role as "STUDENT" | "ADMIN" | "SUPER_ADMIN";
 
         // Pass multi-tenant fields to the client session
         if (token.activeTenantId) {

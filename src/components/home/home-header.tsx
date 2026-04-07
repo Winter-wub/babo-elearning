@@ -18,7 +18,7 @@ import { cn } from "@/lib/utils";
 
 interface HomeHeaderProps {
   isAuthenticated: boolean;
-  userRole?: "ADMIN" | "STUDENT";
+  userRole?: "ADMIN" | "STUDENT" | "SUPER_ADMIN";
   userName?: string;
   appName?: string;
 }
@@ -42,7 +42,7 @@ export function HomeHeader({
   appName = "อีเลิร์นนิง",
 }: HomeHeaderProps) {
   const pathname = usePathname();
-  const dashboardHref = userRole === "ADMIN" ? "/admin/dashboard" : "/dashboard";
+  const dashboardHref = userRole === "ADMIN" || userRole === "SUPER_ADMIN" ? "/admin/dashboard" : "/dashboard";
 
   return (
     <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur-sm supports-[backdrop-filter]:bg-background/60">

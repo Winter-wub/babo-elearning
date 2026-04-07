@@ -85,15 +85,15 @@ describe("getPublicFeaturedPlaylists()", () => {
   });
 
   it("returns featured playlists mapped to PublicPlaylist shape", async () => {
-    const playlist1 = makePlaylist({ isFeatured: true, isActive: true });
-    const playlist2 = makePlaylist({ isFeatured: true, isActive: true });
+    const playlist1 = makePlaylist({ isFeatured: true, isActive: true }, "tenant_1");
+    const playlist2 = makePlaylist({ isFeatured: true, isActive: true }, "tenant_1");
 
-    mockDb.playlist.findMany.mockResolvedValue([
+    (mockDb.playlist.findMany as unknown as any).mockResolvedValue([
       { ...playlist1, _count: { videos: 3 } },
       { ...playlist2, _count: { videos: 5 } },
     ] as any);
 
-    const result = await getPublicFeaturedPlaylists();
+    const result = await getPublicFeaturedPlaylists("tenant_1");
 
     expect(result.success).toBe(true);
     if (result.success) {
@@ -125,9 +125,9 @@ describe("getPublicFeaturedPlaylists()", () => {
   });
 
   it("returns an error when the database throws", async () => {
-    mockDb.playlist.findMany.mockRejectedValue(new Error("Connection refused"));
+    (mockDb.playlist.findMany as unknown as any).mockRejectedValue(new Error("Connection refused"));
 
-    const result = await getPublicFeaturedPlaylists();
+    const result = await getPublicFeaturedPlaylists("tenant_1");
 
     expect(result.success).toBe(false);
     if (!result.success) {
@@ -136,9 +136,9 @@ describe("getPublicFeaturedPlaylists()", () => {
   });
 
   it("respects the limit parameter", async () => {
-    mockDb.playlist.findMany.mockResolvedValue([]);
+    (mockDb.playlist.findMany as unknown as any).mockResolvedValue([]);
 
-    await getPublicFeaturedPlaylists(2);
+    await getPublicFeaturedPlaylists("tenant_1", 2);
 
     expect(mockDb.playlist.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ take: 2 })
@@ -157,17 +157,17 @@ describe("getPublicCategoryPlaylists()", () => {
   });
 
   it("returns category playlists mapped to PublicPlaylist shape", async () => {
-    const playlist1 = makePlaylist({ isActive: true });
-    const playlist2 = makePlaylist({ isActive: true });
-    const playlist3 = makePlaylist({ isActive: true });
+    const playlist1 = makePlaylist({ isActive: true }, "tenant_1");
+    const playlist2 = makePlaylist({ isActive: true }, "tenant_1");
+    const playlist3 = makePlaylist({ isActive: true }, "tenant_1");
 
-    mockDb.playlist.findMany.mockResolvedValue([
+    (mockDb.playlist.findMany as unknown as any).mockResolvedValue([
       { ...playlist1, _count: { videos: 2 } },
       { ...playlist2, _count: { videos: 0 } },
       { ...playlist3, _count: { videos: 7 } },
     ] as any);
 
-    const result = await getPublicCategoryPlaylists();
+    const result = await getPublicCategoryPlaylists("tenant_1");
 
     expect(result.success).toBe(true);
     if (result.success) {
@@ -187,9 +187,9 @@ describe("getPublicCategoryPlaylists()", () => {
   });
 
   it("returns an error when the database throws", async () => {
-    mockDb.playlist.findMany.mockRejectedValue(new Error("Timeout"));
+    (mockDb.playlist.findMany as unknown as any).mockRejectedValue(new Error("Timeout"));
 
-    const result = await getPublicCategoryPlaylists();
+    const result = await getPublicCategoryPlaylists("tenant_1");
 
     expect(result.success).toBe(false);
     if (!result.success) {
@@ -209,12 +209,12 @@ describe("getPublicTrendingVideos()", () => {
   });
 
   it("returns trending videos ordered by playCount descending", async () => {
-    const video1 = makeVideo({ playCount: 500, isActive: true });
-    const video2 = makeVideo({ playCount: 200, isActive: true });
+    const video1 = makeVideo({ playCount: 500, isActive: true }, "tenant_1");
+    const video2 = makeVideo({ playCount: 200, isActive: true }, "tenant_1");
 
-    mockDb.video.findMany.mockResolvedValue([video1, video2]);
+    (mockDb.video.findMany as unknown as any).mockResolvedValue([video1, video2]);
 
-    const result = await getPublicTrendingVideos();
+    const result = await getPublicTrendingVideos("tenant_1");
 
     expect(result.success).toBe(true);
     if (result.success) {
@@ -231,9 +231,9 @@ describe("getPublicTrendingVideos()", () => {
   });
 
   it("respects the limit parameter", async () => {
-    mockDb.video.findMany.mockResolvedValue([]);
+    (mockDb.video.findMany as unknown as any).mockResolvedValue([]);
 
-    await getPublicTrendingVideos(5);
+    await getPublicTrendingVideos("tenant_1", 5);
 
     expect(mockDb.video.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ take: 5 })
@@ -241,9 +241,9 @@ describe("getPublicTrendingVideos()", () => {
   });
 
   it("returns an error when the database throws", async () => {
-    mockDb.video.findMany.mockRejectedValue(new Error("DB down"));
+    (mockDb.video.findMany as unknown as any).mockRejectedValue(new Error("DB down"));
 
-    const result = await getPublicTrendingVideos();
+    const result = await getPublicTrendingVideos("tenant_1");
 
     expect(result.success).toBe(false);
     if (!result.success) {

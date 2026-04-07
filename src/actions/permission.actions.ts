@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { auth } from "@/lib/auth";
+import { requireAdmin } from "@/actions/helpers";
 import {
   resolveTimeFields,
   getPermissionTimeStatus,
@@ -13,18 +13,6 @@ import {
 } from "@/lib/permission-utils";
 import type { ActionResult, PaginatedResult, SafeUser, SafePermissionRow, VideoPermissionWithVideo } from "@/types";
 import type { Video, VideoPermission } from "@prisma/client";
-
-// -----------------------------------------------------------------------
-// Helpers
-// -----------------------------------------------------------------------
-
-async function requireAdmin() {
-  const session = await auth();
-  if (!session?.user || session.user.role !== "ADMIN") {
-    throw new Error("ไม่มีสิทธิ์");
-  }
-  return session;
-}
 
 // -----------------------------------------------------------------------
 // Zod Schemas
@@ -66,15 +54,15 @@ export async function grantPermission(
   timeConfig: PermissionTimeConfig = { mode: "permanent" },
 ): Promise<ActionResult<VideoPermission>> {
   try {
-    const session = await requireAdmin();
+    const { session, tenantId } = await requireAdmin();
     PermissionTimeConfigSchema.parse(timeConfig);
     const now = new Date();
     const timeFields = resolveTimeFields(timeConfig, now);
 
     const permission = await db.videoPermission.upsert({
-      where: { tenantId_userId_videoId: { tenantId: session.user.activeTenantId!, userId, videoId } },
+      where: { tenantId_userId_videoId: { tenantId, userId, videoId } },
       update: { ...timeFields },
-      create: { tenantId: session.user.activeTenantId!, userId, videoId, grantedBy: session.user.id, grantedAt: now, ...timeFields },
+      create: { tenantId, userId, videoId, grantedBy: session.user.id, grantedAt: now, ...timeFields },
     });
 
     revalidatePath(`/admin/users/${userId}`);
@@ -93,10 +81,10 @@ export async function revokePermission(
   videoId: string
 ): Promise<ActionResult<undefined>> {
   try {
-    const session = await requireAdmin();
+    const { tenantId } = await requireAdmin();
 
     await db.videoPermission.delete({
-      where: { tenantId_userId_videoId: { tenantId: session.user.activeTenantId!, userId, videoId } },
+      where: { tenantId_userId_videoId: { tenantId, userId, videoId } },
     });
 
     revalidatePath(`/admin/users/${userId}`);
@@ -116,7 +104,7 @@ export async function bulkGrantPermissions(
   timeConfig: PermissionTimeConfig = { mode: "permanent" },
 ): Promise<ActionResult<{ count: number }>> {
   try {
-    const session = await requireAdmin();
+    const { session, tenantId } = await requireAdmin();
     PermissionTimeConfigSchema.parse(timeConfig);
 
     if (videoIds.length > 100) {
@@ -128,7 +116,7 @@ export async function bulkGrantPermissions(
 
     const result = await db.videoPermission.createMany({
       data: videoIds.map((videoId) => ({
-        tenantId: session.user.activeTenantId!,
+        tenantId,
         userId,
         videoId,
         grantedBy: session.user.id,
@@ -154,12 +142,12 @@ export async function bulkRevokePermissions(
   videoIds: string[]
 ): Promise<ActionResult<{ count: number }>> {
   try {
-    const session = await requireAdmin();
+    const { tenantId } = await requireAdmin();
 
     // TODO(security/medium): Validate array size to prevent abuse (same as bulkGrantPermissions).
 
     const result = await db.videoPermission.deleteMany({
-      where: { tenantId: session.user.activeTenantId!, userId, videoId: { in: videoIds } },
+      where: { tenantId, userId, videoId: { in: videoIds } },
     });
 
     revalidatePath(`/admin/users/${userId}`);
@@ -177,10 +165,10 @@ export async function getUserPermissions(
   userId: string
 ): Promise<ActionResult<VideoPermissionWithVideo[]>> {
   try {
-    const session = await requireAdmin();
+    const { tenantId } = await requireAdmin();
 
     const permissions = await db.videoPermission.findMany({
-      where: { tenantId: session.user.activeTenantId!, userId },
+      where: { tenantId, userId },
       include: { video: true },
       orderBy: { grantedAt: "desc" },
     });
@@ -202,11 +190,11 @@ export async function getAvailableVideos(
   userId: string
 ): Promise<ActionResult<Video[]>> {
   try {
-    const session = await requireAdmin();
+    const { tenantId } = await requireAdmin();
 
     const videos = await db.video.findMany({
       where: {
-        tenantId: session.user.activeTenantId!,
+        tenantId,
         isActive: true,
         permissions: { none: { userId } },
       },
@@ -231,12 +219,12 @@ export async function getAllVideosWithPermissionStatus(
   userId: string
 ): Promise<ActionResult<(Video & { hasPermission: boolean })[]>> {
   try {
-    const session = await requireAdmin();
+    const { tenantId } = await requireAdmin();
 
     const [videos, permissions] = await Promise.all([
-      db.video.findMany({ where: { isActive: true, tenantId: session.user.activeTenantId! }, orderBy: { title: "asc" } }),
+      db.video.findMany({ where: { isActive: true, tenantId }, orderBy: { title: "asc" } }),
       db.videoPermission.findMany({
-        where: { tenantId: session.user.activeTenantId!, userId },
+        where: { tenantId, userId },
         select: { videoId: true, validFrom: true, validUntil: true },
       }),
     ]);
@@ -271,9 +259,9 @@ export async function getPermissionsPage(
   filters?: { search?: string; videoId?: string; status?: PermissionTimeStatus }
 ): Promise<ActionResult<PaginatedResult<SafePermissionRow>>> {
   try {
-    const session = await requireAdmin();
+    const { tenantId } = await requireAdmin();
 
-    const where: Record<string, unknown> = { tenantId: session.user.activeTenantId! };
+    const where: Record<string, unknown> = { tenantId };
 
     if (filters?.search) {
       where.user = {
@@ -368,7 +356,7 @@ export async function bulkGrantPermissionsMulti(
   timeConfig: PermissionTimeConfig = { mode: "permanent" },
 ): Promise<ActionResult<{ count: number }>> {
   try {
-    const session = await requireAdmin();
+    const { session, tenantId } = await requireAdmin();
     PermissionTimeConfigSchema.parse(timeConfig);
 
     if (userIds.length === 0 || videoIds.length === 0) {
@@ -385,7 +373,7 @@ export async function bulkGrantPermissionsMulti(
     const data: { tenantId: string; userId: string; videoId: string; grantedBy: string; grantedAt: Date; validFrom: Date | null; validUntil: Date | null; durationDays: number | null }[] = [];
     for (const userId of userIds) {
       for (const videoId of videoIds) {
-        data.push({ tenantId: session.user.activeTenantId!, userId, videoId, grantedBy: session.user.id, grantedAt: now, ...timeFields });
+        data.push({ tenantId, userId, videoId, grantedBy: session.user.id, grantedAt: now, ...timeFields });
       }
     }
 
@@ -412,7 +400,7 @@ export async function bulkRevokePermissionsByIds(
   permissionIds: string[]
 ): Promise<ActionResult<{ count: number }>> {
   try {
-    const session = await requireAdmin();
+    const { tenantId } = await requireAdmin();
 
     if (permissionIds.length === 0) {
       return { success: false, error: "ไม่ได้เลือกสิทธิ์" };
@@ -423,7 +411,7 @@ export async function bulkRevokePermissionsByIds(
     }
 
     const result = await db.videoPermission.deleteMany({
-      where: { id: { in: permissionIds }, tenantId: session.user.activeTenantId! },
+      where: { id: { in: permissionIds }, tenantId },
     });
 
     revalidatePath("/admin/permissions");
@@ -445,11 +433,11 @@ export async function updatePermissionExpiry(
   timeConfig: PermissionTimeConfig,
 ): Promise<ActionResult<VideoPermission>> {
   try {
-    const session = await requireAdmin();
+    const { tenantId } = await requireAdmin();
     PermissionTimeConfigSchema.parse(timeConfig);
 
     const existing = await db.videoPermission.findUnique({
-      where: { id: permissionId, tenantId: session.user.activeTenantId! },
+      where: { id: permissionId, tenantId },
       select: { grantedAt: true },
     });
     if (!existing) return { success: false, error: "ไม่พบสิทธิ์" };
@@ -457,7 +445,7 @@ export async function updatePermissionExpiry(
     const timeFields = resolveTimeFields(timeConfig, existing.grantedAt);
 
     const updated = await db.videoPermission.update({
-      where: { id: permissionId, tenantId: session.user.activeTenantId! },
+      where: { id: permissionId, tenantId },
       data: timeFields,
     });
 
@@ -476,10 +464,10 @@ export async function getAllUsersForSelect(): Promise<
   ActionResult<{ id: string; name: string | null; email: string }[]>
 > {
   try {
-    const session = await requireAdmin();
+    const { tenantId } = await requireAdmin();
 
     const users = await db.user.findMany({
-      where: { isActive: true, tenantMembers: { some: { tenantId: session.user.activeTenantId! } } },
+      where: { isActive: true, tenantMembers: { some: { tenantId } } },
       select: { id: true, name: true, email: true },
       orderBy: { name: "asc" },
     });
@@ -498,10 +486,10 @@ export async function getAllVideosForSelect(): Promise<
   ActionResult<{ id: string; title: string }[]>
 > {
   try {
-    const session = await requireAdmin();
+    const { tenantId } = await requireAdmin();
 
     const videos = await db.video.findMany({
-      where: { isActive: true, tenantId: session.user.activeTenantId! },
+      where: { isActive: true, tenantId },
       select: { id: true, title: true },
       orderBy: { title: "asc" },
     });

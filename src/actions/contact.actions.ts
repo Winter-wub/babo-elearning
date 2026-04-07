@@ -3,7 +3,7 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
-import { auth } from "@/lib/auth";
+import { requireAdmin } from "@/actions/helpers";
 import type { ContactSubmission } from "@prisma/client";
 import type { ActionResult, PaginatedResult } from "@/types";
 
@@ -65,18 +65,6 @@ export async function submitContactForm(
 }
 
 // -----------------------------------------------------------------------
-// Admin helpers
-// -----------------------------------------------------------------------
-
-async function requireAdmin() {
-  const session = await auth();
-  if (!session?.user || session.user.role !== "ADMIN") {
-    throw new Error("ไม่มีสิทธิ์");
-  }
-  return session;
-}
-
-// -----------------------------------------------------------------------
 // Admin actions
 // -----------------------------------------------------------------------
 
@@ -87,14 +75,14 @@ export async function getContactSubmissions(
   filter?: "all" | "read" | "unread"
 ): Promise<ActionResult<PaginatedResult<ContactSubmission>>> {
   try {
-    const session = await requireAdmin();
+    const { tenantId } = await requireAdmin();
 
     const where =
       filter === "read"
-        ? { isRead: true, tenantId: session.user.activeTenantId! }
+        ? { isRead: true, tenantId }
         : filter === "unread"
-        ? { isRead: false, tenantId: session.user.activeTenantId! }
-        : { tenantId: session.user.activeTenantId! };
+        ? { isRead: false, tenantId }
+        : { tenantId };
 
     const [items, total] = await Promise.all([
       db.contactSubmission.findMany({
@@ -132,8 +120,8 @@ export async function markSubmissionRead(
   isRead: boolean = true
 ): Promise<ActionResult<undefined>> {
   try {
-    const session = await requireAdmin();
-    await db.contactSubmission.update({ where: { id, tenantId: session.user.activeTenantId! }, data: { isRead } });
+    const { tenantId } = await requireAdmin();
+    await db.contactSubmission.update({ where: { id, tenantId }, data: { isRead } });
     revalidatePath("/admin/contacts");
     return { success: true, data: undefined };
   } catch (err) {
@@ -149,8 +137,8 @@ export async function deleteSubmission(
   id: string
 ): Promise<ActionResult<undefined>> {
   try {
-    const session = await requireAdmin();
-    await db.contactSubmission.delete({ where: { id, tenantId: session.user.activeTenantId! } });
+    const { tenantId } = await requireAdmin();
+    await db.contactSubmission.delete({ where: { id, tenantId } });
     revalidatePath("/admin/contacts");
     return { success: true, data: undefined };
   } catch (err) {

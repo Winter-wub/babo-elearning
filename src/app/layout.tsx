@@ -4,6 +4,7 @@ import "./globals.css";
 import { APP_NAME, APP_DESCRIPTION } from "@/lib/constants";
 import { getThemeSettings } from "@/actions/theme.actions";
 import { ThemeStyle } from "@/components/providers/theme-style";
+import { getDeploymentTenantId } from "@/lib/tenant";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -30,9 +31,8 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // TODO: Fix tenant resolution in root layout. It should probably be moved to [tenantSlug]/layout.tsx
-  const tenantSlug = "default";
-  const themeSettings = await getThemeSettings(tenantSlug);
+  const tenantId = await getDeploymentTenantId();
+  const themeSettings = await getThemeSettings(tenantId);
 
   return (
     <html

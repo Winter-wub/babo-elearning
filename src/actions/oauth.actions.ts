@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
-import { auth } from "@/lib/auth";
+import { requireAdmin } from "@/actions/helpers";
 import { getSiteContent, bulkUpdateSiteContent } from "@/actions/content.actions";
 import { encrypt, decrypt, maskSecret } from "@/lib/crypto";
 import {
@@ -12,18 +12,6 @@ import {
   type OAuthProviderId,
 } from "@/lib/constants";
 import type { ActionResult } from "@/types";
-
-// -----------------------------------------------------------------------
-// Helpers
-// -----------------------------------------------------------------------
-
-async function requireAdmin() {
-  const session = await auth();
-  if (!session?.user || session.user.role !== "ADMIN") {
-    throw new Error("ไม่มีสิทธิ์");
-  }
-  return session;
-}
 
 // -----------------------------------------------------------------------
 // Types
@@ -80,14 +68,14 @@ export async function getEnabledOAuthProviders(tenantId: string): Promise<OAuthP
  * for easy migration.
  */
 export async function getOAuthProviderConfigs(): Promise<OAuthProviderConfig[]> {
-  const session = await requireAdmin();
+  const { tenantId } = await requireAdmin();
 
   const allKeys = Object.values(OAUTH_KEYS).flatMap((k) => [
     k.enabled,
     k.clientId,
     k.clientSecret,
   ]);
-  const raw = await getSiteContent(allKeys, session.user.activeTenantId!);
+  const raw = await getSiteContent(allKeys, tenantId);
 
   return OAUTH_PROVIDER_IDS.map((id) => {
     const keys = OAUTH_KEYS[id];
@@ -125,7 +113,7 @@ export async function updateOAuthProvider(
   input: z.input<typeof UpdateProviderSchema>
 ): Promise<ActionResult<undefined>> {
   try {
-    const session = await requireAdmin();
+    const { tenantId } = await requireAdmin();
     const parsed = UpdateProviderSchema.parse(input);
 
     // Extra validation: non-empty credentials when enabling
@@ -140,7 +128,7 @@ export async function updateOAuthProvider(
       // Check if secret already exists in DB
       const existingKeys = await getSiteContent([
         OAUTH_KEYS[parsed.id].clientSecret,
-      ], session.user.activeTenantId!);
+      ], tenantId);
       const hasExistingSecret =
         !!existingKeys[OAUTH_KEYS[parsed.id].clientSecret];
 

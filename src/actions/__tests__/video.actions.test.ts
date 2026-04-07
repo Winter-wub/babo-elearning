@@ -23,9 +23,8 @@ vi.mock("@/lib/db", () => ({
   },
 }));
 
-vi.mock("@/lib/auth", () => ({
-  auth: vi.fn(),
-}));
+// vi.mock for auth removed
+
 
 vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),
@@ -44,8 +43,21 @@ import { getPermittedVideos } from "@/actions/video.actions";
 import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
 
-const mockDb = vi.mocked(db);
-const mockAuth = vi.mocked(auth);
+const mockDb = db as unknown as {
+  videoPermission: {
+    findMany: import("vitest").MockInstance;
+  };
+  video: {
+    findMany: import("vitest").MockInstance;
+  };
+};
+
+const mockAuthFn = vi.fn();
+vi.mock("@/lib/auth", () => ({
+  auth: (...args: any[]) => mockAuthFn(...args),
+}));
+
+const mockAuth = mockAuthFn as unknown as import("vitest").MockInstance;
 
 // ---------------------------------------------------------------------------
 // getPermittedVideos()

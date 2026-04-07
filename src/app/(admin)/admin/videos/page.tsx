@@ -34,11 +34,11 @@ async function VideosContent({ searchParams }: AdminVideosPageProps) {
   const result = await getVideos({
     search: params.search,
     isActive:
-      params.isActive === "true"
-        ? true
+      params.isActive === "all"
+        ? undefined
         : params.isActive === "false"
         ? false
-        : undefined,
+        : true,
     page: params.page ? Number(params.page) : 1,
   });
 

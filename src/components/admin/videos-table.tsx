@@ -67,7 +67,7 @@ export function VideosTable({ videos, meta }: VideosTableProps) {
 
   // ---- URL-driven filter state ----
   const currentSearch = searchParams.get("search") ?? "";
-  const currentStatus = searchParams.get("isActive") ?? "";
+  const currentStatus = searchParams.get("isActive") ?? "true";
   const currentPage = Number(searchParams.get("page") ?? "1");
 
   // ---- Local transient state ----
@@ -169,18 +169,18 @@ export function VideosTable({ videos, meta }: VideosTableProps) {
           </div>
 
           <Select
-            value={currentStatus || "all"}
+            value={currentStatus}
             onValueChange={(v) =>
-              pushParams({ isActive: v === "all" ? undefined : v, page: "1" })
+              pushParams({ isActive: v === "true" ? undefined : v, page: "1" })
             }
           >
             <SelectTrigger className="w-36">
-              <SelectValue placeholder="ทุกสถานะ" />
+              <SelectValue placeholder="สถานะวิดีโอ" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">ทุกสถานะ</SelectItem>
               <SelectItem value="true">ใช้งาน</SelectItem>
-              <SelectItem value="false">ไม่ใช้งาน</SelectItem>
+              <SelectItem value="false">ถูกลบ (ไม่ใช้งาน)</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -239,7 +239,16 @@ export function VideosTable({ videos, meta }: VideosTableProps) {
               </TableRow>
             ) : (
               videos.map((video) => (
-                <TableRow key={video.id} className={isPending ? "opacity-60" : undefined}>
+                <TableRow 
+                  key={video.id} 
+                  className={
+                    isPending 
+                      ? "opacity-60" 
+                      : !video.isActive 
+                      ? "bg-muted/50 opacity-60 grayscale-[0.5]" 
+                      : undefined
+                  }
+                >
                   {/* Thumbnail */}
                   <TableCell>
                     {video.thumbnailUrl ? (
@@ -286,7 +295,7 @@ export function VideosTable({ videos, meta }: VideosTableProps) {
                           : undefined
                       }
                     >
-                      {video.isActive ? "ใช้งาน" : "ไม่ใช้งาน"}
+                      {video.isActive ? "ใช้งาน" : "ถูกลบ"}
                     </Badge>
                   </TableCell>
 

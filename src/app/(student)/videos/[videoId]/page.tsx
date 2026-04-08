@@ -7,7 +7,9 @@ import { db } from "@/lib/db";
 import { incrementPlayCount } from "@/actions/video.actions";
 import { getPermissionTimeStatus } from "@/lib/permission-utils";
 import { VideoPlayerWithPolicy } from "@/components/video/video-player-with-policy";
+import { VideoMaterialsSection } from "@/components/video/video-materials-section";
 import { Button } from "@/components/ui/button";
+import { getMaterialsByVideoId } from "@/actions/material.actions";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -103,11 +105,15 @@ export default async function VideoPage({ params }: VideoPageProps) {
 
   const hasAgreedToPolicy = policyAgreement !== null;
 
-  // ---- 5. Increment play count (fire-and-forget) --------------------------
+  // ---- 5. Fetch course materials -------------------------------------------
+  const materialsResult = await getMaterialsByVideoId(videoId);
+  const materials = materialsResult.success ? materialsResult.data : [];
+
+  // ---- 6. Increment play count (fire-and-forget) --------------------------
   // Do not await — we don't want to block rendering on a best-effort counter.
   void incrementPlayCount(videoId);
 
-  // ---- 6. Render ----------------------------------------------------------
+  // ---- 7. Render ----------------------------------------------------------
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       {/* Back navigation */}
@@ -140,6 +146,9 @@ export default async function VideoPage({ params }: VideoPageProps) {
           </p>
         )}
       </section>
+
+      {/* Course materials */}
+      <VideoMaterialsSection materials={materials} />
     </div>
   );
 }

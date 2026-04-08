@@ -25,6 +25,6 @@ export const config = {
      *                   would issue an HTML redirect to /login, which breaks
      *                   the JSON fetch in the browser-side video player.
      */
-    "/((?!_next/static|_next/image|favicon.ico|public|api/auth|api/videos).*)",
+    "/((?!_next/static|_next/image|favicon.ico|public|api/auth|api/videos|api/materials).*)",
   ],
 };

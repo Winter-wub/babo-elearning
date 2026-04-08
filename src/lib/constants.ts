@@ -15,6 +15,45 @@ export const MAX_UPLOAD_SIZE_BYTES = 2 * 1024 * 1024 * 1024;
 export const ACCEPTED_VIDEO_MIME_TYPES = ["video/mp4", "video/webm"] as const;
 
 // -----------------------------------------------------------------------
+// Course material constraints
+// -----------------------------------------------------------------------
+
+/** Maximum material file size in bytes (50 MB). */
+export const MAX_MATERIAL_SIZE_BYTES = 50 * 1024 * 1024;
+
+/** Maximum number of materials per video. */
+export const MAX_MATERIALS_PER_VIDEO = 20;
+
+/** Accepted material MIME types for upload. */
+export const ACCEPTED_MATERIAL_MIME_TYPES = [
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/vnd.ms-powerpoint",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  "image/png",
+  "image/jpeg",
+  "image/gif",
+  "image/webp",
+  "image/svg+xml",
+  "application/zip",
+  "text/plain",
+  "text/csv",
+] as const;
+
+/** Content types that can be viewed inline (PDF + images). */
+export const VIEWABLE_MATERIAL_TYPES = [
+  "application/pdf",
+  "image/png",
+  "image/jpeg",
+  "image/gif",
+  "image/webp",
+  "image/svg+xml",
+] as const;
+
+// -----------------------------------------------------------------------
 // Pagination defaults
 // -----------------------------------------------------------------------
 

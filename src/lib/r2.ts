@@ -110,6 +110,48 @@ export async function getPlaybackUrl(key: string): Promise<string> {
 }
 
 /**
+ * Generates a presigned GET URL for inline viewing of a course material.
+ * Sets Content-Disposition to "inline" so the browser renders the file
+ * (PDF in native viewer, images displayed directly).
+ *
+ * @param key - The R2 object key of the material
+ * @returns   A presigned URL string
+ */
+export async function getMaterialViewUrl(key: string): Promise<string> {
+  const command = new GetObjectCommand({
+    Bucket: R2_BUCKET_NAME,
+    Key: key,
+    ResponseContentDisposition: "inline",
+  });
+
+  return getSignedUrl(getR2Client(), command, { expiresIn: SIGNED_URL_EXPIRY });
+}
+
+/**
+ * Generates a presigned GET URL for downloading a course material.
+ * Sets Content-Disposition to "attachment" with a custom filename that
+ * includes the student's name (e.g. "Alice_Johnson_Notes.docx").
+ *
+ * @param key              - The R2 object key of the material
+ * @param downloadFilename - The filename to suggest for download
+ * @returns                A presigned URL string
+ */
+export async function getMaterialDownloadUrl(
+  key: string,
+  downloadFilename: string
+): Promise<string> {
+  // RFC 5987 encoding for Unicode filenames
+  const encoded = encodeURIComponent(downloadFilename).replace(/%20/g, "+");
+  const command = new GetObjectCommand({
+    Bucket: R2_BUCKET_NAME,
+    Key: key,
+    ResponseContentDisposition: `attachment; filename="${downloadFilename}"; filename*=UTF-8''${encoded}`,
+  });
+
+  return getSignedUrl(getR2Client(), command, { expiresIn: SIGNED_URL_EXPIRY });
+}
+
+/**
  * Permanently deletes an object from R2.
  * Used when an admin hard-deletes a video record (beyond soft-delete).
  *

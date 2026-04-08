@@ -44,11 +44,11 @@ const nextConfig: NextConfig = {
               "script-src 'self' 'unsafe-eval' 'unsafe-inline'", // unsafe-eval required by Next.js dev
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' blob: data: https: https://lh3.googleusercontent.com https://graph.facebook.com https://platform-lookaside.fbsbx.com",
-              "media-src 'self' blob: https://*.r2.cloudflarestorage.com https://fly.storage.tigris.dev",
-              "connect-src 'self' https://*.r2.cloudflarestorage.com https://fly.storage.tigris.dev https://accounts.google.com https://graph.facebook.com https://appleid.apple.com",
+              `media-src 'self' blob: https://*.r2.cloudflarestorage.com https://fly.storage.tigris.dev${process.env.R2_ENDPOINT ? ` ${process.env.R2_ENDPOINT}` : ""}`,
+              `connect-src 'self' https://*.r2.cloudflarestorage.com https://fly.storage.tigris.dev https://accounts.google.com https://graph.facebook.com https://appleid.apple.com${process.env.R2_ENDPOINT ? ` ${process.env.R2_ENDPOINT}` : ""}`,
               "font-src 'self'",
               "object-src 'none'",
-              "frame-src 'self' https://accounts.google.com",
+              `frame-src 'self' https://accounts.google.com https://*.r2.cloudflarestorage.com https://fly.storage.tigris.dev${process.env.R2_ENDPOINT ? ` ${process.env.R2_ENDPOINT}` : ""}`,
               "frame-ancestors 'self'",
               "base-uri 'self'",
               "form-action 'self' https://accounts.google.com https://www.facebook.com https://appleid.apple.com",
@@ -56,9 +56,9 @@ const nextConfig: NextConfig = {
           },
         ],
       },
-      // CORS lockdown for video API routes
+      // CORS lockdown for video and material API routes
       {
-        source: "/api/videos/:path*",
+        source: "/api/:path(videos|materials)/:rest*",
         headers: [
           {
             key: "Access-Control-Allow-Origin",

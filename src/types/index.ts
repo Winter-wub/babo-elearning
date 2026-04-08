@@ -1,9 +1,12 @@
-import type { User, Video, VideoPermission, PolicyAgreement, Role } from "@prisma/client";
+import type { User, Video, VideoPermission, PolicyAgreement, Role, CourseMaterial } from "@prisma/client";
 
 // -----------------------------------------------------------------------
 // Re-exports for convenience
 // -----------------------------------------------------------------------
-export type { User, Video, VideoPermission, PolicyAgreement, Role };
+export type { User, Video, VideoPermission, PolicyAgreement, Role, CourseMaterial };
+
+/** Material record safe for client — s3Key omitted. */
+export type PublicMaterial = Omit<CourseMaterial, "s3Key">;
 
 /** Safe subset of Video exposed to unauthenticated callers — never includes s3Key. */
 export type PublicVideo = Pick<

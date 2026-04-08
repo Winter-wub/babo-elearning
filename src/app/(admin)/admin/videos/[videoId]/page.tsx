@@ -17,7 +17,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
 
 import { VideoEditForm } from "@/components/admin/video-edit-form";
+import { VideoMaterialsManager } from "@/components/admin/video-materials-manager";
 import { getVideoById } from "@/actions/video.actions";
+import { getAdminMaterialsByVideoId } from "@/actions/material.actions";
 import { formatDuration } from "@/lib/utils";
 
 // -----------------------------------------------------------------------
@@ -255,6 +257,19 @@ async function EditFormSection({ videoId }: { videoId: string }) {
 }
 
 // -----------------------------------------------------------------------
+// Sub-component: course materials manager (server-fetched initial data)
+// -----------------------------------------------------------------------
+
+async function MaterialsSection({ videoId }: { videoId: string }) {
+  const result = await getAdminMaterialsByVideoId(videoId);
+  const materials = result.success ? result.data : [];
+
+  return (
+    <VideoMaterialsManager videoId={videoId} initialMaterials={materials} />
+  );
+}
+
+// -----------------------------------------------------------------------
 // Page
 // -----------------------------------------------------------------------
 
@@ -299,6 +314,16 @@ export default async function AdminVideoDetailPage({ params }: PageProps) {
             }
           >
             <EditFormSection videoId={videoId} />
+          </Suspense>
+
+          <Suspense
+            fallback={
+              <div className="flex items-center justify-center py-10">
+                <Spinner />
+              </div>
+            }
+          >
+            <MaterialsSection videoId={videoId} />
           </Suspense>
         </div>
 

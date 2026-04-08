@@ -65,6 +65,7 @@ model Video {
 
   permissions  VideoPermission[]
   playlists    PlaylistVideo[]
+  materials    CourseMaterial[]
 
   @@index([isActive])
   @@index([isFeatured])
@@ -91,6 +92,23 @@ model VideoPermission {
   @@index([userId])
   @@index([videoId])
   @@index([validUntil])
+}
+
+model CourseMaterial {
+  id          String   @id @default(cuid())
+  videoId     String
+  filename    String
+  s3Key       String   @unique
+  contentType String
+  fileSize    Int
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  video       Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  @@index([videoId])
+  @@index([videoId, sortOrder])
 }
 
 model PolicyAgreement {

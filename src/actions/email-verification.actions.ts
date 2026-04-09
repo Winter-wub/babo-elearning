@@ -33,14 +33,14 @@ export async function verifyEmail(
   }
 
   // Use a transaction to prevent race conditions and check rate limiting atomically
-  const result = await db.$transaction(async (tx) => {
+  const txResult = await db.$transaction(async (tx) => {
     const record = await tx.emailVerificationToken.findUnique({
       where: { token },
       include: { user: { select: { id: true, emailVerified: true } } },
     });
 
     if (!record) {
-      return { success: false, error: "ลิงก์ไม่ถูกต้องหรือถูกใช้ไปแล้ว" };
+      return { type: "not_found" as const };
     }
 
     // Rate limiting: check for recent failed attempts
@@ -53,10 +53,7 @@ export async function verifyEmail(
     });
 
     if (recentFailedAttempts >= EMAIL_VERIFICATION_MAX_ATTEMPTS) {
-      return {
-        success: false,
-        error: "พยายามมากเกินไป กรุณาลองใหม่ใน 5 นาที"
-      };
+      return { type: "rate_limited" as const };
     }
 
     if (record.expiresAt < new Date()) {
@@ -72,7 +69,7 @@ export async function verifyEmail(
         data: { userId: record.userId, success: false },
       });
 
-      return { success: false, error: "ลิงก์หมดอายุแล้ว กรุณาขอลิงก์ใหม่" };
+      return { type: "expired" as const };
     }
 
     // Mark verified and delete token atomically
@@ -84,10 +81,20 @@ export async function verifyEmail(
       tx.emailVerificationToken.delete({ where: { token } }),
     ]);
 
-    return { success: true, data: undefined };
+    return { type: "success" as const };
   });
 
-  return result;
+  // Map transaction result to ActionResult
+  switch (txResult.type) {
+    case "not_found":
+      return { success: false, error: "ลิงก์ไม่ถูกต้องหรือถูกใช้ไปแล้ว" };
+    case "rate_limited":
+      return { success: false, error: "พยายามมากเกินไป กรุณาลองใหม่ใน 5 นาที" };
+    case "expired":
+      return { success: false, error: "ลิงก์หมดอายุแล้ว กรุณาขอลิงก์ใหม่" };
+    case "success":
+      return { success: true, data: undefined };
+  }
 }
 
 /**

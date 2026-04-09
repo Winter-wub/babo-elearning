@@ -1,13 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { signIn } from "next-auth/react";
+import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Mail, Clock } from "lucide-react";
 
 import { registerUser } from "@/actions/auth.actions";
+import { resendVerificationEmail } from "@/actions/email-verification.actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -101,7 +102,79 @@ const strengthTextColors: Record<number, string> = {
 };
 
 // ---------------------------------------------------------------------------
-// Component
+// Check email card (shown after successful registration)
+// ---------------------------------------------------------------------------
+
+function CheckEmailCard({ email }: { email: string }) {
+  const [isResending, setIsResending] = useState(false);
+  const [resent, setResent] = useState(false);
+  const [resendError, setResendError] = useState<string | null>(null);
+
+  async function handleResend() {
+    setIsResending(true);
+    setResendError(null);
+    const result = await resendVerificationEmail(email);
+    setIsResending(false);
+    if (result.success) {
+      setResent(true);
+    } else {
+      setResendError(result.error);
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader className="items-center text-center gap-3 pb-2">
+        <div className="rounded-full bg-muted p-3">
+          <Mail className="size-8 text-foreground" />
+        </div>
+        <CardTitle className="text-xl">ตรวจสอบอีเมลของคุณ</CardTitle>
+        <CardDescription className="text-center leading-relaxed">
+          เราส่งลิงก์ยืนยันไปที่{" "}
+          <span className="font-medium text-foreground">{email}</span>{" "}
+          แล้ว กรุณาตรวจสอบอีเมลและคลิกลิงก์เพื่อยืนยันบัญชี
+        </CardDescription>
+      </CardHeader>
+
+      <CardContent className="flex flex-col gap-4 pt-2">
+        {/* Expiry note */}
+        <div className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
+          <Clock className="size-3.5 shrink-0" />
+          <span>ลิงก์มีอายุ 24 ชั่วโมง</span>
+        </div>
+
+        {/* Resend error */}
+        {resendError && (
+          <p className="text-center text-sm text-destructive">{resendError}</p>
+        )}
+
+        {/* Resend button */}
+        <Button
+          variant="outline"
+          className="w-full"
+          onClick={handleResend}
+          disabled={isResending || resent}
+        >
+          {isResending && <Spinner size="sm" className="mr-2" />}
+          {resent ? "ส่งอีเมลแล้ว ✓" : "ส่งอีเมลอีกครั้ง"}
+        </Button>
+
+        {/* Back to login */}
+        <div className="text-center">
+          <Link
+            href="/login"
+            className="text-sm text-muted-foreground hover:text-foreground underline underline-offset-4 transition-colors"
+          >
+            ← กลับไปหน้าเข้าสู่ระบบ
+          </Link>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Main register form component
 // ---------------------------------------------------------------------------
 
 interface RegisterFormProps {
@@ -109,8 +182,8 @@ interface RegisterFormProps {
 }
 
 export function RegisterForm({ enabledProviders }: RegisterFormProps = {}) {
-  const router = useRouter();
   const [serverError, setServerError] = useState<string | null>(null);
+  const [pendingEmail, setPendingEmail] = useState<string | null>(null);
 
   const {
     register,
@@ -124,6 +197,11 @@ export function RegisterForm({ enabledProviders }: RegisterFormProps = {}) {
 
   const passwordValue = watch("password");
   const strength = getPasswordStrength(passwordValue);
+
+  // Once registration succeeds, swap the form for the confirmation card
+  if (pendingEmail) {
+    return <CheckEmailCard email={pendingEmail} />;
+  }
 
   async function onSubmit(data: RegisterFormValues) {
     setServerError(null);
@@ -140,21 +218,8 @@ export function RegisterForm({ enabledProviders }: RegisterFormProps = {}) {
         return;
       }
 
-      // Auto-login after successful registration
-      const signInResult = await signIn("credentials", {
-        email: data.email,
-        password: data.password,
-        redirect: false,
-      });
-
-      if (signInResult?.error) {
-        // Registration succeeded but auto-login failed -- send to login page
-        router.push("/login");
-        return;
-      }
-
-      router.push("/dashboard");
-      router.refresh();
+      // Show the "check your email" card — no auto-login
+      setPendingEmail(data.email.toLowerCase().trim());
     } catch {
       setServerError("เกิดข้อผิดพลาด กรุณาลองอีกครั้งภายหลัง");
     }

@@ -6,7 +6,10 @@ import { signIn, getSession } from "next-auth/react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { AlertTriangle } from "lucide-react";
 
+import { getEmailVerificationStatus } from "@/actions/auth.actions";
+import { resendVerificationEmail } from "@/actions/email-verification.actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -33,21 +36,69 @@ const loginSchema = z.object({
 type LoginFormValues = z.infer<typeof loginSchema>;
 
 // ---------------------------------------------------------------------------
+// Unverified email banner
+// ---------------------------------------------------------------------------
+
+function UnverifiedEmailBanner({ email }: { email: string }) {
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
+
+  async function handleResend() {
+    setSending(true);
+    await resendVerificationEmail(email);
+    setSending(false);
+    setSent(true);
+  }
+
+  return (
+    <div
+      role="alert"
+      className="flex gap-2.5 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800"
+    >
+      <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-600" />
+      <div className="flex flex-col gap-1">
+        <p className="font-medium">บัญชีของคุณยังไม่ได้รับการยืนยัน</p>
+        {sent ? (
+          <p className="text-amber-700">ส่งอีเมลแล้ว กรุณาตรวจสอบกล่องจดหมาย</p>
+        ) : (
+          <button
+            type="button"
+            onClick={handleResend}
+            disabled={sending}
+            className="w-fit text-left font-medium underline underline-offset-4 hover:text-amber-900 disabled:opacity-50 transition-colors"
+          >
+            {sending ? "กำลังส่ง…" : "ส่งอีเมลยืนยันอีกครั้ง"}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
 interface LoginFormProps {
   callbackUrl?: string;
   enabledProviders?: string[];
+  verified?: boolean;
 }
 
-export function LoginForm({ callbackUrl = "/dashboard", enabledProviders }: LoginFormProps) {
+export function LoginForm({
+  callbackUrl = "/dashboard",
+  enabledProviders,
+  verified = false,
+}: LoginFormProps) {
   const router = useRouter();
   const [serverError, setServerError] = useState<string | null>(null);
+  const [isEmailUnverified, setIsEmailUnverified] = useState(false);
+  const [unverifiedEmail, setUnverifiedEmail] = useState("");
 
   const {
     register,
     handleSubmit,
+    getValues,
     formState: { errors, isSubmitting },
   } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -56,8 +107,18 @@ export function LoginForm({ callbackUrl = "/dashboard", enabledProviders }: Logi
 
   async function onSubmit(data: LoginFormValues) {
     setServerError(null);
+    setIsEmailUnverified(false);
 
     try {
+      // Check verification status before attempting sign-in so we can show a
+      // helpful message instead of the generic "invalid credentials" error.
+      const status = await getEmailVerificationStatus(data.email);
+      if (status === "unverified") {
+        setIsEmailUnverified(true);
+        setUnverifiedEmail(data.email);
+        return;
+      }
+
       const result = await signIn("credentials", {
         email: data.email,
         password: data.password,
@@ -95,8 +156,13 @@ export function LoginForm({ callbackUrl = "/dashboard", enabledProviders }: Logi
         {enabledProviders === undefined || enabledProviders.length > 0 ? <SocialDivider /> : null}
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
-          {/* Server error banner */}
-          {serverError && (
+          {/* Email-not-verified amber banner */}
+          {isEmailUnverified && (
+            <UnverifiedEmailBanner email={unverifiedEmail} />
+          )}
+
+          {/* Generic server error banner */}
+          {serverError && !isEmailUnverified && (
             <div
               role="alert"
               className="rounded-md border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive"

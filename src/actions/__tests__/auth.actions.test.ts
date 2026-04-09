@@ -25,12 +25,25 @@ vi.mock("@/lib/db", () => ({
     user: {
       findUnique: vi.fn(),
       create: vi.fn(),
+      delete: vi.fn(),
+    },
+    emailVerificationToken: {
+      create: vi.fn(),
     },
     policyAgreement: {
       findFirst: vi.fn(),
       create: vi.fn(),
     },
+    $transaction: vi.fn(),
   },
+}));
+
+// ---------------------------------------------------------------------------
+// Mock: email sender (no real SMTP in tests)
+// ---------------------------------------------------------------------------
+
+vi.mock("@/lib/email", () => ({
+  sendEmail: vi.fn().mockResolvedValue(undefined),
 }));
 
 // ---------------------------------------------------------------------------
@@ -82,13 +95,26 @@ describe("registerUser()", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     resetFactoryCounters();
+
+    // registerUser wraps user creation in db.$transaction(async tx => { ... }).
+    // The mock must execute the callback with mockDb itself as the tx proxy so
+    // that tx.user.create / tx.emailVerificationToken.create resolve correctly.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    mockDb.$transaction.mockImplementation((fn: (tx: any) => Promise<unknown>) =>
+      fn(mockDb)
+    );
   });
 
   it("creates a new student account and returns the user id on success", async () => {
     const newUser = makeUser({ id: "new_user_1", email: "alice@example.com" });
 
-    mockDb.user.findUnique.mockResolvedValue(null); // email not taken
+    // First call: email uniqueness check → not found
+    // Second call: fetch user name for email template → return the new user
+    mockDb.user.findUnique
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(newUser);
     mockDb.user.create.mockResolvedValue(newUser);
+    mockDb.emailVerificationToken.create.mockResolvedValue({});
 
     const result = await registerUser({
       name: "Alice Smith",
@@ -179,8 +205,11 @@ describe("registerUser()", () => {
 
   it("never stores the plain-text password in the database", async () => {
     const newUser = makeUser({ email: "bob@example.com" });
-    mockDb.user.findUnique.mockResolvedValue(null);
+    mockDb.user.findUnique
+      .mockResolvedValueOnce(null)       // uniqueness check
+      .mockResolvedValueOnce(newUser);   // fetch name for email template
     mockDb.user.create.mockResolvedValue(newUser);
+    mockDb.emailVerificationToken.create.mockResolvedValue({});
 
     await registerUser({
       name: "Bob Jones",

@@ -74,6 +74,22 @@ export const BCRYPT_SALT_ROUNDS = 12;
 export const SESSION_MAX_AGE = 30 * 24 * 60 * 60;
 
 // -----------------------------------------------------------------------
+// Email verification
+// -----------------------------------------------------------------------
+
+/** Email verification token TTL in milliseconds (24 hours). */
+export const EMAIL_VERIFICATION_TOKEN_TTL_MS = 24 * 60 * 60 * 1000;
+
+/** Minimum seconds between resend requests. */
+export const EMAIL_VERIFICATION_RESEND_COOLDOWN_S = 60;
+
+/** Maximum failed verification attempts within the window. */
+export const EMAIL_VERIFICATION_MAX_ATTEMPTS = 5;
+
+/** Window for rate limiting failed verification attempts (5 minutes). */
+export const EMAIL_VERIFICATION_RATE_LIMIT_WINDOW_MS = 5 * 60 * 1000;
+
+// -----------------------------------------------------------------------
 // Application metadata
 // -----------------------------------------------------------------------
 

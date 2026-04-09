@@ -12,22 +12,55 @@ enum Role {
 }
 
 model User {
-  id                 String            @id @default(cuid())
-  email              String            @unique
-  passwordHash       String?
-  name               String?
-  role               Role              @default(STUDENT)
-  isActive           Boolean           @default(true)
-  createdAt          DateTime          @default(now())
-  updatedAt          DateTime          @updatedAt
+  id            String    @id @default(cuid())
+  email         String    @unique
+  passwordHash  String?
+  name          String?
+  role          Role      @default(STUDENT)
+  isActive      Boolean   @default(true)
+  emailVerified DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
-  accounts           Account[]
-  videoPermissions   VideoPermission[] @relation("UserPermissions")
-  grantedPermissions VideoPermission[] @relation("GrantedByAdmin")
-  policyAgreements   PolicyAgreement[]
+  accounts             Account[]
+  videoPermissions     VideoPermission[]        @relation("UserPermissions")
+  grantedPermissions   VideoPermission[]        @relation("GrantedByAdmin")
+  policyAgreements     PolicyAgreement[]
+  verificationTokens   EmailVerificationToken[]
+  verificationAttempts VerificationAttempt[]
 
   @@index([email])
   @@index([role])
+}
+
+model EmailVerificationToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([userId])
+}
+
+/**
+ * Tracks verification attempt history for rate limiting.
+ * Records are automatically cleaned up after 24 hours by application logic.
+ */
+model VerificationAttempt {
+  id        String   @id @default(cuid())
+  userId    String
+  success   Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+  @@index([userId, success, createdAt])
 }
 
 model Account {
@@ -51,21 +84,21 @@ model Account {
 }
 
 model Video {
-  id           String            @id @default(cuid())
+  id           String   @id @default(cuid())
   title        String
   description  String?
-  s3Key        String            @unique
-  duration     Int               // seconds, max 3600
+  s3Key        String   @unique
+  duration     Int // seconds, max 3600
   thumbnailUrl String?
-  isActive     Boolean           @default(true)
-  playCount    Int               @default(0)
-  isFeatured   Boolean           @default(false)
-  createdAt    DateTime          @default(now())
-  updatedAt    DateTime          @updatedAt
+  isActive     Boolean  @default(true)
+  playCount    Int      @default(0)
+  isFeatured   Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  permissions  VideoPermission[]
-  playlists    PlaylistVideo[]
-  materials    CourseMaterial[]
+  permissions VideoPermission[]
+  playlists   PlaylistVideo[]
+  materials   CourseMaterial[]
 
   @@index([isActive])
   @@index([isFeatured])
@@ -73,20 +106,20 @@ model Video {
 }
 
 model VideoPermission {
-  id           String    @id @default(cuid())
-  userId       String
-  videoId      String
-  grantedAt    DateTime  @default(now())
-  grantedBy    String
+  id        String   @id @default(cuid())
+  userId    String
+  videoId   String
+  grantedAt DateTime @default(now())
+  grantedBy String
 
   // Time-based access control (all nullable = permanent access)
   validFrom    DateTime? // null = immediately valid from grantedAt
   validUntil   DateTime? // null = never expires (permanent)
-  durationDays Int?      // audit hint: original admin-chosen duration in days
+  durationDays Int? // audit hint: original admin-chosen duration in days
 
-  user      User     @relation("UserPermissions", fields: [userId], references: [id], onDelete: Cascade)
-  video     Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
-  admin     User     @relation("GrantedByAdmin", fields: [grantedBy], references: [id])
+  user  User  @relation("UserPermissions", fields: [userId], references: [id], onDelete: Cascade)
+  video Video @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  admin User  @relation("GrantedByAdmin", fields: [grantedBy], references: [id])
 
   @@unique([userId, videoId])
   @@index([userId])
@@ -105,7 +138,7 @@ model CourseMaterial {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  video       Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  video Video @relation(fields: [videoId], references: [id], onDelete: Cascade)
 
   @@index([videoId])
   @@index([videoId, sortOrder])
@@ -117,7 +150,7 @@ model PolicyAgreement {
   agreedAt  DateTime @default(now())
   ipAddress String
 
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
 }

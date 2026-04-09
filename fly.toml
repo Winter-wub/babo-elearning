@@ -78,4 +78,5 @@ primary_region = "sin"
   # Use "immediate" only if you have min_machines_running = 0
   strategy = "rolling"
 
-  release_command = "node /prisma-cli/node_modules/prisma/build/index.js migrate deploy --schema /app/prisma/schema.prisma"
+  # Migrations are applied manually for production deployments
+  # release_command = "node /prisma-cli/node_modules/prisma/build/index.js migrate deploy --schema /app/prisma/schema.prisma"

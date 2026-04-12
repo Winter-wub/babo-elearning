@@ -9,6 +9,8 @@ import { getThemeSettings } from "@/actions/theme.actions";
 // Metadata
 // -----------------------------------------------------------------------
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "ตั้งค่าธีม",
 };

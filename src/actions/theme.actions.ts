@@ -4,7 +4,7 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { getSiteContent, bulkUpdateSiteContent } from "@/actions/content.actions";
-import { getUploadUrl } from "@/lib/r2";
+import { getUploadUrl, getMaterialViewUrl } from "@/lib/r2";
 import {
   THEME_DEFAULTS,
   THEME_KEYS,
@@ -36,6 +36,7 @@ export type ThemeSettings = {
   sidebarBg: string;
   sidebarFg: string;
   logoUrl: string;
+  logoSignedUrl: string;
 };
 
 // -----------------------------------------------------------------------
@@ -73,18 +74,29 @@ export async function getThemeSettings(): Promise<ThemeSettings> {
     const keys = Object.values(THEME_KEYS);
     const raw = await getSiteContent(keys);
 
+    const logoUrl = raw[THEME_KEYS.logoUrl] ?? THEME_DEFAULTS.logoUrl;
+    let logoSignedUrl = "";
+    if (logoUrl) {
+      try {
+        logoSignedUrl = await getMaterialViewUrl(logoUrl);
+      } catch {
+        // R2 unavailable — leave blank
+      }
+    }
+
     return {
-      primaryColor: raw[THEME_KEYS.primaryColor] || THEME_DEFAULTS.primaryColor,
+      primaryColor: raw[THEME_KEYS.primaryColor] ?? THEME_DEFAULTS.primaryColor,
       defaultMode:
-        (raw[THEME_KEYS.defaultMode] as "light" | "dark") ||
+        (raw[THEME_KEYS.defaultMode] as "light" | "dark") ??
         THEME_DEFAULTS.defaultMode,
-      radius: raw[THEME_KEYS.radius] || THEME_DEFAULTS.radius,
-      sidebarBg: raw[THEME_KEYS.sidebarBg] || THEME_DEFAULTS.sidebarBg,
-      sidebarFg: raw[THEME_KEYS.sidebarFg] || THEME_DEFAULTS.sidebarFg,
-      logoUrl: raw[THEME_KEYS.logoUrl] || THEME_DEFAULTS.logoUrl,
+      radius: raw[THEME_KEYS.radius] ?? THEME_DEFAULTS.radius,
+      sidebarBg: raw[THEME_KEYS.sidebarBg] ?? THEME_DEFAULTS.sidebarBg,
+      sidebarFg: raw[THEME_KEYS.sidebarFg] ?? THEME_DEFAULTS.sidebarFg,
+      logoUrl,
+      logoSignedUrl,
     };
   } catch {
-    return { ...THEME_DEFAULTS };
+    return { ...THEME_DEFAULTS, logoSignedUrl: "" };
   }
 }
 
@@ -96,7 +108,7 @@ export async function getThemeSettings(): Promise<ThemeSettings> {
  * Validate and save theme settings to SiteContent (admin-only).
  */
 export async function updateThemeSettings(
-  settings: Omit<ThemeSettings, "logoUrl">
+  settings: Omit<ThemeSettings, "logoUrl" | "logoSignedUrl">
 ): Promise<ActionResult<undefined>> {
   try {
     await requireAdmin();

@@ -36,6 +36,7 @@ export function ThemeEditor({ settings }: ThemeEditorProps) {
   const [sidebarBg, setSidebarBg] = useState(settings.sidebarBg);
   const [sidebarFg, setSidebarFg] = useState(settings.sidebarFg);
   const [logoUrl, setLogoUrl] = useState(settings.logoUrl);
+  const [logoPreviewUrl, setLogoPreviewUrl] = useState(settings.logoSignedUrl);
 
   const isDirty =
     primaryColor !== settings.primaryColor ||
@@ -101,6 +102,7 @@ export function ThemeEditor({ settings }: ThemeEditorProps) {
       const saveResult = await saveThemeLogoKey(key);
       if (saveResult.success) {
         setLogoUrl(key);
+        setLogoPreviewUrl(URL.createObjectURL(file));
         toast({ title: "อัปโหลดโลโก้สำเร็จ" });
         router.refresh();
       } else {
@@ -119,6 +121,7 @@ export function ThemeEditor({ settings }: ThemeEditorProps) {
     const result = await removeThemeLogo();
     if (result.success) {
       setLogoUrl("");
+      setLogoPreviewUrl("");
       toast({ title: "ลบโลโก้สำเร็จ" });
       router.refresh();
     } else {
@@ -283,10 +286,18 @@ export function ThemeEditor({ settings }: ThemeEditorProps) {
           <CardContent className="space-y-3">
             {logoUrl ? (
               <div className="flex items-center gap-4">
-                <div className="flex h-16 w-16 items-center justify-center rounded-lg border border-border bg-muted p-2">
-                  <span className="text-xs text-muted-foreground truncate">
-                    {logoUrl.split("/").pop()}
-                  </span>
+                <div className="flex h-16 w-16 items-center justify-center rounded-lg border border-border bg-muted p-1 overflow-hidden">
+                  {logoPreviewUrl ? (
+                    <img
+                      src={logoPreviewUrl}
+                      alt="โลโก้"
+                      className="h-full w-full object-contain"
+                    />
+                  ) : (
+                    <span className="text-xs text-muted-foreground truncate">
+                      {logoUrl.split("/").pop()}
+                    </span>
+                  )}
                 </div>
                 <Button
                   variant="destructive"

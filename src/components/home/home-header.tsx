@@ -21,6 +21,7 @@ interface HomeHeaderProps {
   userRole?: "ADMIN" | "STUDENT";
   userName?: string;
   appName?: string;
+  logoUrl?: string;
 }
 
 interface NavItem {
@@ -40,6 +41,7 @@ export function HomeHeader({
   userRole,
   userName,
   appName = "อีเลิร์นนิง",
+  logoUrl,
 }: HomeHeaderProps) {
   const pathname = usePathname();
   const dashboardHref = userRole === "ADMIN" ? "/admin/dashboard" : "/dashboard";
@@ -53,7 +55,11 @@ export function HomeHeader({
           href="/"
           className="flex items-center gap-2 text-foreground transition-colors hover:text-foreground/80"
         >
-          <GraduationCap className="h-6 w-6" aria-hidden="true" />
+          {logoUrl ? (
+            <img src={logoUrl} alt={appName} className="h-8 w-auto" />
+          ) : (
+            <GraduationCap className="h-6 w-6" aria-hidden="true" />
+          )}
           <span className="text-lg font-semibold tracking-tight">{appName}</span>
         </Link>
 
@@ -129,7 +135,11 @@ export function HomeHeader({
                   href="/"
                   className="flex items-center gap-2 text-foreground"
                 >
-                  <GraduationCap className="h-5 w-5" aria-hidden="true" />
+                  {logoUrl ? (
+                    <img src={logoUrl} alt={appName} className="h-6 w-auto" />
+                  ) : (
+                    <GraduationCap className="h-5 w-5" aria-hidden="true" />
+                  )}
                   {appName}
                 </Link>
               </SheetTitle>

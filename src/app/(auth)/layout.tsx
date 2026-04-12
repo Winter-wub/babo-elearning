@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { APP_NAME } from "@/lib/constants";
 import { getAppName } from "@/lib/app-config";
+import { getThemeSettings } from "@/actions/theme.actions";
 
 export const metadata: Metadata = {
   title: {
@@ -18,7 +19,10 @@ export default async function AuthLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const appName = await getAppName();
+  const [appName, themeSettings] = await Promise.all([
+    getAppName(),
+    getThemeSettings(),
+  ]);
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-muted px-4 py-12">
@@ -30,7 +34,14 @@ export default async function AuthLayout({
 
       <div className="relative w-full max-w-md space-y-6">
         {/* Brand */}
-        <div className="text-center">
+        <div className="flex flex-col items-center text-center">
+          {themeSettings.logoSignedUrl && (
+            <img
+              src={themeSettings.logoSignedUrl}
+              alt={appName}
+              className="mb-3 h-12 w-auto"
+            />
+          )}
           <h1 className="text-2xl font-bold tracking-tight text-foreground">
             {appName}
           </h1>

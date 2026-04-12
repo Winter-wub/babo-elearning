@@ -24,9 +24,10 @@ interface StudentSidebarProps {
   open: boolean;
   onClose: () => void;
   appName?: string;
+  logoUrl?: string;
 }
 
-export function StudentSidebar({ open, onClose, appName = "อีเลิร์นนิง" }: StudentSidebarProps) {
+export function StudentSidebar({ open, onClose, appName = "อีเลิร์นนิง", logoUrl }: StudentSidebarProps) {
   const pathname = usePathname();
 
   /** Close sidebar on route change (mobile) */
@@ -82,7 +83,11 @@ export function StudentSidebar({ open, onClose, appName = "อีเลิร์
             href="/dashboard"
             className="flex items-center gap-2 text-foreground"
           >
-            <GraduationCap className="h-6 w-6 text-indigo-600" />
+            {logoUrl ? (
+              <img src={logoUrl} alt={appName} className="h-7 w-auto" />
+            ) : (
+              <GraduationCap className="h-6 w-6 text-indigo-600" />
+            )}
             <span className="text-base font-semibold tracking-tight">
               {appName}
             </span>

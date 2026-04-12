@@ -14,13 +14,14 @@ import {
   HomeFooter,
 } from "@/components/home";
 import { getAppName } from "@/lib/app-config";
+import { getThemeSettings } from "@/actions/theme.actions";
 
 /**
  * Public home page — visible to authenticated and unauthenticated users alike.
  * Fetches trending videos, featured playlists, and category playlists in parallel.
  */
 export default async function HomePage() {
-  const [session, trendingResult, featuredResult, categoryResult, appName, heroContent] =
+  const [session, trendingResult, featuredResult, categoryResult, appName, heroContent, themeSettings] =
     await Promise.all([
       auth(),
       getPublicTrendingVideos(10),
@@ -32,6 +33,7 @@ export default async function HomePage() {
         "hero.slide2.headline", "hero.slide2.sub", "hero.slide2.cta", "hero.slide2.ctaHref",
         "hero.slide3.headline", "hero.slide3.sub", "hero.slide3.cta", "hero.slide3.ctaHref",
       ]).catch(() => ({} as Record<string, string>)),
+      getThemeSettings(),
     ]);
 
   const isAuthenticated = !!session?.user;
@@ -48,6 +50,7 @@ export default async function HomePage() {
         userRole={userRole}
         userName={session?.user?.name ?? undefined}
         appName={appName}
+        logoUrl={themeSettings.logoSignedUrl || undefined}
       />
 
       <main className="flex-1">

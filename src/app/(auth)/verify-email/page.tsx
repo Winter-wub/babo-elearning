@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { CheckCircle2, XCircle } from "lucide-react";
+import { XCircle } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -20,6 +20,10 @@ interface VerifyEmailPageProps {
   searchParams: Promise<{ token?: string }>;
 }
 
+/**
+ * Legacy email verification page — handles link-based tokens for existing users.
+ * New registrations use OTP-based verification inline on the /register page.
+ */
 export default async function VerifyEmailPage({ searchParams }: VerifyEmailPageProps) {
   const { token } = await searchParams;
 
@@ -54,7 +58,7 @@ function ErrorCard({ message }: { message: string }) {
       </CardHeader>
       <CardContent className="flex flex-col gap-3 pt-2">
         <Button asChild className="w-full">
-          <Link href="/resend-verification">ขอลิงก์ยืนยันใหม่</Link>
+          <Link href="/register">ลงทะเบียนใหม่</Link>
         </Button>
         <div className="text-center">
           <Link

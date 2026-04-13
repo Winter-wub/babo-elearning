@@ -74,7 +74,7 @@ export const BCRYPT_SALT_ROUNDS = 12;
 export const SESSION_MAX_AGE = 30 * 24 * 60 * 60;
 
 // -----------------------------------------------------------------------
-// Email verification
+// Email verification (legacy link-based — kept for backward compat)
 // -----------------------------------------------------------------------
 
 /** Email verification token TTL in milliseconds (24 hours). */
@@ -90,10 +90,29 @@ export const EMAIL_VERIFICATION_MAX_ATTEMPTS = 5;
 export const EMAIL_VERIFICATION_RATE_LIMIT_WINDOW_MS = 5 * 60 * 1000;
 
 // -----------------------------------------------------------------------
+// OTP email verification (new 3-step registration)
+// -----------------------------------------------------------------------
+
+/** Number of digits in the OTP code. */
+export const OTP_LENGTH = 6;
+
+/** OTP validity period in milliseconds (10 minutes). */
+export const OTP_TTL_MS = 10 * 60 * 1000;
+
+/** Maximum OTP verification attempts before lockout. */
+export const OTP_MAX_ATTEMPTS = 5;
+
+/** Minimum time between OTP resend requests in milliseconds (60 seconds). */
+export const OTP_RESEND_COOLDOWN_MS = 60 * 1000;
+
+/** Maximum time to complete registration after OTP verification (1 hour). */
+export const OTP_SESSION_TTL_MS = 60 * 60 * 1000;
+
+// -----------------------------------------------------------------------
 // Application metadata
 // -----------------------------------------------------------------------
 
-export const APP_NAME = "E Learning";
+export const APP_NAME = "English with Gift";
 export const APP_DESCRIPTION =
   "เข้าถึงคอร์สวิดีโอคุณภาพจากผู้เชี่ยวชาญ สร้างทักษะจริงตามจังหวะของคุณ";
 

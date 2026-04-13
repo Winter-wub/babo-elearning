@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 };
 
 interface LoginPageProps {
-  searchParams: Promise<{ verified?: string }>;
+  searchParams: Promise<{ verified?: string; registered?: string }>;
 }
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
@@ -19,6 +19,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   ]);
 
   const isJustVerified = params.verified === "1";
+  const isJustRegistered = params.registered === "1";
 
   return (
     <div className="flex flex-col gap-3">
@@ -31,6 +32,20 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-green-600" />
           <p>
             <span className="font-medium">ยืนยันอีเมลสำเร็จ!</span>{" "}
+            กรุณาเข้าสู่ระบบเพื่อเริ่มต้นใช้งาน
+          </p>
+        </div>
+      )}
+
+      {/* Post-registration success banner */}
+      {isJustRegistered && !isJustVerified && (
+        <div
+          role="status"
+          className="flex items-start gap-2.5 rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800"
+        >
+          <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-green-600" />
+          <p>
+            <span className="font-medium">สร้างบัญชีสำเร็จ!</span>{" "}
             กรุณาเข้าสู่ระบบเพื่อเริ่มต้นใช้งาน
           </p>
         </div>

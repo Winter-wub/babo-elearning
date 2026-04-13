@@ -15,6 +15,7 @@ import {
   SheetClose,
 } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
+import { ThemeToggle } from "@/components/shared/theme-toggle";
 
 interface HomeHeaderProps {
   isAuthenticated: boolean;
@@ -90,6 +91,7 @@ export function HomeHeader({
 
         {/* ── Desktop auth actions ─────────────────────────────────────── */}
         <div className="hidden items-center gap-2 md:flex" aria-label="การดำเนินการผู้ใช้">
+          <ThemeToggle />
           {isAuthenticated ? (
             <>
               <Button variant="ghost" size="sm" asChild>
@@ -115,12 +117,14 @@ export function HomeHeader({
         </div>
 
         {/* ── Mobile hamburger + Sheet drawer ──────────────────────────── */}
+        <div className="flex items-center gap-1 md:hidden">
+        <ThemeToggle />
         <Sheet>
           <SheetTrigger asChild>
             <Button
               variant="ghost"
               size="icon"
-              className="md:hidden h-11 w-11"
+              className="h-11 w-11"
               aria-label="เปิดเมนูนำทาง"
             >
               <Menu className="h-5 w-5" aria-hidden="true" />
@@ -201,6 +205,7 @@ export function HomeHeader({
             </div>
           </SheetContent>
         </Sheet>
+        </div>
 
       </div>
     </header>

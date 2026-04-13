@@ -22,41 +22,61 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  accounts             Account[]
-  videoPermissions     VideoPermission[]        @relation("UserPermissions")
-  grantedPermissions   VideoPermission[]        @relation("GrantedByAdmin")
-  policyAgreements     PolicyAgreement[]
-  verificationTokens   EmailVerificationToken[]
-  verificationAttempts VerificationAttempt[]
+  accounts                Account[]
+  videoPermissions        VideoPermission[]        @relation("UserPermissions")
+  grantedPermissions      VideoPermission[]        @relation("GrantedByAdmin")
+  policyAgreements        PolicyAgreement[]
+  verificationAttempts    VerificationAttempt[]
+  emailVerificationTokens EmailVerificationToken[]
 
   @@index([email])
   @@index([role])
 }
 
+/**
+ * Stores pending registrations awaiting OTP email verification.
+ * User record is only created after successful OTP verification + profile completion.
+ *
+ * Flow: email → OTP verify → complete profile → User created.
+ */
+model PendingRegistration {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  otpHash      String
+  otpExpiresAt DateTime
+  attempts     Int      @default(0)
+  verified     Boolean  @default(false)
+  sessionToken String?  @unique // set after OTP verified, authorises step 3
+  createdAt    DateTime @default(now())
+
+  @@index([email])
+  @@index([sessionToken])
+}
+
 model EmailVerificationToken {
   id        String   @id @default(cuid())
-  userId    String
+  userId    String?
   token     String   @unique
   expiresAt DateTime
   createdAt DateTime @default(now())
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([token])
   @@index([userId])
 }
 
 /**
- * Tracks verification attempt history for rate limiting.
+ * Tracks verification attempt history for rate limiting (legacy users).
  * Records are automatically cleaned up after 24 hours by application logic.
  */
 model VerificationAttempt {
   id        String   @id @default(cuid())
-  userId    String
+  userId    String?
   success   Boolean  @default(false)
   createdAt DateTime @default(now())
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([createdAt])

@@ -1,12 +1,12 @@
 /**
  * Integration-style tests for auth server actions.
  *
- * External dependencies (Prisma, bcryptjs, next-auth) are all mocked so
+ * External dependencies (Prisma, next-auth) are all mocked so
  * these tests run without a database or auth server.
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { makeUser, makePolicyAgreement, makeAdminSession, makeStudentSession, resetFactoryCounters } from "@/__tests__/helpers";
+import { makePolicyAgreement, makeStudentSession, resetFactoryCounters } from "@/__tests__/helpers";
 
 // ---------------------------------------------------------------------------
 // Mock: next/headers (used by acceptPolicy to read IP)
@@ -27,33 +27,16 @@ vi.mock("@/lib/db", () => ({
       create: vi.fn(),
       delete: vi.fn(),
     },
-    emailVerificationToken: {
+    pendingRegistration: {
+      findUnique: vi.fn(),
       create: vi.fn(),
+      delete: vi.fn(),
     },
     policyAgreement: {
       findFirst: vi.fn(),
       create: vi.fn(),
     },
     $transaction: vi.fn(),
-  },
-}));
-
-// ---------------------------------------------------------------------------
-// Mock: email sender (no real SMTP in tests)
-// ---------------------------------------------------------------------------
-
-vi.mock("@/lib/email", () => ({
-  sendEmail: vi.fn().mockResolvedValue(undefined),
-}));
-
-// ---------------------------------------------------------------------------
-// Mock: bcryptjs
-// ---------------------------------------------------------------------------
-
-vi.mock("bcryptjs", () => ({
-  default: {
-    hash: vi.fn().mockResolvedValue("$2b$12$mockedHashedPassword"),
-    compare: vi.fn(),
   },
 }));
 
@@ -69,15 +52,13 @@ vi.mock("@/lib/auth", () => ({
 // Imports after mocks are registered
 // ---------------------------------------------------------------------------
 
-import { registerUser, acceptPolicy, checkPolicyAgreement } from "@/actions/auth.actions";
+import { acceptPolicy, checkPolicyAgreement } from "@/actions/auth.actions";
 import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
-import bcrypt from "bcryptjs";
 import { headers } from "next/headers";
 
 const mockDb = vi.mocked(db);
 const mockAuth = vi.mocked(auth);
-const mockBcrypt = vi.mocked(bcrypt);
 const mockHeaders = vi.mocked(headers);
 
 /** Returns a mock ReadonlyHeaders-like object for the given header map. */
@@ -86,143 +67,6 @@ function makeHeadersMap(entries: Record<string, string> = {}) {
     get: (key: string) => entries[key.toLowerCase()] ?? null,
   } as unknown as Awaited<ReturnType<typeof headers>>;
 }
-
-// ---------------------------------------------------------------------------
-// Test suite
-// ---------------------------------------------------------------------------
-
-describe("registerUser()", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    resetFactoryCounters();
-
-    // registerUser wraps user creation in db.$transaction(async tx => { ... }).
-    // The mock must execute the callback with mockDb itself as the tx proxy so
-    // that tx.user.create / tx.emailVerificationToken.create resolve correctly.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    mockDb.$transaction.mockImplementation((fn: (tx: any) => Promise<unknown>) =>
-      fn(mockDb)
-    );
-  });
-
-  it("creates a new student account and returns the user id on success", async () => {
-    const newUser = makeUser({ id: "new_user_1", email: "alice@example.com" });
-
-    // First call: email uniqueness check → not found
-    // Second call: fetch user name for email template → return the new user
-    mockDb.user.findUnique
-      .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce(newUser);
-    mockDb.user.create.mockResolvedValue(newUser);
-    mockDb.emailVerificationToken.create.mockResolvedValue({});
-
-    const result = await registerUser({
-      name: "Alice Smith",
-      email: "alice@example.com",
-      password: "securePass1",
-    });
-
-    expect(result.success).toBe(true);
-    if (result.success) {
-      expect(result.data.id).toBe("new_user_1");
-    }
-
-    // Ensure bcrypt was called to hash the password
-    expect(mockBcrypt.hash).toHaveBeenCalledWith("securePass1", expect.any(Number));
-
-    // Ensure the user was created with the STUDENT role
-    expect(mockDb.user.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({ role: "STUDENT" }),
-      })
-    );
-  });
-
-  it("returns an error when the email is already registered", async () => {
-    const existingUser = makeUser({ email: "alice@example.com" });
-    mockDb.user.findUnique.mockResolvedValue(existingUser);
-
-    const result = await registerUser({
-      name: "Alice Smith",
-      email: "alice@example.com",
-      password: "securePass1",
-    });
-
-    expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(result.error).toMatch(/มีบัญชีที่ใช้อีเมลนี้อยู่แล้ว/);
-    }
-
-    // Should never attempt to create a user
-    expect(mockDb.user.create).not.toHaveBeenCalled();
-  });
-
-  it("returns a validation error when name is too short", async () => {
-    const result = await registerUser({
-      name: "A", // min 2 chars
-      email: "alice@example.com",
-      password: "securePass1",
-    });
-
-    expect(result.success).toBe(false);
-    // Database should never be queried for invalid input
-    expect(mockDb.user.findUnique).not.toHaveBeenCalled();
-    expect(mockDb.user.create).not.toHaveBeenCalled();
-  });
-
-  it("returns a validation error when email is invalid", async () => {
-    const result = await registerUser({
-      name: "Alice Smith",
-      email: "not-an-email",
-      password: "securePass1",
-    });
-
-    expect(result.success).toBe(false);
-    expect(mockDb.user.findUnique).not.toHaveBeenCalled();
-  });
-
-  it("returns a validation error when password is too short", async () => {
-    const result = await registerUser({
-      name: "Alice Smith",
-      email: "alice@example.com",
-      password: "short", // min 8 chars
-    });
-
-    expect(result.success).toBe(false);
-    expect(mockDb.user.findUnique).not.toHaveBeenCalled();
-  });
-
-  it("returns a validation error when password is too long", async () => {
-    const result = await registerUser({
-      name: "Alice Smith",
-      email: "alice@example.com",
-      password: "A".repeat(129), // max 128 chars
-    });
-
-    expect(result.success).toBe(false);
-    expect(mockDb.user.findUnique).not.toHaveBeenCalled();
-  });
-
-  it("never stores the plain-text password in the database", async () => {
-    const newUser = makeUser({ email: "bob@example.com" });
-    mockDb.user.findUnique
-      .mockResolvedValueOnce(null)       // uniqueness check
-      .mockResolvedValueOnce(newUser);   // fetch name for email template
-    mockDb.user.create.mockResolvedValue(newUser);
-    mockDb.emailVerificationToken.create.mockResolvedValue({});
-
-    await registerUser({
-      name: "Bob Jones",
-      email: "bob@example.com",
-      password: "plainTextPass99",
-    });
-
-    const createCallArg = mockDb.user.create.mock.calls[0]?.[0];
-    expect(createCallArg?.data).not.toHaveProperty("password");
-    // passwordHash must not equal the plain-text password
-    expect(createCallArg?.data?.passwordHash).not.toBe("plainTextPass99");
-  });
-});
 
 // ---------------------------------------------------------------------------
 // acceptPolicy()

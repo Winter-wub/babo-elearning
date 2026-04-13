@@ -3,6 +3,7 @@
 import { useSession, signOut } from "next-auth/react";
 import { Menu, LogOut, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { Avatar } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -39,7 +40,9 @@ export function Header({ onMenuClick }: HeaderProps) {
         </Button>
       </div>
 
-      {/* Right side: user menu */}
+      {/* Right side: theme toggle + user menu */}
+      <div className="flex items-center gap-1">
+      <ThemeToggle />
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
@@ -80,6 +83,7 @@ export function Header({ onMenuClick }: HeaderProps) {
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+      </div>
     </header>
   );
 }

@@ -1,27 +1,22 @@
 "use server";
 
-import { randomBytes } from "crypto";
-import { z } from "zod";
 import { db } from "@/lib/db";
-import { sendEmail } from "@/lib/email";
-import { verificationEmailTemplate, verificationEmailSubject } from "@/lib/email-templates";
 import {
-  EMAIL_VERIFICATION_TOKEN_TTL_MS,
-  EMAIL_VERIFICATION_RESEND_COOLDOWN_S,
   EMAIL_VERIFICATION_MAX_ATTEMPTS,
   EMAIL_VERIFICATION_RATE_LIMIT_WINDOW_MS,
 } from "@/lib/constants";
-import { buildVerificationUrl } from "@/lib/email-verification";
 import type { ActionResult } from "@/types";
 
 // -----------------------------------------------------------------------
-// Actions
+// Actions (legacy — kept for backward compatibility with link-based flow)
 // -----------------------------------------------------------------------
 
 /**
- * Consume a verification token and mark the associated user's email as verified.
- * The token is deleted after successful verification (single-use).
+ * Consume a verification token and mark the associated User as verified.
+ * Legacy flow only (existing User records). The new registration flow uses
+ * OTP-based verification via otp.actions.ts.
  *
+ * The token is deleted after successful verification (single-use).
  * Rate limited: max 5 attempts per 5 minutes per user.
  */
 export async function verifyEmail(
@@ -32,14 +27,15 @@ export async function verifyEmail(
     return { success: false, error: "ลิงก์ไม่ถูกต้อง" };
   }
 
-  // Use a transaction to prevent race conditions and check rate limiting atomically
   const txResult = await db.$transaction(async (tx) => {
     const record = await tx.emailVerificationToken.findUnique({
       where: { token },
-      include: { user: { select: { id: true, emailVerified: true } } },
+      include: {
+        user: { select: { id: true, emailVerified: true } },
+      },
     });
 
-    if (!record) {
+    if (!record || !record.userId) {
       return { type: "not_found" as const };
     }
 
@@ -57,22 +53,14 @@ export async function verifyEmail(
     }
 
     if (record.expiresAt < new Date()) {
-      // Log expired token attempt
-      console.warn(JSON.stringify({
-        event: "email_verification_expired",
-        userId: record.userId,
-        timestamp: new Date().toISOString(),
-      }));
-
       // Record failed attempt
       await tx.verificationAttempt.create({
         data: { userId: record.userId, success: false },
       });
-
       return { type: "expired" as const };
     }
 
-    // Mark verified and delete token atomically
+    // Mark user as verified and delete token
     await Promise.all([
       tx.user.update({
         where: { id: record.userId },
@@ -84,7 +72,6 @@ export async function verifyEmail(
     return { type: "success" as const };
   });
 
-  // Map transaction result to ActionResult
   switch (txResult.type) {
     case "not_found":
       return { success: false, error: "ลิงก์ไม่ถูกต้องหรือถูกใช้ไปแล้ว" };
@@ -95,76 +82,4 @@ export async function verifyEmail(
     case "success":
       return { success: true, data: undefined };
   }
-}
-
-/**
- * Resend a verification email to the given address.
- *
- * Rate limited: max 1 resend per RESEND_COOLDOWN_S seconds.
- * Returns a generic success for unknown emails to prevent email enumeration.
- */
-export async function resendVerificationEmail(
-  email: string
-): Promise<ActionResult<undefined>> {
-  const emailSchema = z.string().email();
-  const parsed = emailSchema.safeParse(email);
-  if (!parsed.success) {
-    return { success: false, error: "กรุณากรอกอีเมลที่ถูกต้อง" };
-  }
-
-  const normalizedEmail = parsed.data.toLowerCase().trim();
-
-  const user = await db.user.findUnique({
-    where: { email: normalizedEmail },
-    select: { id: true, name: true, emailVerified: true },
-  });
-
-  // Return generic success for unknown emails — do NOT leak account existence.
-  if (!user) {
-    return { success: true, data: undefined };
-  }
-
-  // Already verified — noop (return generic success to avoid info leak)
-  if (user.emailVerified) {
-    return { success: true, data: undefined };
-  }
-
-  // Rate-limit check: look for an existing token created within the cooldown window
-  const recentToken = await db.emailVerificationToken.findFirst({
-    where: {
-      userId: user.id,
-      createdAt: { gte: new Date(Date.now() - EMAIL_VERIFICATION_RESEND_COOLDOWN_S * 1000) },
-    },
-    orderBy: { createdAt: "desc" },
-  });
-
-  if (recentToken) {
-    const secondsRemaining = Math.ceil(
-      (recentToken.createdAt.getTime() + EMAIL_VERIFICATION_RESEND_COOLDOWN_S * 1000 - Date.now()) / 1000
-    );
-    return {
-      success: false,
-      error: `กรุณารอ ${secondsRemaining} วินาทีก่อนขอส่งอีเมลอีกครั้ง`,
-    };
-  }
-
-  // Delete any old tokens for this user, create a fresh one
-  await db.emailVerificationToken.deleteMany({ where: { userId: user.id } });
-
-  const rawToken = randomBytes(32).toString("hex");
-  const expiresAt = new Date(Date.now() + EMAIL_VERIFICATION_TOKEN_TTL_MS);
-
-  await db.emailVerificationToken.create({
-    data: { userId: user.id, token: rawToken, expiresAt },
-  });
-
-  // Send email — if this fails, the token still exists so the user can retry
-  const url = buildVerificationUrl(rawToken);
-  await sendEmail({
-    to: normalizedEmail,
-    subject: verificationEmailSubject(),
-    html: verificationEmailTemplate({ name: user.name ?? "คุณ", url }),
-  });
-
-  return { success: true, data: undefined };
 }

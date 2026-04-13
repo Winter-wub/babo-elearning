@@ -7,14 +7,11 @@
 #
 # Before first deploy:
 #   1. flyctl apps create e-learning-platform
-#   2. flyctl postgres create --name e-learning-platform-db --region sin
-#   3. flyctl postgres attach e-learning-platform-db --app e-learning-platform
-#   4. flyctl secrets set AUTH_SECRET=... AUTH_URL=... (see scripts/deploy.sh)
-#   5. flyctl deploy
+#   2. flyctl secrets set DATABASE_URL=... AUTH_SECRET=... AUTH_URL=...
+#   3. flyctl deploy
 #
-# The Postgres attach command (step 3) automatically sets DATABASE_URL as a
-# fly secret — do not set DATABASE_URL manually unless you are using an
-# external database.
+# Database: External Neon Postgres (serverless).
+# Set DATABASE_URL as a fly secret pointing to the Neon connection string.
 # =============================================================================
 
 app      = "e-learning-platform"
@@ -26,7 +23,7 @@ primary_region = "sin"
   dockerfile = "Dockerfile"
 
   [build.args]
-    NEXT_PUBLIC_APP_URL = "https://e-learning-platform.fly.dev"
+    NEXT_PUBLIC_APP_URL = "https://englishwithgift.com"
 
 # --------------------------------------------------------------------------
 # HTTP service

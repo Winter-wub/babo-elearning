@@ -57,10 +57,11 @@ COPY . .
 # The generated client is placed in node_modules/@prisma/client.
 RUN pnpm exec prisma generate
 
-# next build reads NEXT_PUBLIC_* vars at build time.
-# We pass a placeholder so the build succeeds without real infra credentials.
-# The actual value is overridden at runtime via the container's env.
-ENV NEXT_PUBLIC_APP_URL=http://placeholder-replaced-at-runtime
+# next build reads NEXT_PUBLIC_* vars at build time — they are inlined into
+# the JS bundle and cannot be overridden at runtime.
+# The real value is passed via fly.toml [build.args].
+ARG NEXT_PUBLIC_APP_URL=http://localhost:3000
+ENV NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL}
 # Dummy DATABASE_URL so Next.js can collect page data during build.
 # Auth.js route handler initialises Prisma at import time; without a
 # syntactically valid URL the build crashes. The real URL is injected

@@ -35,12 +35,18 @@ export default async function RootLayout({
   return (
     <html
       lang="en"
+      data-default-mode={themeSettings.defaultMode}
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased${themeSettings.defaultMode === "dark" ? " dark" : ""}`}
     >
       <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem("theme");if(!t){t=document.documentElement.dataset.defaultMode||"light"}if(t==="dark"){document.documentElement.classList.add("dark")}else{document.documentElement.classList.remove("dark")}}catch(e){}})()`,
+          }}
+        />
         <ThemeStyle settings={themeSettings} />
       </head>
-      <body className="min-h-full flex flex-col bg-background text-foreground">
+      <body className="min-h-full flex flex-col bg-background text-foreground transition-colors duration-200">
         {children}
       </body>
     </html>

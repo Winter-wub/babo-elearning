@@ -1,0 +1,112 @@
+# =============================================================================
+# DigitalOcean App Platform deployment spec
+#
+# App:     e-learning-platform
+# Region:  sgp (Singapore)
+# Tier:    Basic ($5/mo) — upgrade to Professional for auto-scaling
+#
+# Usage:
+#   1. Connect GitHub repo in DO App Platform dashboard
+#   2. Import this spec (or create app from dashboard and reference this file)
+#   3. Set SECRET env vars: DATABASE_URL, AUTH_SECRET, R2_*, MAILJET_*, CRON_SECRET
+#   4. Deploy
+#
+# External services:
+#   - Database: Neon Postgres (serverless, Singapore)
+#   - Storage:  Cloudflare R2
+#   - Email:    Mailjet SMTP
+# =============================================================================
+
+name: e-learning-platform
+region: sgp
+
+services:
+  - name: web
+    dockerfile_path: Dockerfile
+    github:
+      repo: Winter-wub/e-learning-platform
+      branch: main
+      deploy_on_push: true
+    instance_count: 1
+    instance_size_slug: apps-s-1vcpu-0.5gb
+    http_port: 3000
+    health_check:
+      http_path: /api/health
+      initial_delay_seconds: 30
+      period_seconds: 30
+      timeout_seconds: 10
+      success_threshold: 1
+      failure_threshold: 3
+    routes:
+      - path: /
+    envs:
+      # --- Build-time (inlined into JS bundle) ---
+      - key: NEXT_PUBLIC_APP_URL
+        scope: BUILD_TIME
+        value: "https://englishwithgift.com"
+
+      # --- Runtime: Auth ---
+      - key: DATABASE_URL
+        scope: RUN_TIME
+        type: SECRET
+      - key: AUTH_SECRET
+        scope: RUN_TIME
+        type: SECRET
+      - key: AUTH_URL
+        scope: RUN_TIME
+        value: "https://englishwithgift.com"
+
+      # --- Runtime: Cloudflare R2 ---
+      - key: R2_ACCOUNT_ID
+        scope: RUN_TIME
+        type: SECRET
+      - key: R2_ACCESS_KEY_ID
+        scope: RUN_TIME
+        type: SECRET
+      - key: R2_SECRET_ACCESS_KEY
+        scope: RUN_TIME
+        type: SECRET
+      - key: R2_BUCKET_NAME
+        scope: RUN_TIME
+        value: "elearning-videos"
+
+      # --- Runtime: Mailjet SMTP ---
+      - key: MAILJET_SMTP_HOST
+        scope: RUN_TIME
+        value: "in-v3.mailjet.com"
+      - key: MAILJET_SMTP_PORT
+        scope: RUN_TIME
+        value: "587"
+      - key: MAILJET_SMTP_USER
+        scope: RUN_TIME
+        type: SECRET
+      - key: MAILJET_SMTP_PASS
+        scope: RUN_TIME
+        type: SECRET
+      - key: MAIL_FROM_EMAIL
+        scope: RUN_TIME
+        value: "noreply@englishwithgift.com"
+      - key: MAIL_FROM_NAME
+        scope: RUN_TIME
+        value: "English with Gift"
+
+      # --- Runtime: Cron ---
+      - key: CRON_SECRET
+        scope: RUN_TIME
+        type: SECRET
+
+jobs:
+  # Pre-deploy job: run Prisma migrations before new version receives traffic
+  - name: migrate
+    kind: PRE_DEPLOY
+    dockerfile_path: Dockerfile
+    github:
+      repo: Winter-wub/e-learning-platform
+      branch: main
+    instance_count: 1
+    instance_size_slug: apps-s-1vcpu-0.5gb
+    run_command: "node /prisma-cli/node_modules/prisma/build/index.js migrate deploy --schema /app/prisma/schema.prisma"
+    envs:
+      - key: DATABASE_URL
+        scope: RUN_TIME
+        type: SECRET

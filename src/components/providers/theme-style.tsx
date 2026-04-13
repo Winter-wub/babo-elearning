@@ -22,8 +22,10 @@ export function ThemeStyle({ settings }: ThemeStyleProps) {
     settings.sidebarFg !== THEME_DEFAULTS.sidebarFg;
   const isCustomRadius = settings.radius !== THEME_DEFAULTS.radius;
 
-  // Toggle dark class on <html>
+  // Toggle dark class on <html> — respect user's localStorage preference
   useEffect(() => {
+    const stored = localStorage.getItem("theme");
+    if (stored) return; // user preference already applied by inline script
     const html = document.documentElement;
     if (settings.defaultMode === "dark") {
       html.classList.add("dark");

@@ -139,7 +139,7 @@ export function PlaylistsTable({ playlists, meta }: PlaylistsTableProps) {
   return (
     <div className="space-y-4" data-testid="playlists-table">
       {/* Toolbar */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between" data-tour="playlists-toolbar">
         <div className="flex flex-1 flex-wrap gap-2">
           <div className="relative w-full max-w-xs">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -161,7 +161,7 @@ export function PlaylistsTable({ playlists, meta }: PlaylistsTableProps) {
       </div>
 
       {/* Table */}
-      <div className="rounded-md border">
+      <div className="rounded-md border" data-tour="playlists-table">
         <Table>
           <TableHeader>
             <TableRow>

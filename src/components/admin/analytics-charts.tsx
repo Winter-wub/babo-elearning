@@ -102,7 +102,7 @@ export function AnalyticsCharts({ data }: AnalyticsChartsProps) {
   return (
     <div className="space-y-6">
       {/* Summary stat cards */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4" data-tour="analytics-stats">
         <StatCard
           title="ผู้ใช้ทั้งหมด"
           value={summary.totalUsers.toLocaleString()}
@@ -130,7 +130,7 @@ export function AnalyticsCharts({ data }: AnalyticsChartsProps) {
       </div>
 
       {/* Charts row 1: Bar + Pie */}
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid gap-6 lg:grid-cols-3" data-tour="analytics-charts-1">
         {/* Top 10 videos by play count */}
         <Card className="lg:col-span-2">
           <CardHeader>
@@ -214,7 +214,7 @@ export function AnalyticsCharts({ data }: AnalyticsChartsProps) {
       </div>
 
       {/* Charts row 2: Two line charts */}
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-6 lg:grid-cols-2" data-tour="analytics-charts-2">
         {/* User registrations over time */}
         <Card>
           <CardHeader>

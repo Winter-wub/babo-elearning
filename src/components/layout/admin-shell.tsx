@@ -3,6 +3,7 @@
 import { useCallback, useState } from "react";
 import { AdminSidebar } from "@/components/layout/admin-sidebar";
 import { Header } from "@/components/layout/header";
+import { TourProvider } from "@/components/providers/tour-provider";
 
 interface AdminShellProps {
   children: React.ReactNode;
@@ -19,16 +20,19 @@ export function AdminShell({ children, appName, logoUrl }: AdminShellProps) {
 
   const handleClose = useCallback(() => setSidebarOpen(false), []);
   const handleToggle = useCallback(() => setSidebarOpen((prev) => !prev), []);
+  const handleOpenSidebar = useCallback(() => setSidebarOpen(true), []);
 
   return (
-    <div className="min-h-screen bg-muted/30">
-      <AdminSidebar open={sidebarOpen} onClose={handleClose} appName={appName} logoUrl={logoUrl} />
+    <TourProvider onRequestSidebarOpen={handleOpenSidebar}>
+      <div className="min-h-screen bg-muted/30">
+        <AdminSidebar open={sidebarOpen} onClose={handleClose} appName={appName} logoUrl={logoUrl} />
 
-      {/* Main content area: offset by sidebar width on desktop */}
-      <div className="lg:pl-64">
-        <Header onMenuClick={handleToggle} />
-        <main className="p-4 sm:p-6 lg:p-8">{children}</main>
+        {/* Main content area: offset by sidebar width on desktop */}
+        <div className="lg:pl-64">
+          <Header onMenuClick={handleToggle} />
+          <main className="p-4 sm:p-6 lg:p-8">{children}</main>
+        </div>
       </div>
-    </div>
+    </TourProvider>
   );
 }

@@ -618,7 +618,7 @@ export function ContentEditor({ entries }: ContentEditorProps) {
   return (
     <div className="flex flex-col gap-4">
       {/* ── Top toolbar ──────────────────────────────────────────────────── */}
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3" data-tour="content-toolbar">
         {/* Search */}
         <div className="relative flex-1 min-w-[180px] max-w-xs">
           <Search
@@ -694,6 +694,7 @@ export function ContentEditor({ entries }: ContentEditorProps) {
         className="space-y-4"
         role="region"
         aria-label="ตัวแก้ไขเนื้อหา"
+        data-tour="content-editor"
       >
         {groups.length === 0 ? (
           <Card>

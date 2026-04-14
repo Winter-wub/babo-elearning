@@ -155,7 +155,7 @@ export function VideosTable({ videos, meta }: VideosTableProps) {
   return (
     <div className="space-y-4" data-testid="videos-table">
       {/* Toolbar */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between" data-tour="videos-toolbar">
         {/* Search + filters */}
         <div className="flex flex-1 flex-wrap gap-2">
           <div className="relative w-full max-w-xs">
@@ -195,7 +195,7 @@ export function VideosTable({ videos, meta }: VideosTableProps) {
       </div>
 
       {/* Table */}
-      <div className="rounded-md border">
+      <div className="rounded-md border" data-tour="videos-table">
         <Table>
           <TableHeader>
             <TableRow>

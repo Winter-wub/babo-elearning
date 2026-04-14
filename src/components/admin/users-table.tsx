@@ -242,7 +242,7 @@ export function UsersTable({ users, meta }: UsersTableProps) {
   return (
     <div className="space-y-4" data-testid="users-table">
       {/* Toolbar */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between" data-tour="users-toolbar">
         {/* Search + filters */}
         <div className="flex flex-1 flex-wrap gap-2">
           <div className="relative w-full max-w-xs">
@@ -255,6 +255,7 @@ export function UsersTable({ users, meta }: UsersTableProps) {
             />
           </div>
 
+          <div className="flex gap-2">
           <Select
             value={currentRole || "all"}
             onValueChange={(v) =>
@@ -286,6 +287,7 @@ export function UsersTable({ users, meta }: UsersTableProps) {
               <SelectItem value="false">ไม่ใช้งาน</SelectItem>
             </SelectContent>
           </Select>
+          </div>
         </div>
 
         {/* Add user */}
@@ -388,7 +390,7 @@ export function UsersTable({ users, meta }: UsersTableProps) {
       </div>
 
       {/* Table */}
-      <div className="rounded-md border">
+      <div className="rounded-md border" data-tour="users-table">
         <Table>
           <TableHeader>
             <TableRow>

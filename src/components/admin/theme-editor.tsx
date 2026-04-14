@@ -132,7 +132,7 @@ export function ThemeEditor({ settings }: ThemeEditorProps) {
   return (
     <div className="grid gap-6 xl:grid-cols-[1fr_400px]">
       {/* Left — Controls */}
-      <div className="space-y-6">
+      <div className="space-y-6" data-tour="theme-controls">
         {/* Primary Color */}
         <Card>
           <CardHeader>
@@ -349,7 +349,7 @@ export function ThemeEditor({ settings }: ThemeEditorProps) {
       </div>
 
       {/* Right — Live Preview */}
-      <div className="space-y-4">
+      <div className="space-y-4" data-tour="theme-preview">
         <h3 className="text-sm font-medium text-muted-foreground">ตัวอย่างแบบเรียลไทม์</h3>
         <ThemePreview
           primaryColor={primaryColor}

@@ -129,7 +129,7 @@ export function AdminSidebar({ open, onClose, appName = "อีเลิร์�
         </div>
 
         {/* Navigation links */}
-        <nav className="flex-1 space-y-1 px-3 py-4">
+        <nav data-tour="sidebar-nav" className="flex-1 space-y-1 px-3 py-4">
           {NAV_ITEMS.map((item) => {
             const active = isActive(item.href);
             const Icon = item.icon;

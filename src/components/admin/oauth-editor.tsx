@@ -170,7 +170,7 @@ export function OAuthEditor({ providers }: OAuthEditorProps) {
   }
 
   return (
-    <div className="grid gap-4">
+    <div className="grid gap-4" data-tour="oauth-providers">
       {providers.map((provider) => {
         const state = formStates[provider.id];
         if (!state) return null;

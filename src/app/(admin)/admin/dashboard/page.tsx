@@ -13,11 +13,12 @@ interface StatCardProps {
   title: string;
   value: string;
   icon: React.ComponentType<{ className?: string }>;
+  dataTour?: string;
 }
 
-function StatCard({ title, value, icon: Icon }: StatCardProps) {
+function StatCard({ title, value, icon: Icon, dataTour }: StatCardProps) {
   return (
-    <Card>
+    <Card data-tour={dataTour}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium text-muted-foreground">
           {title}
@@ -72,16 +73,19 @@ export default async function AdminDashboardPage() {
           title="ผู้ใช้ทั้งหมด"
           value={totalUsers.toLocaleString()}
           icon={Users}
+          dataTour="stat-users"
         />
         <StatCard
           title="วิดีโอที่ใช้งาน"
           value={totalVideos.toLocaleString()}
           icon={Video}
+          dataTour="stat-videos"
         />
         <StatCard
           title="สิทธิ์ที่ใช้งาน"
           value={activePermissions.toLocaleString()}
           icon={Shield}
+          dataTour="stat-permissions"
         />
       </div>
     </div>

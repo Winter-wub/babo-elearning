@@ -149,7 +149,7 @@ export function ContactsTable({ submissions, meta }: ContactsTableProps) {
   return (
     <div className="space-y-4" data-testid="contacts-table">
       {/* Toolbar */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between" data-tour="contacts-toolbar">
         <Select
           value={currentFilter}
           onValueChange={(v) => pushParams({ filter: v, page: "1" })}
@@ -170,7 +170,7 @@ export function ContactsTable({ submissions, meta }: ContactsTableProps) {
       </div>
 
       {/* Table */}
-      <div className="rounded-md border">
+      <div className="rounded-md border" data-tour="contacts-table">
         <Table>
           <TableHeader>
             <TableRow>

@@ -365,7 +365,7 @@ export function PermissionsManager({
   return (
     <div className="space-y-4">
       {/* Filter bar */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between" data-tour="permissions-toolbar">
         <div className="flex flex-wrap items-center gap-2">
           <div className="relative">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -429,7 +429,7 @@ export function PermissionsManager({
       </div>
 
       {/* Permissions table */}
-      <div className="overflow-x-auto rounded-md border">
+      <div className="overflow-x-auto rounded-md border" data-tour="permissions-table">
         <Table>
           <TableHeader>
             <TableRow>

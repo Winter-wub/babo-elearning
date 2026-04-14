@@ -168,7 +168,7 @@ export function FaqTable({ faqs }: FaqTableProps) {
   return (
     <div className="space-y-4" data-testid="faq-table">
       {/* Toolbar */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between" data-tour="faq-toolbar">
         <p className="text-sm text-muted-foreground">
           ทั้งหมด {faqs.length} คำถามที่พบบ่อย
         </p>
@@ -179,7 +179,7 @@ export function FaqTable({ faqs }: FaqTableProps) {
       </div>
 
       {/* Table */}
-      <div className="rounded-md border">
+      <div className="rounded-md border" data-tour="faq-table">
         <Table>
           <TableHeader>
             <TableRow>

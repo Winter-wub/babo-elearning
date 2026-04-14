@@ -4,6 +4,7 @@ import { useSession, signOut } from "next-auth/react";
 import { Menu, LogOut, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
+import { HeaderHelpButton } from "@/components/layout/header-help-button";
 import { Avatar } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -40,15 +41,19 @@ export function Header({ onMenuClick }: HeaderProps) {
         </Button>
       </div>
 
-      {/* Right side: theme toggle + user menu */}
+      {/* Right side: help + theme toggle + user menu */}
       <div className="flex items-center gap-1">
-      <ThemeToggle />
+      <HeaderHelpButton />
+      <div data-tour="header-theme-toggle">
+        <ThemeToggle />
+      </div>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
             variant="ghost"
             className="flex items-center gap-2 px-2"
             aria-label="เมนูผู้ใช้"
+            data-tour="header-user-menu"
           >
             <Avatar size="sm" fallback={userName} />
             <div className="hidden text-left sm:block">

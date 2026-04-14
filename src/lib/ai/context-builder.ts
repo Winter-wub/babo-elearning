@@ -47,7 +47,7 @@ function formatDate(value: unknown): string {
     // Duck-type check: if it has getTime/toISOString, treat as Date
     const v = value as Record<string, unknown>;
     if (typeof v.getTime === "function") {
-      try { return (v as Date).toISOString(); } catch { /* fall through */ }
+      try { return (v as unknown as Date).toISOString(); } catch { /* fall through */ }
     }
     if (typeof v.toISOString === "function") {
       try { return (v.toISOString as () => string)(); } catch { /* fall through */ }

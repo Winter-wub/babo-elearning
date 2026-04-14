@@ -1,9 +1,9 @@
-import type { User, Video, VideoPermission, PolicyAgreement, Role, CourseMaterial } from "@prisma/client";
+import type { User, Video, VideoPermission, PolicyAgreement, Role, CourseMaterial, InviteLink, InviteLinkRedemption } from "@prisma/client";
 
 // -----------------------------------------------------------------------
 // Re-exports for convenience
 // -----------------------------------------------------------------------
-export type { User, Video, VideoPermission, PolicyAgreement, Role, CourseMaterial };
+export type { User, Video, VideoPermission, PolicyAgreement, Role, CourseMaterial, InviteLink, InviteLinkRedemption };
 
 /** Material record safe for client — s3Key omitted. */
 export type PublicMaterial = Omit<CourseMaterial, "s3Key">;
@@ -119,4 +119,52 @@ export type SafePermissionRow = {
   status: PermissionTimeStatus;
   user: { id: string; name: string | null; email: string };
   video: { id: string; title: string };
+};
+
+// -----------------------------------------------------------------------
+// Invite link types
+// -----------------------------------------------------------------------
+
+import type { InviteLinkStatus } from "@/lib/invite-utils";
+export type { InviteLinkStatus };
+
+/** Invite link row for the admin list table. */
+export type InviteLinkRow = Pick<
+  InviteLink,
+  | "id"
+  | "code"
+  | "label"
+  | "videoIds"
+  | "timeMode"
+  | "durationDays"
+  | "validFrom"
+  | "validUntil"
+  | "maxRedemptions"
+  | "currentRedemptions"
+  | "expiresAt"
+  | "isRevoked"
+  | "createdAt"
+> & {
+  status: InviteLinkStatus;
+  videoCount: number;
+};
+
+/** Full invite link detail with video titles and redemption records. */
+export type InviteLinkDetail = InviteLinkRow & {
+  videos: { id: string; title: string }[];
+  redemptions: {
+    id: string;
+    redeemedAt: Date;
+    user: { id: string; name: string | null; email: string };
+  }[];
+  creator: { id: string; name: string | null; email: string };
+};
+
+/** Public invite link info returned to unauthenticated callers. */
+export type PublicInviteLinkInfo = {
+  valid: boolean;
+  label?: string;
+  videoTitles?: string[];
+  videoCount: number;
+  permissionLabel: string;
 };

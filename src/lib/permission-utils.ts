@@ -80,3 +80,31 @@ export function resolveTimeFields(
       };
   }
 }
+
+// ---------------------------------------------------------------------------
+// Reconstruct time config from stored DB fields
+// ---------------------------------------------------------------------------
+
+/**
+ * Reconstruct a `PermissionTimeConfig` from decomposed DB fields.
+ * Used when redeeming an invite link whose time config was stored as flat columns.
+ */
+export function reconstructTimeConfig(fields: {
+  timeMode: string;
+  durationDays: number | null;
+  validFrom: Date | null;
+  validUntil: Date | null;
+}): PermissionTimeConfig {
+  switch (fields.timeMode) {
+    case "relative":
+      return { mode: "relative", durationDays: fields.durationDays ?? 0 };
+    case "absolute":
+      return {
+        mode: "absolute",
+        validFrom: fields.validFrom ?? new Date(),
+        validUntil: fields.validUntil ?? new Date(),
+      };
+    default:
+      return { mode: "permanent" };
+  }
+}

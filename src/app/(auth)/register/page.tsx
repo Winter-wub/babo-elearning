@@ -6,10 +6,17 @@ export const metadata: Metadata = {
   title: "สร้างบัญชี",
 };
 
-export default function RegisterPage() {
+interface RegisterPageProps {
+  searchParams: Promise<{ invite?: string }>;
+}
+
+export default async function RegisterPage({ searchParams }: RegisterPageProps) {
+  const params = await searchParams;
+  const inviteCode = params.invite || undefined;
+
   return (
     <>
-      <RegisterForm />
+      <RegisterForm inviteCode={inviteCode} />
 
       <p className="text-center text-sm text-muted-foreground">
         มีบัญชีอยู่แล้ว?{" "}

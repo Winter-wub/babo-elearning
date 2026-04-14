@@ -14,6 +14,8 @@ import {
   OTP_RESEND_COOLDOWN_MS,
   OTP_SESSION_TTL_MS,
 } from "@/lib/constants";
+import { reconstructTimeConfig, resolveTimeFields } from "@/lib/permission-utils";
+import { getInviteLinkStatus } from "@/lib/invite-utils";
 import type { ActionResult } from "@/types";
 
 // -----------------------------------------------------------------------
@@ -22,6 +24,7 @@ import type { ActionResult } from "@/types";
 
 const EmailSchema = z.object({
   email: z.string().email(),
+  inviteCode: z.string().optional(),
 });
 
 const VerifyOtpSchema = z.object({
@@ -63,6 +66,7 @@ export async function requestOtp(
   }
 
   const normalizedEmail = parsed.data.email.toLowerCase().trim();
+  const inviteCode = parsed.data.inviteCode || null;
 
   // Check for existing verified User — block registration
   const existingUser = await db.user.findUnique({
@@ -106,6 +110,7 @@ export async function requestOtp(
         otpExpiresAt,
         attempts: 0,
         verified: false,
+        inviteCode,
       },
     });
   } catch {
@@ -260,7 +265,7 @@ export async function completeRegistration(
 
   try {
     await db.$transaction(async (tx) => {
-      await tx.user.create({
+      const newUser = await tx.user.create({
         data: {
           email: pending.email,
           passwordHash,
@@ -271,6 +276,64 @@ export async function completeRegistration(
       });
 
       await tx.pendingRegistration.delete({ where: { id: pending.id } });
+
+      // --- Invite link auto-grant ---
+      if (pending.inviteCode) {
+        const invite = await tx.inviteLink.findUnique({
+          where: { code: pending.inviteCode },
+        });
+
+        if (invite) {
+          const now = new Date();
+          const status = getInviteLinkStatus(invite, now);
+
+          if (status === "active") {
+            // Atomically increment redemptions with a conditional check
+            const updated = await tx.inviteLink.updateMany({
+              where: {
+                id: invite.id,
+                isRevoked: false,
+                OR: [
+                  { maxRedemptions: null },
+                  { currentRedemptions: { lt: invite.maxRedemptions ?? 0 } },
+                ],
+              },
+              data: { currentRedemptions: { increment: 1 } },
+            });
+
+            if (updated.count > 0) {
+              // Filter to only active videos
+              const activeVideos = await tx.video.findMany({
+                where: { id: { in: invite.videoIds }, isActive: true },
+                select: { id: true },
+              });
+
+              if (activeVideos.length > 0) {
+                const timeConfig = reconstructTimeConfig(invite);
+                const timeFields = resolveTimeFields(timeConfig, now);
+
+                await tx.videoPermission.createMany({
+                  data: activeVideos.map((v) => ({
+                    userId: newUser.id,
+                    videoId: v.id,
+                    grantedBy: invite.createdBy,
+                    grantedAt: now,
+                    ...timeFields,
+                  })),
+                  skipDuplicates: true,
+                });
+              }
+
+              await tx.inviteLinkRedemption.create({
+                data: {
+                  inviteLinkId: invite.id,
+                  userId: newUser.id,
+                },
+              });
+            }
+          }
+        }
+      }
     });
   } catch {
     return {

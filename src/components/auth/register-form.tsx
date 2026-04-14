@@ -5,9 +5,12 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CheckCircle2, ChevronLeft } from "lucide-react";
+import { CheckCircle2, ChevronLeft, GraduationCap, Film } from "lucide-react";
 
 import { requestOtp, verifyOtp, completeRegistration } from "@/actions/otp.actions";
+import { validateInviteCode } from "@/actions/invite.actions";
+import { Badge } from "@/components/ui/badge";
+import type { PublicInviteLinkInfo } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -234,9 +237,10 @@ function useCountdown(initialSeconds: number) {
 
 interface EmailStepProps {
   onSuccess: (email: string) => void;
+  inviteCode?: string;
 }
 
-function EmailStep({ onSuccess }: EmailStepProps) {
+function EmailStep({ onSuccess, inviteCode }: EmailStepProps) {
   const [serverError, setServerError] = useState<string | null>(null);
 
   const {
@@ -252,7 +256,7 @@ function EmailStep({ onSuccess }: EmailStepProps) {
     setServerError(null);
 
     try {
-      const result = await requestOtp({ email: data.email });
+      const result = await requestOtp({ email: data.email, inviteCode });
       if (!result.success) {
         setServerError(result.error);
         return;
@@ -335,9 +339,10 @@ interface OtpStepProps {
   email: string;
   onSuccess: (sessionToken: string) => void;
   onBack: () => void;
+  inviteCode?: string;
 }
 
-function OtpStep({ email, onSuccess, onBack }: OtpStepProps) {
+function OtpStep({ email, onSuccess, onBack, inviteCode }: OtpStepProps) {
   const [digits, setDigits] = useState<string[]>(
     Array.from({ length: OTP_LENGTH }, () => "")
   );
@@ -382,7 +387,7 @@ function OtpStep({ email, onSuccess, onBack }: OtpStepProps) {
     setServerError(null);
 
     try {
-      const result = await requestOtp({ email });
+      const result = await requestOtp({ email, inviteCode });
       if (!result.success) {
         setServerError(result.error);
       } else {
@@ -682,15 +687,90 @@ function CompleteStep({ email, sessionToken }: CompleteStepProps) {
 // Main register form component
 // ---------------------------------------------------------------------------
 
-export function RegisterForm() {
+// ---------------------------------------------------------------------------
+// Invite Banner
+// ---------------------------------------------------------------------------
+
+function InviteBanner({ info }: { info: PublicInviteLinkInfo }) {
+  return (
+    <div className="rounded-t-lg bg-primary/10 px-6 py-4">
+      <div className="flex items-start gap-3">
+        <GraduationCap className="mt-0.5 h-8 w-8 shrink-0 text-primary" />
+        <div className="min-w-0">
+          <p className="text-lg font-semibold">คุณได้รับเชิญ!</p>
+          <p className="text-sm text-muted-foreground">
+            สมัครเรียนและเข้าถึงคอร์สเหล่านี้ได้ทันที
+          </p>
+          {info.videoTitles && info.videoTitles.length > 0 && (
+            <ul className="mt-2 space-y-1">
+              {info.videoTitles.slice(0, 5).map((title, i) => (
+                <li key={i} className="flex items-center gap-2 text-sm">
+                  <Film className="h-3 w-3 shrink-0 text-muted-foreground" />
+                  {title}
+                </li>
+              ))}
+              {info.videoTitles.length > 5 && (
+                <li className="text-sm text-muted-foreground">
+                  +{info.videoTitles.length - 5} อื่นๆ
+                </li>
+              )}
+            </ul>
+          )}
+          <Badge variant="outline" className="mt-2">
+            {info.permissionLabel}
+          </Badge>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Main register form component
+// ---------------------------------------------------------------------------
+
+interface RegisterFormProps {
+  inviteCode?: string;
+}
+
+export function RegisterForm({ inviteCode }: RegisterFormProps) {
   const [step, setStep] = useState<Step>("email");
   const [email, setEmail] = useState("");
   const [sessionToken, setSessionToken] = useState("");
+  const [inviteInfo, setInviteInfo] = useState<PublicInviteLinkInfo | null>(null);
+  const [inviteChecked, setInviteChecked] = useState(false);
+
+  // Validate invite code on mount
+  useEffect(() => {
+    if (!inviteCode) {
+      setInviteChecked(true);
+      return;
+    }
+    validateInviteCode(inviteCode).then((result) => {
+      if (result.success && result.data.valid) {
+        setInviteInfo(result.data);
+      }
+      setInviteChecked(true);
+    });
+  }, [inviteCode]);
+
+  if (!inviteChecked) {
+    return (
+      <Card>
+        <div className="flex items-center justify-center py-16">
+          <Spinner size="lg" />
+        </div>
+      </Card>
+    );
+  }
 
   return (
-    <Card>
+    <Card className="overflow-hidden">
+      {inviteInfo && <InviteBanner info={inviteInfo} />}
+
       {step === "email" && (
         <EmailStep
+          inviteCode={inviteCode}
           onSuccess={(e) => {
             setEmail(e);
             setStep("otp");
@@ -701,6 +781,7 @@ export function RegisterForm() {
       {step === "otp" && (
         <OtpStep
           email={email}
+          inviteCode={inviteCode}
           onSuccess={(token) => {
             setSessionToken(token);
             setStep("complete");

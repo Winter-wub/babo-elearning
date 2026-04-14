@@ -7,7 +7,8 @@ function createPrismaClient() {
   if (!connectionString) {
     throw new Error("DATABASE_URL environment variable is not set.");
   }
-  const pool = new pg.Pool({ connectionString, ssl: true });
+  const useSSL = !connectionString.includes("localhost") && !connectionString.includes("127.0.0.1");
+  const pool = new pg.Pool({ connectionString, ssl: useSSL ? true : false });
   const adapter = new PrismaPg(pool);
   return new PrismaClient({ adapter });
 }

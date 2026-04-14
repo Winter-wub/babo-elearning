@@ -109,6 +109,16 @@ export const OTP_RESEND_COOLDOWN_MS = 60 * 1000;
 export const OTP_SESSION_TTL_MS = 60 * 60 * 1000;
 
 // -----------------------------------------------------------------------
+// Invite links
+// -----------------------------------------------------------------------
+
+/** Number of random bytes for invite link codes (32 bytes → 64 hex chars). */
+export const INVITE_CODE_BYTES = 32;
+
+/** Maximum number of videos that can be attached to a single invite link. */
+export const MAX_INVITE_VIDEOS = 100;
+
+// -----------------------------------------------------------------------
 // Application metadata
 // -----------------------------------------------------------------------
 

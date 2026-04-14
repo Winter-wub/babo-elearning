@@ -28,6 +28,8 @@ model User {
   policyAgreements        PolicyAgreement[]
   verificationAttempts    VerificationAttempt[]
   emailVerificationTokens EmailVerificationToken[]
+  createdInviteLinks      InviteLink[]             @relation("InviteLinkCreator")
+  inviteRedemptions       InviteLinkRedemption[]
 
   @@index([email])
   @@index([role])
@@ -47,6 +49,7 @@ model PendingRegistration {
   attempts     Int      @default(0)
   verified     Boolean  @default(false)
   sessionToken String?  @unique // set after OTP verified, authorises step 3
+  inviteCode   String? // carries invite link code through OTP flow
   createdAt    DateTime @default(now())
 
   @@index([email])
@@ -203,6 +206,54 @@ model PlaylistVideo {
 
   @@id([playlistId, videoId])
   @@index([playlistId])
+}
+
+// -----------------------------------------------------------------------
+// Invite Links — Admin-created registration links with pre-set permissions
+// -----------------------------------------------------------------------
+
+model InviteLink {
+  id                 String    @id @default(cuid())
+  code               String    @unique
+  label              String
+  videoIds           String[]
+
+  // Permission time config (decomposed PermissionTimeConfig)
+  timeMode           String // "permanent" | "relative" | "absolute"
+  durationDays       Int?
+  validFrom          DateTime?
+  validUntil         DateTime?
+
+  // Link constraints
+  maxRedemptions     Int?
+  currentRedemptions Int       @default(0)
+  expiresAt          DateTime?
+  isRevoked          Boolean   @default(false)
+
+  createdBy          String
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  creator     User                   @relation("InviteLinkCreator", fields: [createdBy], references: [id])
+  redemptions InviteLinkRedemption[]
+
+  @@index([code])
+  @@index([createdBy])
+  @@index([expiresAt])
+}
+
+model InviteLinkRedemption {
+  id           String   @id @default(cuid())
+  inviteLinkId String
+  userId       String
+  redeemedAt   DateTime @default(now())
+
+  inviteLink InviteLink @relation(fields: [inviteLinkId], references: [id], onDelete: Cascade)
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([inviteLinkId, userId])
+  @@index([inviteLinkId])
+  @@index([userId])
 }
 
 // -----------------------------------------------------------------------

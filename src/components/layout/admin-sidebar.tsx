@@ -18,6 +18,7 @@ import {
   Palette,
   LogIn,
   Link2,
+  Bot,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -26,6 +27,7 @@ interface NavItem {
   label: string;
   href: string;
   icon: React.ComponentType<{ className?: string }>;
+  badge?: string;
 }
 
 const NAV_ITEMS: NavItem[] = [
@@ -41,6 +43,9 @@ const NAV_ITEMS: NavItem[] = [
   { label: "ตั้งค่าธีม", href: "/admin/theme", icon: Palette },
   { label: "ข้อความติดต่อ", href: "/admin/contacts", icon: Mail },
   { label: "วิเคราะห์", href: "/admin/analytics", icon: BarChart3 },
+  ...(process.env.NEXT_PUBLIC_AI_CHAT_ENABLED === "true"
+    ? [{ label: "AI Chat", href: "/admin/ai-chat", icon: Bot, badge: "Beta" }]
+    : []),
 ];
 
 interface AdminSidebarProps {
@@ -148,6 +153,11 @@ export function AdminSidebar({ open, onClose, appName = "อีเลิร์�
               >
                 <Icon className="h-5 w-5 shrink-0" />
                 {item.label}
+                {item.badge && (
+                  <span className="ml-auto rounded-md border border-amber-600/40 bg-amber-50 px-1.5 py-0 text-[10px] font-semibold text-amber-600 dark:border-amber-400/30 dark:bg-amber-950/20 dark:text-amber-400">
+                    {item.badge}
+                  </span>
+                )}
               </Link>
             );
           })}

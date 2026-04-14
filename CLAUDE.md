@@ -69,9 +69,44 @@ Prisma 7 separates datasource config from the schema. The DB connection is confi
 - Do not create `src/middleware.ts` — the file is `src/proxy.ts`.
 - Do not set `unsafe-eval` in the CSP for production — see the TODO in `next.config.ts`.
 
+## Production Architecture
+
+| Layer | Service | Details |
+|-------|---------|---------|
+| Hosting | DigitalOcean App Platform | Basic tier ($5/mo), SGP1 (Singapore), auto-deploy on push to `main` |
+| Database | Neon Postgres | Serverless, free tier, Singapore region, SSL required |
+| Object Storage | Cloudflare R2 | Free egress, stores videos + course materials |
+| Email | Mailjet SMTP | Transactional email (verification, OTP) |
+| Cron | GitHub Actions | Daily cleanup of verification attempts at 3 AM UTC |
+| Domain | englishwithgift.com | SSL managed by DO App Platform |
+
+### Deployment Flow
+1. Push to `main` → DO App Platform auto-builds Docker image
+2. Pre-deploy Job runs `prisma migrate deploy` (before new version receives traffic)
+3. Web service deploys with health check at `/api/health`
+4. Zero-downtime rolling deployment
+
+### Key Files
+- `.do/app.yaml` — DO App Platform deployment spec (region, services, env vars, pre-deploy job)
+- `Dockerfile` — Multi-stage build: deps → builder → runner (node:20-alpine, standalone output)
+- `.github/workflows/cron-cleanup-verification.yml` — Daily cron via GitHub Actions
+
+### Object Storage (`src/lib/r2.ts`)
+Auto-detects provider from env vars:
+- If `AWS_ENDPOINT_URL_S3` is set → uses Tigris (legacy Fly.io)
+- Otherwise → uses Cloudflare R2 via `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`
+
+Production uses R2. Do not add `AWS_ENDPOINT_URL_S3` to DO env vars.
+
+### Scaling Path
+- Phase 1 (current): Basic $5/mo — 1 instance, 512MB, 1 vCPU
+- Phase 2: Professional $12/mo — horizontal auto-scale 1–3 instances
+- Phase 3: Professional $24/mo — 1GB/2vCPU, 1–5 replicas
+
 ## Environment Variables
 
 ```env
+# --- Local dev ---
 DATABASE_URL="postgresql://user:password@localhost:5432/elearning"
 AUTH_SECRET="<openssl rand -base64 32>"
 AUTH_URL="http://localhost:3000"
@@ -80,11 +115,20 @@ R2_ACCESS_KEY_ID=""
 R2_SECRET_ACCESS_KEY=""
 R2_BUCKET_NAME="elearning-videos"
 NEXT_PUBLIC_APP_URL="http://localhost:3000"
+CRON_SECRET="<random string for cron endpoint auth>"
+
+# --- Email (Mailjet) ---
+MAILJET_SMTP_HOST="in-v3.mailjet.com"
+MAILJET_SMTP_PORT="587"
+MAILJET_SMTP_USER=""
+MAILJET_SMTP_PASS=""
+MAIL_FROM_EMAIL="noreply@example.com"
+MAIL_FROM_NAME="App Name"
 ```
 
 ## Docker
 
-- `docker-compose.dev.yml` — local dev with hot reload + PostgreSQL.
+- `docker-compose.dev.yml` — local dev with hot reload + PostgreSQL + MinIO.
 - `docker-compose.yml` — production-like stack.
-- `fly.toml` — Fly.io deployment config.
+- `.do/app.yaml` — DigitalOcean App Platform deployment spec.
 - Next.js is built with `output: "standalone"` for lean Docker images.

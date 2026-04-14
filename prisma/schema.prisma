@@ -30,6 +30,7 @@ model User {
   emailVerificationTokens EmailVerificationToken[]
   createdInviteLinks      InviteLink[]             @relation("InviteLinkCreator")
   inviteRedemptions       InviteLinkRedemption[]
+  chatConversations       AdminChatConversation[]
 
   @@index([email])
   @@index([role])
@@ -292,4 +293,31 @@ model ContactSubmission {
 
   @@index([isRead])
   @@index([createdAt])
+}
+
+// -----------------------------------------------------------------------
+// AI Chat — Admin chat conversations with AI assistant (Beta)
+// -----------------------------------------------------------------------
+
+model AdminChatConversation {
+  id        String   @id @default(cuid())
+  adminId   String
+  admin     User     @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  title     String?
+  messages  AdminChatMessage[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([adminId])
+}
+
+model AdminChatMessage {
+  id             String                @id @default(cuid())
+  conversationId String
+  conversation   AdminChatConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  role           String // "user" | "assistant"
+  content        String @db.Text
+  createdAt      DateTime @default(now())
+
+  @@index([conversationId])
 }

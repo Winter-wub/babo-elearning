@@ -47,7 +47,7 @@ const nextConfig: NextConfig = {
               `media-src 'self' blob: https://*.r2.cloudflarestorage.com https://fly.storage.tigris.dev${process.env.R2_ENDPOINT ? ` ${process.env.R2_ENDPOINT}` : ""}`,
               `connect-src 'self' https://*.r2.cloudflarestorage.com https://fly.storage.tigris.dev https://accounts.google.com https://graph.facebook.com https://appleid.apple.com${process.env.R2_ENDPOINT ? ` ${process.env.R2_ENDPOINT}` : ""}`,
               "font-src 'self'",
-              "object-src 'none'",
+              "object-src 'self' https://*.r2.cloudflarestorage.com https://fly.storage.tigris.dev",
               `frame-src 'self' https://accounts.google.com https://*.r2.cloudflarestorage.com https://fly.storage.tigris.dev${process.env.R2_ENDPOINT ? ` ${process.env.R2_ENDPOINT}` : ""}`,
               "frame-ancestors 'self'",
               "base-uri 'self'",

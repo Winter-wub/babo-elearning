@@ -99,7 +99,6 @@ function PdfViewerDialog({
               src={`${url}#toolbar=0&navpanes=0`}
               className="h-full w-full border-0"
               title={material.filename}
-              sandbox="allow-scripts allow-same-origin"
             />
           )}
         </div>

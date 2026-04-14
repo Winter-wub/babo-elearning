@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Eye, Download, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -65,13 +65,18 @@ function PdfViewerDialog({
     }
   }, [material.id, url]);
 
+  // Load the signed URL when mounted open (the parent conditionally renders
+  // this component with open={true}, so onOpenChange never fires with true).
+  useEffect(() => {
+    if (open) loadUrl();
+  }, [open, loadUrl]);
+
   const handleOpenChange = useCallback(
     (isOpen: boolean) => {
-      if (isOpen) loadUrl();
       if (!isOpen) setUrl(null);
       onOpenChange(isOpen);
     },
-    [loadUrl, onOpenChange]
+    [onOpenChange]
   );
 
   const handleDownload = useCallback(async () => {
@@ -148,13 +153,16 @@ function ImageLightboxDialog({
     }
   }, [material.id, url]);
 
+  useEffect(() => {
+    if (open) loadUrl();
+  }, [open, loadUrl]);
+
   const handleOpenChange = useCallback(
     (isOpen: boolean) => {
-      if (isOpen) loadUrl();
       if (!isOpen) setUrl(null);
       onOpenChange(isOpen);
     },
-    [loadUrl, onOpenChange]
+    [onOpenChange]
   );
 
   return (

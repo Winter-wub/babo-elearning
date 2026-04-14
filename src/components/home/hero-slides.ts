@@ -1,3 +1,4 @@
+/** @deprecated Use HeroContent from hero-data.ts instead. This file is retained for rollback safety. */
 export type HeroSlide = {
   id: string;
   headline: string;

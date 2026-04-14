@@ -108,48 +108,43 @@ test.describe("Home page — Navbar", () => {
 // Carousel
 // ---------------------------------------------------------------------------
 
-test.describe("Home page — Hero carousel", () => {
+test.describe("Home page — Hero section", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
   });
 
-  test('data-testid="hero-carousel" is visible', async ({ page }) => {
-    await expect(page.getByTestId("hero-carousel")).toBeVisible();
+  test('data-testid="hero-section" is visible', async ({ page }) => {
+    await expect(page.getByTestId("hero-section")).toBeVisible();
   });
 
-  test("next button is visible and clickable", async ({ page }) => {
-    const nextBtn = page.getByRole("button", { name: "Next slide" });
-    await expect(nextBtn).toBeVisible();
-    // Clicking must not throw / navigate away
-    await nextBtn.click();
-    await expect(page).toHaveURL("/");
+  test("h1 heading is visible and non-empty", async ({ page }) => {
+    const hero = page.getByTestId("hero-section");
+    const h1 = hero.locator("h1");
+    await expect(h1).toBeVisible();
+    const text = await h1.innerText();
+    expect(text.trim().length).toBeGreaterThan(0);
   });
 
-  test("prev button is visible and clickable", async ({ page }) => {
-    const prevBtn = page.getByRole("button", { name: "Previous slide" });
-    await expect(prevBtn).toBeVisible();
-    await prevBtn.click();
-    await expect(page).toHaveURL("/");
+  test("primary CTA link is visible", async ({ page }) => {
+    const hero = page.getByTestId("hero-section");
+    const ctaLink = hero.locator("a").first();
+    await expect(ctaLink).toBeVisible();
   });
 
-  test("dot indicators are visible (at least 2)", async ({ page }) => {
-    // Dots have role="tab" inside a tablist
-    const dots = page.getByRole("tab");
-    // Wait for at least 2 to be present
-    await expect(dots.nth(0)).toBeVisible();
-    await expect(dots.nth(1)).toBeVisible();
+  test("stats strip shows at least one stat item", async ({ page }) => {
+    const hero = page.getByTestId("hero-section");
+    // Stats are rendered as bold text inside the hero section
+    const statNumbers = hero.locator("span.font-bold");
+    await expect(statNumbers.first()).toBeVisible();
   });
 
-  test("clicking next advances to the second slide", async ({ page }) => {
-    // Capture the initial headline text from the first slide
-    const carousel = page.getByTestId("hero-carousel");
-    const initialHeadline = await carousel.locator("h1").innerText();
-
-    await page.getByRole("button", { name: "Next slide" }).click();
-
-    // The headline should have changed
-    const updatedHeadline = await carousel.locator("h1").innerText();
-    expect(updatedHeadline).not.toBe(initialHeadline);
+  test("no carousel navigation buttons are present", async ({ page }) => {
+    const hero = page.getByTestId("hero-section");
+    // Carousel prev/next buttons should not exist
+    await expect(hero.getByRole("button", { name: "สไลด์ก่อนหน้า" })).toHaveCount(0);
+    await expect(hero.getByRole("button", { name: "สไลด์ถัดไป" })).toHaveCount(0);
+    // No dot indicators
+    await expect(hero.getByRole("tab")).toHaveCount(0);
   });
 });
 

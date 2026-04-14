@@ -5,8 +5,6 @@ import DOMPurify from "dompurify";
 import {
   GraduationCap,
   ArrowRight,
-  ChevronLeft,
-  ChevronRight,
   Monitor,
   Smartphone,
 } from "lucide-react";
@@ -40,12 +38,6 @@ const DEFAULTS: Record<string, string> = {
   "footer.copyright": "แพลตฟอร์มอีเลิร์นนิง สงวนลิขสิทธิ์",
 };
 
-// Slide background classes matching hero-slides.ts
-const SLIDE_BG_CLASSES = [
-  "from-primary/20 via-primary/10 to-background",
-  "from-blue-500/20 via-blue-400/10 to-background",
-  "from-emerald-500/20 via-emerald-400/10 to-background",
-];
 
 const CONTEXT_TABS: { id: PreviewContext; label: string }[] = [
   { id: "home", label: "หน้าแรก" },
@@ -88,36 +80,27 @@ function PhoneFrame({ children }: { children: React.ReactNode }) {
 // Sub-previews
 // -----------------------------------------------------------------------
 
-/** Mini-preview of the public home hero carousel */
+/** Mini-preview of the public home hero (static, IELTS Advantage-style) */
 function HomePreview({ values }: { values: Record<string, string> }) {
-  const [slide, setSlide] = React.useState(0);
-
   function c(key: string): string {
     return values[key] ?? DEFAULTS[key] ?? "";
   }
 
-  const slides = [
-    {
-      headline: c("hero.slide1.headline") || "เรียนรู้ตามจังหวะของคุณ",
-      sub: c("hero.slide1.sub") || "คอร์สวิดีโอคัดสรรจากผู้เชี่ยวชาญในอุตสาหกรรม",
-      cta: c("hero.slide1.cta") || "ดูคอร์สเรียน",
-      bg: SLIDE_BG_CLASSES[0],
-    },
-    {
-      headline: c("hero.slide2.headline") || "สร้างทักษะการเงินที่แท้จริง",
-      sub: c("hero.slide2.sub") || "ตั้งแต่การลงทุนเบื้องต้นจนถึงการวางแผนภาษีขั้นสูง",
-      cta: c("hero.slide2.cta") || "เริ่มต้นเลย",
-      bg: SLIDE_BG_CLASSES[1],
-    },
-    {
-      headline: c("hero.slide3.headline") || "เรียนรู้กับผู้เชี่ยวชาญ",
-      sub: c("hero.slide3.sub") || "เพลย์ลิสต์ที่จัดโครงสร้างเพื่อเป้าหมายของคุณ",
-      cta: c("hero.slide3.cta") || "ดูเพลย์ลิสต์",
-      bg: SLIDE_BG_CLASSES[2],
-    },
-  ];
+  const badge = c("hero.badge") || "นักเรียนกว่า 500 คนเรียนกับ Gift แล้ว";
+  const headline1 = c("hero.headline1") || "อยากเก่งภาษาอังกฤษแต่ไม่รู้จะเริ่มจากไหน?";
+  const headline2 = c("hero.headline2") || "เราจะพาคุณไปถึงเป้าหมาย";
+  const body = c("hero.body") || "ทดสอบระดับภาษาอังกฤษของคุณฟรี รู้ว่าจุดอ่อนอยู่ที่ไหน";
+  const ctaLabel = c("hero.ctaLabel") || "เริ่มทดสอบฟรีเลย";
+  const ctaMicro = c("hero.ctaMicro") || "ไม่ต้องเสียค่าใช้จ่าย ทดสอบได้เลย";
+  const cta2Label = c("hero.cta2Label");
+  const bgColor = c("hero.bgColor") || "#0f172a";
 
-  const current = slides[slide];
+  const stat1Num = c("hero.stat1.number") || "500+";
+  const stat1Label = c("hero.stat1.label") || "นักเรียน";
+  const stat2Num = c("hero.stat2.number") || "4.9";
+  const stat2Label = c("hero.stat2.label") || "คะแนนเฉลี่ย";
+  const stat3Num = c("hero.stat3.number") || "10+";
+  const stat3Label = c("hero.stat3.label") || "แบบทดสอบ";
 
   return (
     <div className="space-y-3">
@@ -146,59 +129,63 @@ function HomePreview({ values }: { values: Record<string, string> }) {
         </div>
       </div>
 
-      {/* Hero carousel */}
+      {/* Static hero section */}
       <div
-        className={cn(
-          "relative rounded-lg overflow-hidden bg-gradient-to-br transition-all duration-500",
-          current.bg
-        )}
+        className="rounded-lg overflow-hidden"
+        style={{ backgroundColor: /^#[0-9A-Fa-f]{6}$/.test(bgColor) ? bgColor : "#0f172a" }}
       >
-        <div className="px-6 py-10 text-center">
-          <h2 className="text-xl font-bold tracking-tight text-foreground leading-snug">
-            {current.headline}
+        <div className="px-6 py-10 text-center flex flex-col items-center">
+          {/* Trust badge */}
+          {badge && (
+            <span className="mb-4 inline-flex items-center rounded-full bg-amber-500/90 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-white">
+              {badge}
+            </span>
+          )}
+
+          {/* Two-line headline */}
+          <h2 className="text-lg font-bold leading-snug tracking-tight">
+            <span className="block text-white">{headline1}</span>
+            <span className="block text-amber-400">{headline2}</span>
           </h2>
-          <div
-            className="mt-2 text-xs leading-relaxed text-foreground/70 max-w-xs mx-auto prose-preview-xs"
-            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(current.sub) }}
-          />
-          <div className="mt-4 inline-flex items-center rounded-md bg-foreground px-3 py-1.5 text-xs font-medium text-background">
-            {current.cta}
+
+          {/* Body */}
+          {body && (
+            <p className="mt-2 max-w-xs text-[11px] leading-relaxed text-slate-300">
+              {body}
+            </p>
+          )}
+
+          {/* Primary CTA */}
+          <div className="mt-4 inline-flex items-center rounded-full bg-amber-500 px-4 py-1.5 text-xs font-semibold text-white">
+            {ctaLabel}
             <ArrowRight className="ml-1 h-3 w-3" aria-hidden="true" />
           </div>
-        </div>
 
-        {/* Prev/Next */}
-        <button
-          type="button"
-          onClick={() => setSlide((s) => (s - 1 + slides.length) % slides.length)}
-          aria-label="สไลด์ก่อนหน้า"
-          className="absolute left-2 top-1/2 -translate-y-1/2 flex h-7 w-7 items-center justify-center rounded-full bg-background/80 shadow text-foreground"
-        >
-          <ChevronLeft className="h-3.5 w-3.5" aria-hidden="true" />
-        </button>
-        <button
-          type="button"
-          onClick={() => setSlide((s) => (s + 1) % slides.length)}
-          aria-label="สไลด์ถัดไป"
-          className="absolute right-2 top-1/2 -translate-y-1/2 flex h-7 w-7 items-center justify-center rounded-full bg-background/80 shadow text-foreground"
-        >
-          <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
-        </button>
+          {/* Micro-text */}
+          {ctaMicro && (
+            <p className="mt-1.5 text-[10px] text-slate-400">{ctaMicro}</p>
+          )}
 
-        {/* Dot indicators */}
-        <div className="flex justify-center gap-1.5 pb-3">
-          {slides.map((_, i) => (
-            <button
-              key={i}
-              type="button"
-              onClick={() => setSlide(i)}
-              aria-label={`ไปที่สไลด์ ${i + 1}`}
-              className={cn(
-                "block h-1.5 rounded-full transition-all duration-300",
-                i === slide ? "w-4 bg-foreground" : "w-1.5 bg-foreground/30"
-              )}
-            />
-          ))}
+          {/* Secondary CTA */}
+          {cta2Label && (
+            <p className="mt-1 text-[10px] text-slate-300 underline underline-offset-2">
+              {cta2Label}
+            </p>
+          )}
+
+          {/* Stats strip */}
+          <div className="mt-6 grid w-full max-w-[280px] grid-cols-3 gap-3 border-t border-slate-700 pt-4">
+            {[
+              { num: stat1Num, label: stat1Label },
+              { num: stat2Num, label: stat2Label },
+              { num: stat3Num, label: stat3Label },
+            ].map((stat) => (
+              <div key={stat.label} className="flex flex-col items-center">
+                <span className="text-sm font-bold text-white">{stat.num}</span>
+                <span className="text-[9px] text-slate-400">{stat.label}</span>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 

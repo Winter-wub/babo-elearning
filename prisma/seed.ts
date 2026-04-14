@@ -328,19 +328,23 @@ async function main() {
   // Site content (CMS)
   // -------------------------
   const siteContentData = [
-    // Hero carousel slides (home page)
-    { key: "hero.slide1.headline", value: "เรียนรู้ตามจังหวะของคุณ" },
-    { key: "hero.slide1.sub", value: "คอร์สวิดีโอคัดสรรจากผู้เชี่ยวชาญในอุตสาหกรรม" },
-    { key: "hero.slide1.cta", value: "ดูคอร์สเรียน" },
-    { key: "hero.slide1.ctaHref", value: "#" },
-    { key: "hero.slide2.headline", value: "สร้างทักษะการเงินที่แท้จริง" },
-    { key: "hero.slide2.sub", value: "ตั้งแต่การลงทุนเบื้องต้นจนถึงการวางแผนภาษีขั้นสูง" },
-    { key: "hero.slide2.cta", value: "เริ่มต้นเลย" },
-    { key: "hero.slide2.ctaHref", value: "/register" },
-    { key: "hero.slide3.headline", value: "เรียนรู้กับผู้เชี่ยวชาญ" },
-    { key: "hero.slide3.sub", value: "เพลย์ลิสต์ที่จัดโครงสร้างเพื่อเป้าหมายของคุณ" },
-    { key: "hero.slide3.cta", value: "ดูเพลย์ลิสต์" },
-    { key: "hero.slide3.ctaHref", value: "#" },
+    // Hero section (home page — static hero)
+    { key: "hero.badge", value: "นักเรียนกว่า 500 คนเรียนกับ Gift แล้ว" },
+    { key: "hero.headline1", value: "อยากเก่งภาษาอังกฤษแต่ไม่รู้จะเริ่มจากไหน?" },
+    { key: "hero.headline2", value: "เราจะพาคุณไปถึงเป้าหมาย" },
+    { key: "hero.body", value: "ทดสอบระดับภาษาอังกฤษของคุณฟรี รู้ว่าจุดอ่อนอยู่ที่ไหน แล้วเรียนตามแผนที่ตรงกับคุณ" },
+    { key: "hero.ctaLabel", value: "เริ่มทดสอบฟรีเลย" },
+    { key: "hero.ctaHref", value: "/register" },
+    { key: "hero.ctaMicro", value: "ไม่ต้องเสียค่าใช้จ่าย ทดสอบได้เลย" },
+    { key: "hero.cta2Label", value: "ดูคอร์สทั้งหมด" },
+    { key: "hero.cta2Href", value: "/playlists" },
+    { key: "hero.stat1.number", value: "500+" },
+    { key: "hero.stat1.label", value: "นักเรียน" },
+    { key: "hero.stat2.number", value: "4.9" },
+    { key: "hero.stat2.label", value: "คะแนนเฉลี่ย" },
+    { key: "hero.stat3.number", value: "10+" },
+    { key: "hero.stat3.label", value: "แบบทดสอบ" },
+    { key: "hero.bgColor", value: "#0f172a" },
     // About page
     { key: "about.hero.title", value: "E-Learning Platform" },
     { key: "about.hero.subtitle", value: "A comprehensive online learning platform packed with curated video courses on web development, programming, and software engineering — helping you build lasting skills at your own pace." },

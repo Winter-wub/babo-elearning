@@ -155,6 +155,15 @@ function isRichTextField(key: string): boolean {
   return RICH_TEXT_SUFFIXES.has(suffix);
 }
 
+/** Key suffixes that should use a color picker */
+const COLOR_SUFFIXES = new Set(["color", "bgColor", "bg", "fgColor", "fg"]);
+
+/** Decide whether a content field should use a color picker */
+function isColorField(key: string): boolean {
+  const suffix = key.split(".").pop() ?? "";
+  return COLOR_SUFFIXES.has(suffix);
+}
+
 /** Decide whether a content value should use a Textarea (long) or Input (short) */
 function isLongValue(key: string, value: string): boolean {
   const suffix = key.split(".").pop() ?? "";
@@ -306,8 +315,61 @@ const ContentSection = React.memo(function ContentSection({
                   )}
                 </div>
 
-                {/* Input / RichText / Textarea — uncontrolled for performance */}
-                {isRichTextField(entry.key) ? (
+                {/* Input / ColorPicker / RichText / Textarea — uncontrolled for performance */}
+                {isColorField(entry.key) ? (
+                  <div
+                    key={`${entry.key}-${resetKeys[entry.key] ?? 0}`}
+                    className="flex items-center gap-3"
+                  >
+                    <input
+                      type="color"
+                      id={`content-color-${entry.key}`}
+                      defaultValue={
+                        /^#[0-9A-Fa-f]{6}$/.test(values[entry.key] ?? "")
+                          ? values[entry.key]
+                          : "#0f172a"
+                      }
+                      onChange={(e) => {
+                        onValueChange(entry.key, e.target.value);
+                        // Sync hex text input
+                        const textInput = document.getElementById(
+                          `content-${entry.key}`
+                        ) as HTMLInputElement | null;
+                        if (textInput) textInput.value = e.target.value;
+                      }}
+                      className="h-10 w-14 cursor-pointer rounded-md border border-input bg-background p-1"
+                    />
+                    <Input
+                      id={`content-${entry.key}`}
+                      defaultValue={values[entry.key] ?? ""}
+                      onChange={(e) => {
+                        onValueChange(entry.key, e.target.value);
+                        // Sync color picker if valid hex
+                        const picker = document.getElementById(
+                          `content-color-${entry.key}`
+                        ) as HTMLInputElement | null;
+                        if (picker && /^#[0-9A-Fa-f]{6}$/.test(e.target.value)) {
+                          picker.value = e.target.value;
+                        }
+                      }}
+                      placeholder="#0f172a"
+                      className={cn(
+                        "flex-1 font-mono transition-colors",
+                        isDirty && "border-amber-400/60 dark:border-amber-500/40"
+                      )}
+                    />
+                    {/* Color swatch preview */}
+                    <div
+                      className="h-10 w-10 shrink-0 rounded-md border border-input"
+                      style={{
+                        backgroundColor: /^#[0-9A-Fa-f]{6}$/.test(values[entry.key] ?? "")
+                          ? values[entry.key]
+                          : "#0f172a",
+                      }}
+                      aria-hidden="true"
+                    />
+                  </div>
+                ) : isRichTextField(entry.key) ? (
                   <RichTextEditor
                     key={`${entry.key}-${resetKeys[entry.key] ?? 0}`}
                     value={values[entry.key] ?? ""}

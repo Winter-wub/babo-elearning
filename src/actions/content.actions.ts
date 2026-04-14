@@ -28,6 +28,9 @@ const UpdateSiteContentSchema = z.object({
   value: z.string().max(10000),
 });
 
+// Hero content validation is handled in src/components/home/hero-data.ts
+// via isSafeHref() and isValidHex() in parseHeroContent().
+
 // -----------------------------------------------------------------------
 // Public actions
 // -----------------------------------------------------------------------
@@ -142,6 +145,7 @@ export async function bulkUpdateSiteContent(
     );
 
     revalidatePath("/admin/content");
+    revalidatePath("/admin/hero");
     revalidatePath("/");
     revalidatePath("/about");
     revalidatePath("/contact");

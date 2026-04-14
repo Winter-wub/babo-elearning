@@ -1,3 +1,4 @@
+/** @deprecated Use HomeHero from home-hero.tsx instead. This file is retained for rollback safety. */
 "use client";
 
 import * as React from "react";

@@ -11,6 +11,7 @@ import {
   Eye,
   ChevronDown,
   ChevronRight,
+  Sparkles,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -37,6 +38,8 @@ import { cn } from "@/lib/utils";
 import type { SiteContent } from "@prisma/client";
 import { ContentPreview, type PreviewContext } from "./content-preview";
 import { RichTextEditor } from "./rich-text-editor";
+import { AiContentGenerateDialog } from "./ai-content-generate-dialog";
+import type { FieldType } from "@/lib/ai/content-prompt-builder";
 
 // -----------------------------------------------------------------------
 // Types
@@ -175,6 +178,29 @@ function isLongValue(key: string, value: string): boolean {
   );
 }
 
+/** Determine the field type for AI prompt hints */
+function getFieldType(key: string, value: string): FieldType {
+  if (isColorField(key)) return "color";
+  if (isRichTextField(key)) return "richtext";
+  if (isLongValue(key, value)) return "long";
+  return "text";
+}
+
+/** Whether AI content generation is enabled */
+const AI_ENABLED = process.env.NEXT_PUBLIC_AI_CHAT_ENABLED === "true";
+
+// -----------------------------------------------------------------------
+// AI dialog config type
+// -----------------------------------------------------------------------
+
+interface AiDialogConfig {
+  mode: "section" | "field";
+  prefix: string;
+  sectionLabel: string;
+  fields: { key: string; currentValue: string; fieldType: FieldType }[];
+  targetFieldKey?: string;
+}
+
 // -----------------------------------------------------------------------
 // Section component
 // -----------------------------------------------------------------------
@@ -189,6 +215,7 @@ interface ContentSectionProps {
   onSaveSection: (prefix: string) => void;
   isSaving: boolean;
   resetKeys: Record<string, number>;
+  onOpenAiDialog?: (config: AiDialogConfig) => void;
 }
 
 const ContentSection = React.memo(function ContentSection({
@@ -201,6 +228,7 @@ const ContentSection = React.memo(function ContentSection({
   onSaveSection,
   isSaving,
   resetKeys,
+  onOpenAiDialog,
 }: ContentSectionProps) {
   const [isOpen, setIsOpen] = React.useState(true);
   const dirtyCount = group.entries.filter((e) => dirty.has(e.key)).length;
@@ -240,7 +268,7 @@ const ContentSection = React.memo(function ContentSection({
             </CardDescription>
           </div>
         </div>
-        {/* Dirty badge + section save button */}
+        {/* Dirty badge + AI button + section save button */}
         <div className="flex shrink-0 items-center gap-2">
           {dirtyCount > 0 && (
             <Badge
@@ -249,6 +277,29 @@ const ContentSection = React.memo(function ContentSection({
             >
               {dirtyCount} แก้ไขแล้ว
             </Badge>
+          )}
+          {AI_ENABLED && onOpenAiDialog && (
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() =>
+                onOpenAiDialog({
+                  mode: "section",
+                  prefix: group.prefix,
+                  sectionLabel: group.label,
+                  fields: group.entries.map((e) => ({
+                    key: e.key,
+                    currentValue: values[e.key] ?? "",
+                    fieldType: getFieldType(e.key, values[e.key] ?? ""),
+                  })),
+                })
+              }
+              className="h-7 text-xs text-amber-600 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300"
+              title="AI สร้างเนื้อหาทั้งส่วน"
+            >
+              <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
+              <span className="ml-1">AI</span>
+            </Button>
           )}
           {dirtyCount > 0 && (
             <Button
@@ -297,22 +348,52 @@ const ContentSection = React.memo(function ContentSection({
                       />
                     )}
                   </Label>
-                  {isDirty && (
-                    <button
-                      type="button"
-                      onClick={() => onResetField(entry.key)}
-                      className={cn(
-                        "flex items-center gap-1 text-[11px] text-muted-foreground",
-                        "rounded px-1.5 py-0.5 transition-colors",
-                        "hover:bg-muted hover:text-foreground",
-                        "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                      )}
-                      aria-label={`รีเซ็ต ${entry.key} เป็นค่าที่บันทึกไว้`}
-                    >
-                      <RotateCcw className="h-3 w-3" aria-hidden="true" />
-                      รีเซ็ต
-                    </button>
-                  )}
+                  <div className="flex items-center gap-1">
+                    {AI_ENABLED && onOpenAiDialog && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          onOpenAiDialog({
+                            mode: "field",
+                            prefix: group.prefix,
+                            sectionLabel: group.label,
+                            fields: group.entries.map((e) => ({
+                              key: e.key,
+                              currentValue: values[e.key] ?? "",
+                              fieldType: getFieldType(e.key, values[e.key] ?? ""),
+                            })),
+                            targetFieldKey: entry.key,
+                          })
+                        }
+                        className={cn(
+                          "flex items-center gap-1 text-[11px] text-amber-600 dark:text-amber-400",
+                          "rounded px-1.5 py-0.5 transition-colors",
+                          "hover:bg-amber-50 hover:text-amber-700 dark:hover:bg-amber-950 dark:hover:text-amber-300",
+                          "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                        )}
+                        aria-label={`AI สร้างเนื้อหาสำหรับ ${entry.key}`}
+                        title="AI สร้างเนื้อหา"
+                      >
+                        <Sparkles className="h-3 w-3" aria-hidden="true" />
+                      </button>
+                    )}
+                    {isDirty && (
+                      <button
+                        type="button"
+                        onClick={() => onResetField(entry.key)}
+                        className={cn(
+                          "flex items-center gap-1 text-[11px] text-muted-foreground",
+                          "rounded px-1.5 py-0.5 transition-colors",
+                          "hover:bg-muted hover:text-foreground",
+                          "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                        )}
+                        aria-label={`รีเซ็ต ${entry.key} เป็นค่าที่บันทึกไว้`}
+                      >
+                        <RotateCcw className="h-3 w-3" aria-hidden="true" />
+                        รีเซ็ต
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 {/* Input / ColorPicker / RichText / Textarea — uncontrolled for performance */}
@@ -474,6 +555,10 @@ export function ContentEditor({ entries }: ContentEditorProps) {
   const [previewDevice, setPreviewDevice] = React.useState<"desktop" | "mobile">("desktop");
   const [fullscreenPreviewOpen, setFullscreenPreviewOpen] = React.useState(false);
 
+  // AI dialog state
+  const [aiDialogOpen, setAiDialogOpen] = React.useState(false);
+  const [aiDialogConfig, setAiDialogConfig] = React.useState<AiDialogConfig | null>(null);
+
   // Debounced flush: batch ref snapshots into a single state update
   const scheduleFlush = React.useCallback(() => {
     clearTimeout(flushTimerRef.current);
@@ -612,6 +697,43 @@ export function ContentEditor({ entries }: ContentEditorProps) {
   );
 
   // ---------------------------------------------------------------------------
+  // AI handlers
+  // ---------------------------------------------------------------------------
+
+  const handleOpenAiDialog = React.useCallback((config: AiDialogConfig) => {
+    setAiDialogConfig(config);
+    setAiDialogOpen(true);
+  }, []);
+
+  const handleApplyAiContent = React.useCallback(
+    (generated: Record<string, string>) => {
+      for (const [key, value] of Object.entries(generated)) {
+        valuesRef.current[key] = value;
+        if (savedValues[key] !== value) {
+          dirtyRef.current.add(key);
+        }
+      }
+      // Immediate flush + remount affected fields — use prev to avoid stale resetKeys
+      setDisplayState((prev) => {
+        const bumpedKeys: Record<string, number> = {};
+        for (const key of Object.keys(generated)) {
+          bumpedKeys[key] = (prev.resetKeys[key] ?? 0) + 1;
+        }
+        return {
+          values: { ...valuesRef.current },
+          dirty: new Set(dirtyRef.current),
+          resetKeys: { ...prev.resetKeys, ...bumpedKeys },
+        };
+      });
+      toast({
+        title: "AI สร้างเนื้อหาแล้ว",
+        description: "ตรวจสอบและบันทึกเมื่อพร้อม",
+      });
+    },
+    [savedValues, toast]
+  );
+
+  // ---------------------------------------------------------------------------
   // Render
   // ---------------------------------------------------------------------------
 
@@ -723,6 +845,7 @@ export function ContentEditor({ entries }: ContentEditorProps) {
               onSaveSection={handleSaveSection}
               isSaving={isPending}
               resetKeys={resetKeys}
+              onOpenAiDialog={AI_ENABLED ? handleOpenAiDialog : undefined}
             />
           ))
         )}
@@ -753,6 +876,20 @@ export function ContentEditor({ entries }: ContentEditorProps) {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* ── AI Content Generate Dialog ──────────────────────────────────── */}
+      {AI_ENABLED && aiDialogConfig && (
+        <AiContentGenerateDialog
+          open={aiDialogOpen}
+          onOpenChange={setAiDialogOpen}
+          mode={aiDialogConfig.mode}
+          prefix={aiDialogConfig.prefix}
+          sectionLabel={aiDialogConfig.sectionLabel}
+          fields={aiDialogConfig.fields}
+          targetFieldKey={aiDialogConfig.targetFieldKey}
+          onApply={handleApplyAiContent}
+        />
+      )}
     </div>
   );
 }

@@ -53,6 +53,54 @@ export async function streamChat(
 }
 
 /**
+ * Calls Cloudflare Workers AI without streaming.
+ * Returns the complete text response — useful for structured JSON output.
+ */
+export async function chatComplete(
+  messages: ChatMessage[],
+  maxTokens = 1024
+): Promise<string> {
+  if (!CLOUDFLARE_AI_API_TOKEN) {
+    throw new Error("CLOUDFLARE_AI_API_TOKEN is not set");
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 30_000);
+
+  try {
+    const response = await fetch(getApiUrl(), {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${CLOUDFLARE_AI_API_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        messages,
+        stream: false,
+        max_tokens: maxTokens,
+      }),
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => "Unknown error");
+      throw new Error(
+        `Workers AI request failed (${response.status}): ${errorText}`
+      );
+    }
+
+    const data = await response.json();
+    const text = data?.result?.response ?? data?.response ?? "";
+    if (!text) {
+      throw new Error("Workers AI returned an empty response");
+    }
+    return text;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+/**
  * Parses the SSE stream from Workers AI into text chunks.
  * Workers AI returns `data: {"response":"..."}` lines.
  */

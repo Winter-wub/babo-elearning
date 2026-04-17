@@ -4,8 +4,10 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
-import { DEFAULT_PAGE_SIZE } from "@/lib/constants";
-import type { ActionResult, PublicPlaylist, PlaylistWithVideos, PaginatedResult } from "@/types";
+import { DEFAULT_PAGE_SIZE, PLAYLIST_THUMBNAIL_KEY_PREFIX } from "@/lib/constants";
+import { resolveThumbnailUrl } from "@/lib/thumbnail-utils";
+import { deleteObject } from "@/lib/r2";
+import type { ActionResult, PublicPlaylist, PublicPlaylistSection, PlaylistWithVideos, PaginatedResult } from "@/types";
 import type { Playlist, Video } from "@prisma/client";
 
 // -----------------------------------------------------------------------
@@ -27,7 +29,7 @@ export async function getPublicFeaturedPlaylists(
     const data: PublicPlaylist[] = playlists.map((p) => ({
       id: p.id,
       title: p.title,
-      thumbnailUrl: p.thumbnailUrl,
+      thumbnailUrl: resolveThumbnailUrl(p.thumbnailKey, p.thumbnailUrl),
       slug: p.slug,
       videoCount: p._count.videos,
     }));
@@ -56,7 +58,7 @@ export async function getPublicCategoryPlaylists(
     const data: PublicPlaylist[] = playlists.map((p) => ({
       id: p.id,
       title: p.title,
-      thumbnailUrl: p.thumbnailUrl,
+      thumbnailUrl: resolveThumbnailUrl(p.thumbnailKey, p.thumbnailUrl),
       slug: p.slug,
       videoCount: p._count.videos,
     }));
@@ -66,6 +68,67 @@ export async function getPublicCategoryPlaylists(
     return {
       success: false,
       error: err instanceof Error ? err.message : "ไม่สามารถดึงข้อมูลเพลย์ลิสต์หมวดหมู่ได้",
+    };
+  }
+}
+
+/** Active playlists with preview videos for homepage sections. No auth required. */
+export async function getPublicPlaylistSections(
+  limit = 8,
+  videosPerPlaylist = 6
+): Promise<ActionResult<PublicPlaylistSection[]>> {
+  try {
+    const playlists = await db.playlist.findMany({
+      where: { isActive: true },
+      orderBy: { sortOrder: "asc" },
+      take: limit,
+      include: {
+        _count: { select: { videos: true } },
+        videos: {
+          orderBy: { position: "asc" },
+          take: videosPerPlaylist,
+          include: {
+            video: {
+              select: {
+                id: true,
+                title: true,
+                thumbnailUrl: true,
+                thumbnailKey: true,
+                duration: true,
+                playCount: true,
+                isActive: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    const data: PublicPlaylistSection[] = playlists
+      .filter((p) => p._count.videos > 0)
+      .map((p) => ({
+        id: p.id,
+        title: p.title,
+        description: p.description,
+        thumbnailUrl: resolveThumbnailUrl(p.thumbnailKey, p.thumbnailUrl),
+        slug: p.slug,
+        videoCount: p._count.videos,
+        videos: p.videos
+          .filter((pv) => pv.video.isActive)
+          .map((pv) => ({
+            id: pv.video.id,
+            title: pv.video.title,
+            thumbnailUrl: resolveThumbnailUrl(pv.video.thumbnailKey, pv.video.thumbnailUrl),
+            duration: pv.video.duration,
+            playCount: pv.video.playCount,
+          })),
+      }));
+
+    return { success: true, data };
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "ไม่สามารถดึงข้อมูลหมวดหมู่ได้",
     };
   }
 }
@@ -90,6 +153,7 @@ export async function getActivePlaylists(): Promise<ActionResult<PlaylistWithVid
                 description: true,
                 duration: true,
                 thumbnailUrl: true,
+                thumbnailKey: true,
                 playCount: true,
               },
             },
@@ -103,11 +167,14 @@ export async function getActivePlaylists(): Promise<ActionResult<PlaylistWithVid
       id: p.id,
       title: p.title,
       description: p.description,
-      thumbnailUrl: p.thumbnailUrl,
+      thumbnailUrl: resolveThumbnailUrl(p.thumbnailKey, p.thumbnailUrl),
       slug: p.slug,
       videos: p.videos.map((pv) => ({
         position: pv.position,
-        video: pv.video,
+        video: {
+          ...pv.video,
+          thumbnailUrl: resolveThumbnailUrl(pv.video.thumbnailKey, pv.video.thumbnailUrl),
+        },
       })),
     }));
 
@@ -137,6 +204,7 @@ export async function getPlaylistBySlug(
                 description: true,
                 duration: true,
                 thumbnailUrl: true,
+                thumbnailKey: true,
                 playCount: true,
               },
             },
@@ -154,11 +222,14 @@ export async function getPlaylistBySlug(
       id: playlist.id,
       title: playlist.title,
       description: playlist.description,
-      thumbnailUrl: playlist.thumbnailUrl,
+      thumbnailUrl: resolveThumbnailUrl(playlist.thumbnailKey, playlist.thumbnailUrl),
       slug: playlist.slug,
       videos: playlist.videos.map((pv) => ({
         position: pv.position,
-        video: pv.video,
+        video: {
+          ...pv.video,
+          thumbnailUrl: resolveThumbnailUrl(pv.video.thumbnailKey, pv.video.thumbnailUrl),
+        },
       })),
     };
 
@@ -198,6 +269,8 @@ const CreatePlaylistSchema = z.object({
   title: z.string().min(1, "จำเป็นต้องระบุชื่อ").max(255),
   description: z.string().max(2000).optional(),
   thumbnailUrl: z.string().url().optional(),
+  thumbnailKey: z.string().optional().nullable(),
+  thumbnailAlt: z.string().max(255).optional().nullable(),
   isActive: z.boolean().default(true),
   isFeatured: z.boolean().default(false),
   sortOrder: z.coerce.number().int().default(0),
@@ -207,6 +280,8 @@ const UpdatePlaylistSchema = z.object({
   title: z.string().min(1).max(255).optional(),
   description: z.string().max(2000).optional(),
   thumbnailUrl: z.string().url().optional().nullable(),
+  thumbnailKey: z.string().optional().nullable(),
+  thumbnailAlt: z.string().max(255).optional().nullable(),
   slug: z.string().min(1).max(255).optional(),
   isActive: z.boolean().optional(),
   isFeatured: z.boolean().optional(),
@@ -333,9 +408,26 @@ export async function updatePlaylist(
     await requireAdmin();
     const data = UpdatePlaylistSchema.parse(input);
 
+    // Validate thumbnailKey prefix if provided
+    if (data.thumbnailKey && !data.thumbnailKey.startsWith(PLAYLIST_THUMBNAIL_KEY_PREFIX)) {
+      return { success: false, error: "Invalid thumbnail key prefix" };
+    }
+
     // If title changed, regenerate slug unless slug was explicitly provided
     if (data.title && !data.slug) {
       data.slug = generateSlug(data.title);
+    }
+
+    // Clean up old R2 thumbnail if replacing or removing
+    if (data.thumbnailKey !== undefined) {
+      const existing = await db.playlist.findUnique({ where: { id }, select: { thumbnailKey: true } });
+      if (existing?.thumbnailKey && existing.thumbnailKey !== data.thumbnailKey) {
+        deleteObject(existing.thumbnailKey).catch(() => {});
+      }
+      // Clear legacy thumbnailUrl when using R2 key
+      if (data.thumbnailKey) {
+        data.thumbnailUrl = null;
+      }
     }
 
     const playlist = await db.playlist.update({ where: { id }, data });
@@ -355,6 +447,11 @@ export async function updatePlaylist(
 export async function deletePlaylist(id: string): Promise<ActionResult<undefined>> {
   try {
     await requireAdmin();
+    // Clean up R2 thumbnail before deleting the record
+    const existing = await db.playlist.findUnique({ where: { id }, select: { thumbnailKey: true } });
+    if (existing?.thumbnailKey) {
+      deleteObject(existing.thumbnailKey).catch(() => {});
+    }
     await db.playlist.delete({ where: { id } });
     revalidatePath("/admin/playlists");
     return { success: true, data: undefined };
@@ -439,9 +536,15 @@ export async function getAllVideosForPicker(): Promise<
     const videos = await db.video.findMany({
       where: { isActive: true },
       orderBy: { title: "asc" },
-      select: { id: true, title: true, thumbnailUrl: true, duration: true },
+      select: { id: true, title: true, thumbnailUrl: true, thumbnailKey: true, duration: true },
     });
-    return { success: true, data: videos };
+    const data = videos.map((v) => ({
+      id: v.id,
+      title: v.title,
+      thumbnailUrl: resolveThumbnailUrl(v.thumbnailKey, v.thumbnailUrl),
+      duration: v.duration,
+    }));
+    return { success: true, data };
   } catch (err) {
     return {
       success: false,

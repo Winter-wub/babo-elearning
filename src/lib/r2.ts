@@ -72,6 +72,45 @@ export const r2Client = new Proxy({} as S3Client, {
 });
 
 // -----------------------------------------------------------------------
+// Public-facing S3 client — Docker dev fix
+// -----------------------------------------------------------------------
+
+/**
+ * In Docker Compose the main S3 client uses `http://minio:9000` (internal
+ * hostname). Presigned URLs signed with that endpoint include `host: minio`
+ * in the signature, but browsers on the host machine can't resolve `minio`.
+ *
+ * R2_PUBLIC_ENDPOINT (e.g. `http://localhost:9000`) creates a second client
+ * for generating browser-facing presigned URLs. The signature is computed
+ * with `host: localhost:9000` so it validates when the browser sends the
+ * request.
+ *
+ * In production (Cloudflare R2), R2_PUBLIC_ENDPOINT is not set, so
+ * `getPublicR2Client()` returns the same client as `getR2Client()`.
+ */
+let _publicR2Client: S3Client | null = null;
+
+function getPublicR2Client(): S3Client {
+  const publicEndpoint = process.env.R2_PUBLIC_ENDPOINT;
+  if (!publicEndpoint) return getR2Client();
+
+  if (_publicR2Client) return _publicR2Client;
+
+  const accessKeyId = process.env.R2_ACCESS_KEY_ID ?? process.env.AWS_ACCESS_KEY_ID;
+  const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY ?? process.env.AWS_SECRET_ACCESS_KEY;
+  if (!accessKeyId || !secretAccessKey) return getR2Client();
+
+  _publicR2Client = new S3Client({
+    region: "auto",
+    endpoint: publicEndpoint,
+    credentials: { accessKeyId, secretAccessKey },
+    forcePathStyle: true,
+  });
+
+  return _publicR2Client;
+}
+
+// -----------------------------------------------------------------------
 // Helper functions
 // -----------------------------------------------------------------------
 
@@ -90,7 +129,7 @@ export async function getUploadUrl(key: string, contentType: string): Promise<st
     ContentType: contentType,
   });
 
-  return getSignedUrl(getR2Client(), command, { expiresIn: SIGNED_URL_EXPIRY });
+  return getSignedUrl(getPublicR2Client(), command, { expiresIn: SIGNED_URL_EXPIRY });
 }
 
 /**
@@ -106,7 +145,7 @@ export async function getPlaybackUrl(key: string): Promise<string> {
     Key: key,
   });
 
-  return getSignedUrl(getR2Client(), command, { expiresIn: SIGNED_URL_EXPIRY });
+  return getSignedUrl(getPublicR2Client(), command, { expiresIn: SIGNED_URL_EXPIRY });
 }
 
 /**
@@ -124,7 +163,7 @@ export async function getMaterialViewUrl(key: string): Promise<string> {
     ResponseContentDisposition: "inline",
   });
 
-  return getSignedUrl(getR2Client(), command, { expiresIn: SIGNED_URL_EXPIRY });
+  return getSignedUrl(getPublicR2Client(), command, { expiresIn: SIGNED_URL_EXPIRY });
 }
 
 /**
@@ -148,7 +187,7 @@ export async function getMaterialDownloadUrl(
     ResponseContentDisposition: `attachment; filename="${downloadFilename}"; filename*=UTF-8''${encoded}`,
   });
 
-  return getSignedUrl(getR2Client(), command, { expiresIn: SIGNED_URL_EXPIRY });
+  return getSignedUrl(getPublicR2Client(), command, { expiresIn: SIGNED_URL_EXPIRY });
 }
 
 /**

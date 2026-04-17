@@ -204,6 +204,94 @@ export const OAUTH_LABELS: Record<OAuthProviderId, string> = {
 };
 
 // -----------------------------------------------------------------------
+// Blog constraints
+// -----------------------------------------------------------------------
+
+/** Maximum blog image upload size in bytes (5 MB). */
+export const MAX_BLOG_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
+
+/** Accepted blog image MIME types. */
+export const ACCEPTED_BLOG_IMAGE_TYPES = [
+  "image/png",
+  "image/jpeg",
+  "image/webp",
+  "image/gif",
+] as const;
+
+/** Blog posts per page for public listing. */
+export const BLOG_POSTS_PER_PAGE = 12;
+
+/** Maximum blog title length. */
+export const MAX_BLOG_TITLE_LENGTH = 255;
+
+/** Maximum blog excerpt length. */
+export const MAX_BLOG_EXCERPT_LENGTH = 500;
+
+/** Maximum blog content size (5 MB of HTML). */
+export const MAX_BLOG_CONTENT_LENGTH = 5_000_000;
+
+/** R2 key prefix for blog images — must be enforced on all image routes. */
+export const BLOG_IMAGE_KEY_PREFIX = "blog-images/";
+
+/** Blog image signed URL cache duration in seconds (10 minutes). */
+export const BLOG_IMAGE_CACHE_SECONDS = 600;
+
+/** Maximum blog video upload size in bytes (100 MB). */
+export const MAX_BLOG_VIDEO_SIZE_BYTES = 100 * 1024 * 1024;
+
+/** Accepted blog video MIME types. */
+export const ACCEPTED_BLOG_VIDEO_TYPES = [
+  "video/mp4",
+  "video/webm",
+  "video/quicktime",
+] as const;
+
+/** R2 key prefix for blog videos. */
+export const BLOG_VIDEO_KEY_PREFIX = "blog-videos/";
+
+/** Category color presets (safe in both light and dark mode). */
+export const BLOG_CATEGORY_COLORS = [
+  "bg-blue-100 text-blue-700",
+  "bg-green-100 text-green-700",
+  "bg-amber-100 text-amber-700",
+  "bg-red-100 text-red-700",
+  "bg-purple-100 text-purple-700",
+  "bg-slate-100 text-slate-700",
+] as const;
+
+/** Slug validation: only lowercase alphanumeric + hyphens, 3–200 chars. */
+export const BLOG_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+/** Reserved slug values that cannot be used for blog posts. */
+export const RESERVED_BLOG_SLUGS = new Set([
+  "admin", "api", "null", "undefined", "new", "edit", "delete",
+  "categories", "search", "feed", "rss", "sitemap",
+]);
+
+// -----------------------------------------------------------------------
+// Thumbnail upload (video & playlist covers)
+// -----------------------------------------------------------------------
+
+/** Maximum thumbnail upload size in bytes (5 MB). */
+export const MAX_THUMBNAIL_SIZE_BYTES = 5 * 1024 * 1024;
+
+/** Accepted thumbnail MIME types. */
+export const ACCEPTED_THUMBNAIL_TYPES = [
+  "image/png",
+  "image/jpeg",
+  "image/webp",
+] as const;
+
+/** R2 key prefix for video thumbnails. */
+export const VIDEO_THUMBNAIL_KEY_PREFIX = "video-thumbnails/";
+
+/** R2 key prefix for playlist thumbnails. */
+export const PLAYLIST_THUMBNAIL_KEY_PREFIX = "playlist-thumbnails/";
+
+/** Thumbnail signed URL cache duration in seconds (10 minutes). */
+export const THUMBNAIL_CACHE_SECONDS = 600;
+
+// -----------------------------------------------------------------------
 // Logo upload
 // -----------------------------------------------------------------------
 

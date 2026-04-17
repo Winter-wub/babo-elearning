@@ -34,8 +34,8 @@ services:
       # Named volume keeps data across container restarts / rebuilds
       - postgres_data:/var/lib/postgresql/data
     ports:
-      # Expose on 5433 on the host to avoid collisions with a local Postgres
-      - "5433:5432"
+      # Expose on 5434 on the host to avoid collisions with other projects
+      - "5434:5432"
     networks:
       - elearning_net
     healthcheck:
@@ -107,6 +107,9 @@ services:
       context: .
       dockerfile: Dockerfile
       target: runner
+      args:
+        R2_ENDPOINT: http://minio:9000
+        R2_PUBLIC_ENDPOINT: http://localhost:9000
     restart: unless-stopped
     env_file:
       # docker compose loads .env.local automatically; this makes it explicit
@@ -117,16 +120,17 @@ services:
     environment:
       # Ensure the app connects to the containerised Postgres, not localhost
       DATABASE_URL: ${DATABASE_URL:-postgresql://elearning:elearning_dev_password@db:5432/elearning?schema=public}
-      AUTH_URL:     ${AUTH_URL:-http://localhost:3000}
+      AUTH_URL:     ${AUTH_URL:-http://localhost:3002}
       # R2 env vars are re-mapped to point at the MinIO container
       R2_ENDPOINT:          http://minio:9000
+      R2_PUBLIC_ENDPOINT:   http://localhost:9000
       R2_ACCOUNT_ID:        ${R2_ACCOUNT_ID:-local}
       R2_ACCESS_KEY_ID:     ${R2_ACCESS_KEY_ID:-minioadmin}
       R2_SECRET_ACCESS_KEY: ${R2_SECRET_ACCESS_KEY:-minioadmin}
       R2_BUCKET_NAME:       ${R2_BUCKET_NAME:-elearning-videos}
-      NEXT_PUBLIC_APP_URL:  ${NEXT_PUBLIC_APP_URL:-http://localhost:3000}
+      NEXT_PUBLIC_APP_URL:  ${NEXT_PUBLIC_APP_URL:-http://localhost:3002}
     ports:
-      - "3000:3000"
+      - "3002:3000"
     networks:
       - elearning_net
     depends_on:

@@ -7,8 +7,10 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import { getR2Client, R2_BUCKET_NAME } from "@/lib/r2";
-import { DEFAULT_PAGE_SIZE, MAX_VIDEO_DURATION, SIGNED_URL_EXPIRY } from "@/lib/constants";
+import { DEFAULT_PAGE_SIZE, MAX_VIDEO_DURATION, SIGNED_URL_EXPIRY, VIDEO_THUMBNAIL_KEY_PREFIX } from "@/lib/constants";
 import { isPermissionCurrentlyValid } from "@/lib/permission-utils";
+import { resolveThumbnailUrl } from "@/lib/thumbnail-utils";
+import { deleteObject } from "@/lib/r2";
 import type { ActionResult, PaginatedResult, PublicVideo, VideoWithPermissions } from "@/types";
 import type { Video } from "@prisma/client";
 
@@ -58,6 +60,8 @@ const UpdateVideoSchema = z.object({
   description: z.string().max(2000).optional(),
   isActive: z.boolean().optional(),
   isFeatured: z.boolean().optional(),
+  thumbnailKey: z.string().optional().nullable(),
+  thumbnailAlt: z.string().max(255).optional().nullable(),
 });
 
 // -----------------------------------------------------------------------
@@ -177,7 +181,7 @@ export async function createVideo(
   }
 }
 
-/** Edit title, description, or isActive. ADMIN only. */
+/** Edit title, description, isActive, or thumbnail. ADMIN only. */
 export async function updateVideo(
   id: string,
   data: z.infer<typeof UpdateVideoSchema>
@@ -187,6 +191,23 @@ export async function updateVideo(
     const parsed = UpdateVideoSchema.safeParse(data);
     if (!parsed.success) {
       return { success: false, error: parsed.error.issues[0]?.message ?? "ข้อมูลไม่ถูกต้อง" };
+    }
+
+    // Validate thumbnailKey prefix if provided
+    if (parsed.data.thumbnailKey && !parsed.data.thumbnailKey.startsWith(VIDEO_THUMBNAIL_KEY_PREFIX)) {
+      return { success: false, error: "Invalid thumbnail key prefix" };
+    }
+
+    // Clean up old R2 thumbnail if replacing or removing
+    if (parsed.data.thumbnailKey !== undefined) {
+      const existing = await db.video.findUnique({ where: { id }, select: { thumbnailKey: true } });
+      if (existing?.thumbnailKey && existing.thumbnailKey !== parsed.data.thumbnailKey) {
+        deleteObject(existing.thumbnailKey).catch(() => {});
+      }
+      // Clear legacy thumbnailUrl when using R2 key
+      if (parsed.data.thumbnailKey) {
+        (parsed.data as Record<string, unknown>).thumbnailUrl = null;
+      }
     }
 
     const video = await db.video.update({ where: { id }, data: parsed.data });
@@ -219,10 +240,25 @@ const PUBLIC_VIDEO_SELECT = {
   description: true,
   duration: true,
   thumbnailUrl: true,
+  thumbnailKey: true,
   createdAt: true,
   playCount: true,
   isFeatured: true,
 } as const;
+
+/** Map a raw DB row to a PublicVideo, resolving the thumbnail URL. */
+function toPublicVideo(v: { thumbnailKey: string | null; thumbnailUrl: string | null; [key: string]: unknown }): PublicVideo {
+  return {
+    id: v.id as string,
+    title: v.title as string,
+    description: v.description as string | null,
+    duration: v.duration as number,
+    thumbnailUrl: resolveThumbnailUrl(v.thumbnailKey, v.thumbnailUrl),
+    createdAt: v.createdAt as Date,
+    playCount: v.playCount as number,
+    isFeatured: v.isFeatured as boolean,
+  };
+}
 
 // -----------------------------------------------------------------------
 // Public (unauthenticated) actions
@@ -239,7 +275,7 @@ export async function getPublicLatestVideos(
       take: limit,
       select: PUBLIC_VIDEO_SELECT,
     });
-    return { success: true, data: videos };
+    return { success: true, data: videos.map(toPublicVideo) };
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : "ไม่สามารถดึงข้อมูลวิดีโอล่าสุดได้" };
   }
@@ -256,7 +292,7 @@ export async function getPublicMostPlayedVideos(
       take: limit,
       select: PUBLIC_VIDEO_SELECT,
     });
-    return { success: true, data: videos };
+    return { success: true, data: videos.map(toPublicVideo) };
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : "ไม่สามารถดึงข้อมูลวิดีโอยอดนิยมได้" };
   }
@@ -270,7 +306,7 @@ export async function getPublicFeaturedVideos(): Promise<ActionResult<PublicVide
       orderBy: { createdAt: "desc" },
       select: PUBLIC_VIDEO_SELECT,
     });
-    return { success: true, data: videos };
+    return { success: true, data: videos.map(toPublicVideo) };
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : "ไม่สามารถดึงข้อมูลวิดีโอแนะนำได้" };
   }
@@ -287,7 +323,7 @@ export async function getPublicTrendingVideos(
       take: limit,
       select: PUBLIC_VIDEO_SELECT,
     });
-    return { success: true, data: videos };
+    return { success: true, data: videos.map(toPublicVideo) };
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : "ไม่สามารถดึงข้อมูลวิดีโอมาแรงได้" };
   }

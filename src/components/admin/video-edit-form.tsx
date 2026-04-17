@@ -11,8 +11,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { ThumbnailUploadWidget } from "@/components/admin/thumbnail-upload-widget";
 import { useToast } from "@/hooks/use-toast";
 import { updateVideo } from "@/actions/video.actions";
+import { getUploadVideoThumbnailUrl } from "@/actions/thumbnail.actions";
+import { resolveThumbnailUrl } from "@/lib/thumbnail-utils";
 import type { Video } from "@/types";
 
 // -----------------------------------------------------------------------
@@ -48,6 +51,13 @@ interface VideoEditFormProps {
 export function VideoEditForm({ video }: VideoEditFormProps) {
   const { toast } = useToast();
 
+  // Thumbnail state (managed outside react-hook-form due to async R2 upload)
+  const [thumbnailKey, setThumbnailKey] = React.useState<string | null>(video.thumbnailKey);
+  const [thumbnailUrl, setThumbnailUrl] = React.useState<string | null>(
+    resolveThumbnailUrl(video.thumbnailKey, video.thumbnailUrl)
+  );
+  const [thumbnailDirty, setThumbnailDirty] = React.useState(false);
+
   const {
     register,
     handleSubmit,
@@ -71,6 +81,7 @@ export function VideoEditForm({ video }: VideoEditFormProps) {
       title: values.title,
       description: values.description || undefined,
       isActive: values.isActive,
+      ...(thumbnailDirty && { thumbnailKey }),
     });
 
     if (!result.success) {
@@ -93,6 +104,9 @@ export function VideoEditForm({ video }: VideoEditFormProps) {
       description: result.data.description ?? "",
       isActive: result.data.isActive,
     });
+    setThumbnailKey(result.data.thumbnailKey);
+    setThumbnailUrl(resolveThumbnailUrl(result.data.thumbnailKey, result.data.thumbnailUrl));
+    setThumbnailDirty(false);
   }
 
   return (
@@ -142,6 +156,19 @@ export function VideoEditForm({ video }: VideoEditFormProps) {
             )}
           </div>
 
+          {/* Thumbnail */}
+          <ThumbnailUploadWidget
+            imageKey={thumbnailKey}
+            imageUrl={thumbnailUrl}
+            onChange={({ key, url }) => {
+              setThumbnailKey(key);
+              setThumbnailUrl(url);
+              setThumbnailDirty(true);
+            }}
+            getUploadUrl={getUploadVideoThumbnailUrl}
+            label="รูปตัวอย่างวิดีโอ"
+          />
+
           {/* Active toggle */}
           <div className="flex items-center justify-between rounded-lg border p-4">
             <div className="space-y-0.5">
@@ -163,7 +190,7 @@ export function VideoEditForm({ video }: VideoEditFormProps) {
 
           {/* Submit */}
           <div className="flex justify-end">
-            <Button type="submit" disabled={isSubmitting || !isDirty}>
+            <Button type="submit" disabled={isSubmitting || (!isDirty && !thumbnailDirty)}>
               {isSubmitting && (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               )}

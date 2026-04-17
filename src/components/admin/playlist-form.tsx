@@ -15,8 +15,11 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { ThumbnailUploadWidget } from "@/components/admin/thumbnail-upload-widget";
 import { useToast } from "@/hooks/use-toast";
 import { createPlaylist, updatePlaylist } from "@/actions/playlist.actions";
+import { getUploadPlaylistThumbnailUrl } from "@/actions/thumbnail.actions";
+import { resolveThumbnailUrl } from "@/lib/thumbnail-utils";
 
 // -----------------------------------------------------------------------
 // Types
@@ -30,6 +33,8 @@ interface PlaylistFormData {
   isActive: boolean;
   isFeatured: boolean;
   sortOrder: number;
+  thumbnailKey?: string | null;
+  thumbnailUrl?: string | null;
 }
 
 interface PlaylistFormProps {
@@ -66,6 +71,10 @@ export function PlaylistForm({ playlist }: PlaylistFormProps) {
     playlist?.isFeatured ?? false
   );
   const [sortOrder, setSortOrder] = React.useState(playlist?.sortOrder ?? 0);
+  const [thumbnailKey, setThumbnailKey] = React.useState<string | null>(playlist?.thumbnailKey ?? null);
+  const [thumbnailUrl, setThumbnailUrl] = React.useState<string | null>(
+    resolveThumbnailUrl(playlist?.thumbnailKey ?? null, playlist?.thumbnailUrl ?? null)
+  );
   const [slugManuallyEdited, setSlugManuallyEdited] = React.useState(false);
   const [isPending, startTransition] = React.useTransition();
 
@@ -105,6 +114,7 @@ export function PlaylistForm({ playlist }: PlaylistFormProps) {
         isActive,
         isFeatured,
         sortOrder,
+        thumbnailKey,
       };
 
       const result = isEditing
@@ -169,6 +179,18 @@ export function PlaylistForm({ playlist }: PlaylistFormProps) {
               className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             />
           </div>
+
+          {/* Thumbnail */}
+          <ThumbnailUploadWidget
+            imageKey={thumbnailKey}
+            imageUrl={thumbnailUrl}
+            onChange={({ key, url }) => {
+              setThumbnailKey(key);
+              setThumbnailUrl(url);
+            }}
+            getUploadUrl={getUploadPlaylistThumbnailUrl}
+            label="รูปตัวอย่างเพลย์ลิสต์"
+          />
 
           {/* Slug */}
           <div className="space-y-2">

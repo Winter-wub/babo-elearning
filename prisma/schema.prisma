@@ -31,6 +31,7 @@ model User {
   createdInviteLinks      InviteLink[]             @relation("InviteLinkCreator")
   inviteRedemptions       InviteLinkRedemption[]
   chatConversations       AdminChatConversation[]
+  blogPosts               BlogPost[]
 
   @@index([email])
   @@index([role])
@@ -113,7 +114,9 @@ model Video {
   description  String?
   s3Key        String   @unique
   duration     Int // seconds, max 3600
-  thumbnailUrl String?
+  thumbnailUrl String? // legacy: external URL — prefer thumbnailKey for R2-stored images
+  thumbnailKey String? // R2 object key, e.g. "video-thumbnails/<videoId>/<uuid>.<ext>"
+  thumbnailAlt String? // alt text for accessibility
   isActive     Boolean  @default(true)
   playCount    Int      @default(0)
   isFeatured   Boolean  @default(false)
@@ -183,7 +186,9 @@ model Playlist {
   id           String   @id @default(cuid())
   title        String
   description  String?
-  thumbnailUrl String?
+  thumbnailUrl String? // legacy: external URL — prefer thumbnailKey for R2-stored images
+  thumbnailKey String? // R2 object key, e.g. "playlist-thumbnails/<playlistId>/<uuid>.<ext>"
+  thumbnailAlt String? // alt text for accessibility
   slug         String   @unique
   isActive     Boolean  @default(true)
   isFeatured   Boolean  @default(false)
@@ -191,7 +196,8 @@ model Playlist {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  videos PlaylistVideo[]
+  videos    PlaylistVideo[]
+  blogPosts BlogPostPlaylist[]
 
   @@index([isActive])
   @@index([isFeatured])
@@ -320,4 +326,79 @@ model AdminChatMessage {
   createdAt      DateTime @default(now())
 
   @@index([conversationId])
+}
+
+// -----------------------------------------------------------------------
+// Blog — Public articles authored by admins
+// -----------------------------------------------------------------------
+
+enum BlogPostStatus {
+  DRAFT
+  PUBLISHED
+}
+
+model BlogPost {
+  id               String         @id @default(cuid())
+  title            String
+  slug             String         @unique
+  excerpt          String?        @db.VarChar(500)
+  content          String         @db.Text
+  featuredImageKey  String?
+  featuredImageAlt  String?
+  status           BlogPostStatus @default(DRAFT)
+  publishedAt      DateTime?
+  authorId         String?
+
+  author     User?              @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  categories BlogPostCategory[]
+  playlists  BlogPostPlaylist[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([slug])
+  @@index([status, publishedAt])
+  @@index([authorId])
+}
+
+model BlogCategory {
+  id          String @id @default(cuid())
+  name        String
+  slug        String @unique
+  description String?
+  color       String @default("bg-blue-100 text-blue-700")
+  sortOrder   Int    @default(0)
+
+  posts BlogPostCategory[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([slug])
+  @@index([sortOrder])
+}
+
+model BlogPostCategory {
+  postId     String
+  categoryId String
+
+  post     BlogPost     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  category BlogCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([postId, categoryId])
+  @@index([postId])
+  @@index([categoryId])
+}
+
+model BlogPostPlaylist {
+  postId     String
+  playlistId String
+  position   Int    @default(0)
+
+  post     BlogPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  playlist Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+
+  @@id([postId, playlistId])
+  @@index([postId])
+  @@index([playlistId])
 }

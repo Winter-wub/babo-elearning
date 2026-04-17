@@ -52,6 +52,8 @@ export default async function EditPlaylistPage({ params }: EditPlaylistPageProps
           isActive: playlist.isActive,
           isFeatured: playlist.isFeatured,
           sortOrder: playlist.sortOrder,
+          thumbnailKey: playlist.thumbnailKey,
+          thumbnailUrl: playlist.thumbnailUrl,
         }}
       />
 

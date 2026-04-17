@@ -226,14 +226,14 @@ async function VideoDetailsCard({ videoId }: { videoId: string }) {
             </code>
           }
         />
-        {video.thumbnailUrl && (
+        {(video.thumbnailKey || video.thumbnailUrl) && (
           <InfoRow
             icon={<VideoIcon className="h-4 w-4" />}
             label="Thumbnail"
             value={
               // eslint-disable-next-line @next/next/no-img-element
               <img
-                src={video.thumbnailUrl}
+                src={video.thumbnailKey ? `/api/thumbnails/${video.thumbnailKey}` : video.thumbnailUrl!}
                 alt={`Thumbnail for ${video.title}`}
                 className="h-14 w-24 rounded object-cover"
               />

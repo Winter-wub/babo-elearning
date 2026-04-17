@@ -11,6 +11,8 @@ export { TrendingListItem } from "./trending-list-item";
 export { PlaylistCard } from "./playlist-card";
 export { FeaturedPlaylistsSection } from "./featured-playlists-section";
 export { CategoryPlaylistsGrid } from "./category-playlists-grid";
+export { PlaylistSection } from "./playlist-section";
+export { LatestBlogSection } from "./latest-blog-section";
 export { NavCoursesDropdown } from "./nav-courses-dropdown";
 
 // ── Existing components (kept for backward compatibility) ─────────────────────

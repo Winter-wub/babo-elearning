@@ -1,9 +1,9 @@
-import type { User, Video, VideoPermission, PolicyAgreement, Role, CourseMaterial, InviteLink, InviteLinkRedemption } from "@prisma/client";
+import type { User, Video, VideoPermission, PolicyAgreement, Role, CourseMaterial, InviteLink, InviteLinkRedemption, BlogPost, BlogCategory, BlogPostStatus } from "@prisma/client";
 
 // -----------------------------------------------------------------------
 // Re-exports for convenience
 // -----------------------------------------------------------------------
-export type { User, Video, VideoPermission, PolicyAgreement, Role, CourseMaterial, InviteLink, InviteLinkRedemption };
+export type { User, Video, VideoPermission, PolicyAgreement, Role, CourseMaterial, InviteLink, InviteLinkRedemption, BlogPost, BlogCategory, BlogPostStatus };
 
 /** Material record safe for client — s3Key omitted. */
 export type PublicMaterial = Omit<CourseMaterial, "s3Key">;
@@ -67,6 +67,23 @@ export type PublicPlaylist = {
   thumbnailUrl: string | null;
   slug: string;
   videoCount: number;
+};
+
+/** Playlist with preview videos for homepage sections (SET e-learning style). */
+export type PublicPlaylistSection = {
+  id: string;
+  title: string;
+  description: string | null;
+  thumbnailUrl: string | null;
+  slug: string;
+  videoCount: number;
+  videos: {
+    id: string;
+    title: string;
+    thumbnailUrl: string | null;
+    duration: number;
+    playCount: number;
+  }[];
 };
 
 /** Playlist with its videos expanded (safe subset — no s3Key). */
@@ -167,4 +184,77 @@ export type PublicInviteLinkInfo = {
   videoTitles?: string[];
   videoCount: number;
   permissionLabel: string;
+};
+
+// -----------------------------------------------------------------------
+// Blog types
+// -----------------------------------------------------------------------
+
+/** Public blog post for listing — never includes featuredImageKey. */
+export type PublicBlogPost = {
+  id: string;
+  title: string;
+  slug: string;
+  excerpt: string | null;
+  status: BlogPostStatus;
+  publishedAt: Date | null;
+  createdAt: Date;
+  featuredImageUrl: string | null;
+  author: { name: string | null };
+  categories: { id: string; name: string; slug: string; color: string }[];
+};
+
+/** Playlist preview attached to a blog post. */
+export type BlogPlaylistPreview = {
+  id: string;
+  title: string;
+  description: string | null;
+  thumbnailUrl: string | null;
+  slug: string;
+  videoCount: number;
+};
+
+/** Full blog post detail for public reading. */
+export type BlogPostDetail = PublicBlogPost & {
+  content: string;
+  updatedAt: Date;
+  playlists: BlogPlaylistPreview[];
+};
+
+/** Blog post for admin table — includes draft-specific info. */
+export type AdminBlogPostRow = {
+  id: string;
+  title: string;
+  slug: string;
+  status: BlogPostStatus;
+  publishedAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+  featuredImageUrl: string | null;
+  author: { name: string | null } | null;
+  categories: { id: string; name: string; color: string }[];
+};
+
+/** Full blog post for admin editing — includes raw keys for image management. */
+export type AdminBlogPostDetail = {
+  id: string;
+  title: string;
+  slug: string;
+  excerpt: string | null;
+  content: string;
+  featuredImageKey: string | null;
+  featuredImageAlt: string | null;
+  featuredImageUrl: string | null;
+  status: BlogPostStatus;
+  publishedAt: Date | null;
+  authorId: string | null;
+  categoryIds: string[];
+  playlistIds: string[];
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+/** Blog category with post count for admin management. */
+export type BlogCategoryWithCount = BlogCategory & {
+  _count: { posts: number };
 };

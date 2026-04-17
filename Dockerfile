@@ -64,6 +64,14 @@ ARG NEXT_PUBLIC_APP_URL=http://localhost:3000
 ENV NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL}
 ARG NEXT_PUBLIC_AI_CHAT_ENABLED=false
 ENV NEXT_PUBLIC_AI_CHAT_ENABLED=${NEXT_PUBLIC_AI_CHAT_ENABLED}
+# R2 endpoint vars — used by next.config.ts headers() to build CSP at build time.
+# In Docker dev, R2_ENDPOINT points to the internal MinIO hostname (http://minio:9000)
+# and R2_PUBLIC_ENDPOINT to the host-reachable address (http://localhost:9000).
+# In production these are unset (CSP uses hardcoded R2 domains).
+ARG R2_ENDPOINT
+ENV R2_ENDPOINT=${R2_ENDPOINT}
+ARG R2_PUBLIC_ENDPOINT
+ENV R2_PUBLIC_ENDPOINT=${R2_PUBLIC_ENDPOINT}
 # Dummy DATABASE_URL so Next.js can collect page data during build.
 # Auth.js route handler initialises Prisma at import time; without a
 # syntactically valid URL the build crashes. The real URL is injected

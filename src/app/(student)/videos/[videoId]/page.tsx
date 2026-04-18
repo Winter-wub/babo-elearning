@@ -7,9 +7,11 @@ import { db } from "@/lib/db";
 import { incrementPlayCount } from "@/actions/video.actions";
 import { getPermissionTimeStatus } from "@/lib/permission-utils";
 import { VideoPlayerWithPolicy } from "@/components/video/video-player-with-policy";
+import { ExerciseGate } from "@/components/exercise/exercise-gate";
 import { VideoMaterialsSection } from "@/components/video/video-materials-section";
 import { Button } from "@/components/ui/button";
 import { getMaterialsByVideoId } from "@/actions/material.actions";
+import { getVideoExerciseStatus } from "@/actions/exercise.actions";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -105,9 +107,12 @@ export default async function VideoPage({ params }: VideoPageProps) {
 
   const hasAgreedToPolicy = policyAgreement !== null;
 
-  // ---- 5. Fetch course materials -------------------------------------------
+  // ---- 5. Fetch course materials + exercise status -------------------------
   const materialsResult = await getMaterialsByVideoId(videoId);
   const materials = materialsResult.success ? materialsResult.data : [];
+
+  const exerciseStatusResult = await getVideoExerciseStatus(videoId);
+  const exerciseStatus = exerciseStatusResult.success ? exerciseStatusResult.data : null;
 
   // ---- 6. Increment play count (fire-and-forget) --------------------------
   // Do not await — we don't want to block rendering on a best-effort counter.
@@ -126,13 +131,23 @@ export default async function VideoPage({ params }: VideoPageProps) {
         </Button>
       </div>
 
-      {/* Video player (gated behind policy agreement) */}
+      {/* Video player (gated behind policy agreement + exercises) */}
       <section aria-label="Video player">
-        <VideoPlayerWithPolicy
-          videoId={video.id}
-          title={video.title}
-          hasAgreedServer={hasAgreedToPolicy}
-        />
+        {exerciseStatus && (exerciseStatus.preTest || exerciseStatus.postTest) ? (
+          <ExerciseGate
+            videoId={video.id}
+            title={video.title}
+            hasAgreedServer={hasAgreedToPolicy}
+            preTest={exerciseStatus.preTest}
+            postTest={exerciseStatus.postTest}
+          />
+        ) : (
+          <VideoPlayerWithPolicy
+            videoId={video.id}
+            title={video.title}
+            hasAgreedServer={hasAgreedToPolicy}
+          />
+        )}
       </section>
 
       {/* Video metadata */}

@@ -18,8 +18,10 @@ import { Spinner } from "@/components/ui/spinner";
 
 import { VideoEditForm } from "@/components/admin/video-edit-form";
 import { VideoMaterialsManager } from "@/components/admin/video-materials-manager";
+import { VideoExercisesManager } from "@/components/admin/video-exercises-manager";
 import { getVideoById } from "@/actions/video.actions";
 import { getAdminMaterialsByVideoId } from "@/actions/material.actions";
+import { getExercisesForVideo } from "@/actions/exercise.actions";
 import { formatDuration } from "@/lib/utils";
 
 // -----------------------------------------------------------------------
@@ -270,6 +272,19 @@ async function MaterialsSection({ videoId }: { videoId: string }) {
 }
 
 // -----------------------------------------------------------------------
+// Sub-component: exercises manager (server-fetched initial data)
+// -----------------------------------------------------------------------
+
+async function ExercisesSection({ videoId }: { videoId: string }) {
+  const result = await getExercisesForVideo(videoId);
+  const exercises = result.success ? result.data : [];
+
+  return (
+    <VideoExercisesManager videoId={videoId} initialExercises={exercises} />
+  );
+}
+
+// -----------------------------------------------------------------------
 // Page
 // -----------------------------------------------------------------------
 
@@ -324,6 +339,16 @@ export default async function AdminVideoDetailPage({ params }: PageProps) {
             }
           >
             <MaterialsSection videoId={videoId} />
+          </Suspense>
+
+          <Suspense
+            fallback={
+              <div className="flex items-center justify-center py-10">
+                <Spinner />
+              </div>
+            }
+          >
+            <ExercisesSection videoId={videoId} />
           </Suspense>
         </div>
 

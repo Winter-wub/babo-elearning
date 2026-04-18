@@ -32,6 +32,7 @@ model User {
   inviteRedemptions       InviteLinkRedemption[]
   chatConversations       AdminChatConversation[]
   blogPosts               BlogPost[]
+  exerciseAttempts        ExerciseAttempt[]
 
   @@index([email])
   @@index([role])
@@ -126,6 +127,7 @@ model Video {
   permissions VideoPermission[]
   playlists   PlaylistVideo[]
   materials   CourseMaterial[]
+  exercises   Exercise[]
 
   @@index([isActive])
   @@index([isFeatured])
@@ -403,6 +405,104 @@ model BlogPostPlaylist {
   @@id([postId, playlistId])
   @@index([postId])
   @@index([playlistId])
+}
+
+// -----------------------------------------------------------------------
+// Audit Log — Tracks admin actions for accountability
+// -----------------------------------------------------------------------
+
+// -----------------------------------------------------------------------
+// Exercises — Pre-test / Post-test for Videos
+// -----------------------------------------------------------------------
+
+enum ExerciseType {
+  PRE_TEST
+  POST_TEST
+}
+
+enum QuestionType {
+  SHORT_ANSWER
+  PARAGRAPH
+  MULTIPLE_CHOICE
+  CHECKBOXES
+  DROPDOWN
+  LINEAR_SCALE
+  MATCHING
+  TRUE_FALSE
+  FILL_IN_BLANK
+}
+
+model Exercise {
+  id           String       @id @default(cuid())
+  videoId      String
+  type         ExerciseType
+  title        String
+  description  String?
+  passingScore Int          @default(80) // percentage 0–100
+  maxAttempts  Int?         // null = unlimited retakes
+  isActive     Boolean      @default(true)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  video     Video              @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  questions ExerciseQuestion[]
+  attempts  ExerciseAttempt[]
+
+  @@unique([videoId, type]) // one pre-test + one post-test per video
+  @@index([videoId])
+}
+
+model ExerciseQuestion {
+  id         String       @id @default(cuid())
+  exerciseId String
+  type       QuestionType
+  text       String       @db.Text
+  required   Boolean      @default(true)
+  points     Int          @default(1)
+  sortOrder  Int          @default(0)
+  config     Json         // type-specific options & correct answer
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+
+  exercise Exercise        @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  answers  StudentAnswer[]
+
+  @@index([exerciseId, sortOrder])
+}
+
+model ExerciseAttempt {
+  id           String    @id @default(cuid())
+  exerciseId   String
+  userId       String
+  score        Int?      // percentage, null = in progress
+  totalPoints  Int?
+  earnedPoints Int?
+  passed       Boolean?
+  startedAt    DateTime  @default(now())
+  completedAt  DateTime?
+
+  exercise Exercise        @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  user     User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  answers  StudentAnswer[]
+
+  @@index([exerciseId])
+  @@index([userId])
+  @@index([userId, exerciseId])
+}
+
+model StudentAnswer {
+  id            String  @id @default(cuid())
+  attemptId     String
+  questionId    String
+  answer        Json    // flexible: string, number, boolean, string[], Record<string,string>
+  isCorrect     Boolean? // null = pending manual review
+  pointsAwarded Int     @default(0)
+
+  attempt  ExerciseAttempt  @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question ExerciseQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([attemptId, questionId])
+  @@index([attemptId])
 }
 
 // -----------------------------------------------------------------------

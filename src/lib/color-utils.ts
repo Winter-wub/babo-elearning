@@ -33,31 +33,40 @@ export function hexToOklchValues(hex: string): {
 /**
  * Derive a complete theme palette from a single primary hex color.
  * Returns CSS variable values (oklch strings) keyed by their CSS property names.
+ *
+ * Light-mode constraint: `--primary` must contrast against white background
+ * (WCAG AA ≈ 4.5:1). In OKLch this means L ≤ ~0.55. If the user picks a
+ * pastel/light color we darken it and boost chroma so it stays vivid.
  */
 export function derivePalette(primaryHex: string): Record<string, string> {
   const { l, c, h } = hexToOklchValues(primaryHex);
 
-  // Primary as-is
-  const primary = toOklchStr(l, c, h);
+  // Ensure primary has enough contrast against white (L=1) for text usage.
+  // Cap lightness at 0.55; boost chroma slightly when darkening so the
+  // color stays vibrant instead of turning muddy.
+  const primaryL = Math.min(l, 0.55);
+  const primaryC = l > 0.55 ? Math.min(c * 1.15, 0.35) : c;
+  const primary = toOklchStr(primaryL, primaryC, h);
 
-  // Primary foreground — white if primary is dark, dark if primary is light
+  // Primary foreground — white on the (possibly darkened) primary
   const primaryFg =
-    l < 0.6 ? "oklch(0.985 0 0)" : "oklch(0.205 0 0)";
+    primaryL < 0.6 ? "oklch(0.985 0 0)" : "oklch(0.205 0 0)";
 
-  // Accent — slightly lighter, less saturated version of primary
+  // Accent — slightly lighter, less saturated version (use original L for a
+  // softer pastel feel on surfaces where contrast is not critical)
   const accentL = Math.min(l + 0.35, 0.965);
   const accentC = c * 0.15;
   const accent = toOklchStr(accentL, accentC, h);
   const accentFg = "oklch(0.205 0 0)";
 
   // Ring — medium lightness version of primary
-  const ringL = Math.min(Math.max(l + 0.15, 0.4), 0.75);
-  const ringC = c * 0.6;
+  const ringL = Math.min(Math.max(primaryL + 0.15, 0.4), 0.75);
+  const ringC = primaryC * 0.6;
   const ring = toOklchStr(ringL, ringC, h);
 
   // Sidebar primary — slightly brighter primary for contrast on dark sidebar
-  const sidebarPrimaryL = Math.min(l + 0.1, 0.85);
-  const sidebarPrimaryC = Math.min(c * 1.1, 0.35);
+  const sidebarPrimaryL = Math.min(primaryL + 0.1, 0.85);
+  const sidebarPrimaryC = Math.min(primaryC * 1.1, 0.35);
   const sidebarPrimary = toOklchStr(sidebarPrimaryL, sidebarPrimaryC, h);
 
   // Secondary — very light, low chroma
@@ -81,15 +90,19 @@ export function derivePalette(primaryHex: string): Record<string, string> {
 
 /**
  * Derive dark-mode palette overrides from a single primary hex color.
+ *
+ * Dark-mode constraint: `--primary` must contrast against the dark background
+ * (L ≈ 0.145). In OKLch this means the primary's L should be ≥ ~0.65.
  */
 export function deriveDarkPalette(primaryHex: string): Record<string, string> {
   const { l, c, h } = hexToOklchValues(primaryHex);
 
-  // In dark mode, the primary is lighter
-  const darkPrimaryL = Math.min(l + 0.4, 0.92);
+  // In dark mode, the primary is lighter — ensure L ≥ 0.65 for contrast
+  const darkPrimaryL = Math.max(Math.min(l + 0.4, 0.92), 0.65);
   const darkPrimaryC = c * 0.85;
   const primary = toOklchStr(darkPrimaryL, darkPrimaryC, h);
-  const primaryFg = "oklch(0.205 0 0)";
+  const primaryFg =
+    darkPrimaryL > 0.5 ? "oklch(0.205 0 0)" : "oklch(0.985 0 0)";
 
   // Accent — dark surface with slight hue tint
   const accentL = 0.269;
@@ -106,8 +119,8 @@ export function deriveDarkPalette(primaryHex: string): Record<string, string> {
   const secondaryC = c * 0.06;
   const secondary = toOklchStr(secondaryL, secondaryC, h);
 
-  // Sidebar primary — vivid accent for dark sidebar
-  const sidebarPrimaryL = Math.min(l + 0.15, 0.7);
+  // Sidebar primary — vivid accent for dark sidebar, floor at 0.50 for contrast
+  const sidebarPrimaryL = Math.max(Math.min(l + 0.15, 0.7), 0.50);
   const sidebarPrimaryC = Math.min(c * 1.2, 0.35);
   const sidebarPrimary = toOklchStr(sidebarPrimaryL, sidebarPrimaryC, h);
 

@@ -35,8 +35,9 @@ const PermissionTimeConfigSchema = z.discriminatedUnion("mode", [
   z.object({ mode: z.literal("permanent") }),
   z.object({
     mode: z.literal("relative"),
-    durationDays: z.number().int().positive().max(3650),
-  }),
+    durationDays: z.number().int().min(0).max(3650),
+    durationHours: z.number().int().min(0).max(8760).default(0),
+  }).refine((v) => v.durationDays > 0 || v.durationHours > 0, { message: "กรุณาระบุระยะเวลา" }),
   z.object({
     mode: z.literal("absolute"),
     validFrom: z.coerce.date(),
@@ -385,7 +386,7 @@ export async function bulkGrantPermissionsMulti(
     const now = new Date();
     const timeFields = resolveTimeFields(timeConfig, now);
 
-    const data: { userId: string; videoId: string; grantedBy: string; grantedAt: Date; validFrom: Date | null; validUntil: Date | null; durationDays: number | null }[] = [];
+    const data: { userId: string; videoId: string; grantedBy: string; grantedAt: Date; validFrom: Date | null; validUntil: Date | null; durationDays: number | null; durationHours: number | null }[] = [];
     for (const userId of userIds) {
       for (const videoId of videoIds) {
         data.push({ userId, videoId, grantedBy: session.user.id, grantedAt: now, ...timeFields });

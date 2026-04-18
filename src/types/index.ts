@@ -133,6 +133,7 @@ export type SafePermissionRow = {
   validFrom: Date | null;
   validUntil: Date | null;
   durationDays: number | null;
+  durationHours: number | null;
   status: PermissionTimeStatus;
   user: { id: string; name: string | null; email: string };
   video: { id: string; title: string };
@@ -154,6 +155,7 @@ export type InviteLinkRow = Pick<
   | "videoIds"
   | "timeMode"
   | "durationDays"
+  | "durationHours"
   | "validFrom"
   | "validUntil"
   | "maxRedemptions"

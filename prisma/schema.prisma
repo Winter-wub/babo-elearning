@@ -142,7 +142,8 @@ model VideoPermission {
   // Time-based access control (all nullable = permanent access)
   validFrom    DateTime? // null = immediately valid from grantedAt
   validUntil   DateTime? // null = never expires (permanent)
-  durationDays Int? // audit hint: original admin-chosen duration in days
+  durationDays  Int? // audit hint: original admin-chosen duration in days
+  durationHours Int? // audit hint: original admin-chosen duration in hours
 
   user  User  @relation("UserPermissions", fields: [userId], references: [id], onDelete: Cascade)
   video Video @relation(fields: [videoId], references: [id], onDelete: Cascade)
@@ -228,6 +229,7 @@ model InviteLink {
   // Permission time config (decomposed PermissionTimeConfig)
   timeMode           String // "permanent" | "relative" | "absolute"
   durationDays       Int?
+  durationHours      Int?
   validFrom          DateTime?
   validUntil         DateTime?
 

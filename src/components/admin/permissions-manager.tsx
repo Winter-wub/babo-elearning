@@ -148,6 +148,7 @@ export function PermissionsManager({
   // Grant dialog — time config
   const [grantMode, setGrantMode] = useState<"permanent" | "relative" | "absolute">("permanent");
   const [grantDuration, setGrantDuration] = useState(30);
+  const [grantDurationHours, setGrantDurationHours] = useState(0);
   const [grantStartDate, setGrantStartDate] = useState<Date | undefined>();
   const [grantEndDate, setGrantEndDate] = useState<Date | undefined>();
 
@@ -257,7 +258,7 @@ export function PermissionsManager({
 
   function buildTimeConfig(): PermissionTimeConfig {
     if (grantMode === "relative") {
-      return { mode: "relative", durationDays: grantDuration };
+      return { mode: "relative", durationDays: grantDuration, durationHours: grantDurationHours };
     }
     if (grantMode === "absolute" && grantStartDate && grantEndDate) {
       return { mode: "absolute", validFrom: grantStartDate, validUntil: grantEndDate };
@@ -307,7 +308,7 @@ export function PermissionsManager({
         });
       }
     });
-  }, [grantUserIds, grantVideoIds, grantMode, grantDuration, grantStartDate, grantEndDate, router, toast]);
+  }, [grantUserIds, grantVideoIds, grantMode, grantDuration, grantDurationHours, grantStartDate, grantEndDate, router, toast]);
 
   // -----------------------------------------------------------------------
   // Grant dialog toggle helpers
@@ -352,7 +353,11 @@ export function PermissionsManager({
   const grantSummary = (() => {
     const count = grantUserIds.size * grantVideoIds.size;
     let suffix = "เข้าถึงถาวร";
-    if (grantMode === "relative") suffix = `หมดอายุหลังจาก ${grantDuration} วัน`;
+    if (grantMode === "relative") {
+      if (grantDuration > 0 && grantDurationHours > 0) suffix = `หมดอายุหลังจาก ${grantDuration} วัน ${grantDurationHours} ชม.`;
+      else if (grantDurationHours > 0) suffix = `หมดอายุหลังจาก ${grantDurationHours} ชม.`;
+      else suffix = `หมดอายุหลังจาก ${grantDuration} วัน`;
+    }
     if (grantMode === "absolute" && grantStartDate && grantEndDate)
       suffix = `ใช้งานได้ ${grantStartDate.toLocaleDateString()} ถึง ${grantEndDate.toLocaleDateString()}`;
     return `${grantUserIds.size} ผู้ใช้ \u00d7 ${grantVideoIds.size} วิดีโอ = ${count} สิทธิ์ \u2014 ${suffix}`;
@@ -675,7 +680,12 @@ export function PermissionsManager({
             <PermissionTypeSelector value={grantMode} onChange={setGrantMode} />
 
             {grantMode === "relative" && (
-              <DurationPicker value={grantDuration} onChange={setGrantDuration} />
+              <DurationPicker
+                days={grantDuration}
+                hours={grantDurationHours}
+                onDaysChange={setGrantDuration}
+                onHoursChange={setGrantDurationHours}
+              />
             )}
             {grantMode === "absolute" && (
               <DateRangePicker

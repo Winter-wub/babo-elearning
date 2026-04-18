@@ -12,7 +12,7 @@ interface PermissionTypeSelectorProps {
 
 const options: { mode: PermissionMode; label: string; icon: typeof Infinity; desc: string }[] = [
   { mode: "permanent", label: "ถาวร", icon: Infinity, desc: "ไม่มีวันหมดอายุ" },
-  { mode: "relative", label: "ระยะเวลา", icon: Clock, desc: "หมดอายุหลังจาก N วัน" },
+  { mode: "relative", label: "ระยะเวลา", icon: Clock, desc: "หมดอายุหลังจากระยะเวลาที่กำหนด" },
   { mode: "absolute", label: "ช่วงวันที่", icon: CalendarRange, desc: "กำหนดช่วงเวลา" },
 ];
 

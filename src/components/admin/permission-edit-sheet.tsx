@@ -39,7 +39,7 @@ export function PermissionEditSheet({
 
   // Derive initial mode from the permission data
   const initialMode = permission
-    ? permission.durationDays
+    ? (permission.durationDays || permission.durationHours)
       ? "relative"
       : permission.validFrom || permission.validUntil
         ? "absolute"
@@ -48,6 +48,7 @@ export function PermissionEditSheet({
 
   const [mode, setMode] = useState<"permanent" | "relative" | "absolute">(initialMode);
   const [durationDays, setDurationDays] = useState(permission?.durationDays ?? 30);
+  const [durationHours, setDurationHours] = useState(permission?.durationHours ?? 0);
   const [startDate, setStartDate] = useState<Date | undefined>(
     permission?.validFrom ?? undefined,
   );
@@ -59,13 +60,14 @@ export function PermissionEditSheet({
   const [lastPermId, setLastPermId] = useState<string | null>(null);
   if (permission && permission.id !== lastPermId) {
     setLastPermId(permission.id);
-    const m = permission.durationDays
+    const m = (permission.durationDays || permission.durationHours)
       ? "relative"
       : permission.validFrom || permission.validUntil
         ? "absolute"
         : "permanent";
     setMode(m as typeof mode);
     setDurationDays(permission.durationDays ?? 30);
+    setDurationHours(permission.durationHours ?? 0);
     setStartDate(permission.validFrom ?? undefined);
     setEndDate(permission.validUntil ?? undefined);
   }
@@ -77,7 +79,7 @@ export function PermissionEditSheet({
     if (mode === "permanent") {
       timeConfig = { mode: "permanent" };
     } else if (mode === "relative") {
-      timeConfig = { mode: "relative", durationDays };
+      timeConfig = { mode: "relative", durationDays, durationHours };
     } else {
       if (!startDate || !endDate || endDate <= startDate) {
         toast({ variant: "destructive", title: "ช่วงวันที่ไม่ถูกต้อง" });
@@ -127,7 +129,12 @@ export function PermissionEditSheet({
 
           {/* Conditional pickers */}
           {mode === "relative" && (
-            <DurationPicker value={durationDays} onChange={setDurationDays} />
+            <DurationPicker
+              days={durationDays}
+              hours={durationHours}
+              onDaysChange={setDurationDays}
+              onHoursChange={setDurationHours}
+            />
           )}
           {mode === "absolute" && (
             <DateRangePicker

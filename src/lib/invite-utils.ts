@@ -30,12 +30,18 @@ export function getInviteLinkStatus(invite: {
 export function getPermissionLabel(fields: {
   timeMode: string;
   durationDays: number | null;
+  durationHours: number | null;
   validFrom: Date | null;
   validUntil: Date | null;
 }): string {
   switch (fields.timeMode) {
-    case "relative":
-      return `เข้าถึง ${fields.durationDays} วัน`;
+    case "relative": {
+      const days = fields.durationDays ?? 0;
+      const hours = fields.durationHours ?? 0;
+      if (days > 0 && hours > 0) return `เข้าถึง ${days} วัน ${hours} ชั่วโมง`;
+      if (hours > 0) return `เข้าถึง ${hours} ชั่วโมง`;
+      return `เข้าถึง ${days} วัน`;
+    }
     case "absolute": {
       const fmt = (d: Date | null) =>
         d

@@ -43,6 +43,7 @@ export function CreateInviteLinkDialog({
   const [videoSearch, setVideoSearch] = useState("");
   const [timeMode, setTimeMode] = useState<"permanent" | "relative" | "absolute">("permanent");
   const [durationDays, setDurationDays] = useState(30);
+  const [durationHours, setDurationHours] = useState(0);
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
   const [hasMaxRedemptions, setHasMaxRedemptions] = useState(false);
@@ -82,6 +83,7 @@ export function CreateInviteLinkDialog({
       videoIds: selectedVideoIds,
       timeMode,
       durationDays: timeMode === "relative" ? durationDays : null,
+      durationHours: timeMode === "relative" ? durationHours : null,
       validFrom: timeMode === "absolute" ? startDate ?? null : null,
       validUntil: timeMode === "absolute" ? endDate ?? null : null,
       maxRedemptions: hasMaxRedemptions ? maxRedemptions : null,
@@ -117,6 +119,7 @@ export function CreateInviteLinkDialog({
       setVideoSearch("");
       setTimeMode("permanent");
       setDurationDays(30);
+      setDurationHours(0);
       setStartDate(undefined);
       setEndDate(undefined);
       setHasMaxRedemptions(false);
@@ -132,7 +135,11 @@ export function CreateInviteLinkDialog({
   const summaryParts: string[] = [];
   summaryParts.push(`${selectedVideoIds.length} วิดีโอ`);
   if (timeMode === "permanent") summaryParts.push("เข้าถึงถาวร");
-  else if (timeMode === "relative") summaryParts.push(`เข้าถึง ${durationDays} วัน`);
+  else if (timeMode === "relative") {
+    if (durationDays > 0 && durationHours > 0) summaryParts.push(`เข้าถึง ${durationDays} วัน ${durationHours} ชม.`);
+    else if (durationHours > 0) summaryParts.push(`เข้าถึง ${durationHours} ชม.`);
+    else summaryParts.push(`เข้าถึง ${durationDays} วัน`);
+  }
   else summaryParts.push("ช่วงวันที่กำหนด");
   if (hasMaxRedemptions) summaryParts.push(`ใช้ได้ ${maxRedemptions} ครั้ง`);
   if (hasExpiry && expiresAt)
@@ -261,7 +268,12 @@ export function CreateInviteLinkDialog({
             <Label className="text-sm font-medium">ระยะเวลาการเข้าถึงวิดีโอ</Label>
             <PermissionTypeSelector value={timeMode} onChange={setTimeMode} />
             {timeMode === "relative" && (
-              <DurationPicker value={durationDays} onChange={setDurationDays} />
+              <DurationPicker
+                days={durationDays}
+                hours={durationHours}
+                onDaysChange={setDurationDays}
+                onHoursChange={setDurationHours}
+              />
             )}
             {timeMode === "absolute" && (
               <DateRangePicker

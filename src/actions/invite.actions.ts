@@ -39,17 +39,22 @@ const CreateInviteLinkSchema = z.object({
     .min(1, "กรุณาเลือกวิดีโออย่างน้อย 1 รายการ")
     .max(MAX_INVITE_VIDEOS),
   timeMode: z.enum(["permanent", "relative", "absolute"]),
-  durationDays: z.number().int().positive().max(3650).nullable().optional(),
+  durationDays: z.number().int().min(0).max(3650).nullable().optional(),
+  durationHours: z.number().int().min(0).max(8760).nullable().optional(),
   validFrom: z.coerce.date().nullable().optional(),
   validUntil: z.coerce.date().nullable().optional(),
   maxRedemptions: z.number().int().positive().nullable().optional(),
   expiresAt: z.coerce.date().nullable().optional(),
 }).refine(
   (val) => {
-    if (val.timeMode === "relative") return val.durationDays && val.durationDays > 0;
+    if (val.timeMode === "relative") {
+      const days = val.durationDays ?? 0;
+      const hours = val.durationHours ?? 0;
+      return days > 0 || hours > 0;
+    }
     return true;
   },
-  { message: "กรุณาระบุจำนวนวัน" },
+  { message: "กรุณาระบุระยะเวลา" },
 ).refine(
   (val) => {
     if (val.timeMode === "absolute") {
@@ -75,7 +80,7 @@ export async function createInviteLink(
       return { success: false, error: parsed.error.issues[0]?.message ?? "ข้อมูลไม่ถูกต้อง" };
     }
 
-    const { label, videoIds, timeMode, durationDays, validFrom, validUntil, maxRedemptions, expiresAt } = parsed.data;
+    const { label, videoIds, timeMode, durationDays, durationHours, validFrom, validUntil, maxRedemptions, expiresAt } = parsed.data;
 
     // Validate all video IDs exist and are active
     const videos = await db.video.findMany({
@@ -100,6 +105,7 @@ export async function createInviteLink(
         videoIds,
         timeMode,
         durationDays: timeMode === "relative" ? durationDays ?? null : null,
+        durationHours: timeMode === "relative" ? durationHours ?? null : null,
         validFrom: timeMode === "absolute" ? validFrom ?? null : null,
         validUntil: timeMode === "absolute" ? validUntil ?? null : null,
         maxRedemptions: maxRedemptions ?? null,
@@ -158,6 +164,7 @@ export async function listInviteLinks(options?: {
       videoIds: item.videoIds,
       timeMode: item.timeMode,
       durationDays: item.durationDays,
+      durationHours: item.durationHours,
       validFrom: item.validFrom,
       validUntil: item.validUntil,
       maxRedemptions: item.maxRedemptions,
@@ -231,6 +238,7 @@ export async function getInviteLinkDetail(
       videoIds: invite.videoIds,
       timeMode: invite.timeMode,
       durationDays: invite.durationDays,
+      durationHours: invite.durationHours,
       validFrom: invite.validFrom,
       validUntil: invite.validUntil,
       maxRedemptions: invite.maxRedemptions,

@@ -46,13 +46,14 @@ export function isPermissionCurrentlyValid(
 
 export type PermissionTimeConfig =
   | { mode: "permanent" }
-  | { mode: "relative"; durationDays: number }
+  | { mode: "relative"; durationDays: number; durationHours: number }
   | { mode: "absolute"; validFrom: Date; validUntil: Date };
 
 export type ResolvedTimeFields = {
   validFrom: Date | null;
   validUntil: Date | null;
   durationDays: number | null;
+  durationHours: number | null;
 };
 
 /**
@@ -66,17 +67,24 @@ export function resolveTimeFields(
 ): ResolvedTimeFields {
   switch (timeConfig.mode) {
     case "permanent":
-      return { validFrom: null, validUntil: null, durationDays: null };
+      return { validFrom: null, validUntil: null, durationDays: null, durationHours: null };
     case "relative": {
       const validUntil = new Date(grantedAt);
       validUntil.setDate(validUntil.getDate() + timeConfig.durationDays);
-      return { validFrom: null, validUntil, durationDays: timeConfig.durationDays };
+      validUntil.setHours(validUntil.getHours() + timeConfig.durationHours);
+      return {
+        validFrom: null,
+        validUntil,
+        durationDays: timeConfig.durationDays,
+        durationHours: timeConfig.durationHours,
+      };
     }
     case "absolute":
       return {
         validFrom: timeConfig.validFrom,
         validUntil: timeConfig.validUntil,
         durationDays: null,
+        durationHours: null,
       };
   }
 }
@@ -92,12 +100,13 @@ export function resolveTimeFields(
 export function reconstructTimeConfig(fields: {
   timeMode: string;
   durationDays: number | null;
+  durationHours: number | null;
   validFrom: Date | null;
   validUntil: Date | null;
 }): PermissionTimeConfig {
   switch (fields.timeMode) {
     case "relative":
-      return { mode: "relative", durationDays: fields.durationDays ?? 0 };
+      return { mode: "relative", durationDays: fields.durationDays ?? 0, durationHours: fields.durationHours ?? 0 };
     case "absolute":
       return {
         mode: "absolute",

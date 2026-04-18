@@ -138,13 +138,15 @@ describe("resolveTimeFields", () => {
       validFrom: null,
       validUntil: null,
       durationDays: null,
+      durationHours: null,
     });
   });
 
   it("computes validUntil from durationDays for relative mode", () => {
-    const result = resolveTimeFields({ mode: "relative", durationDays: 7 }, grantedAt);
+    const result = resolveTimeFields({ mode: "relative", durationDays: 7, durationHours: 0 }, grantedAt);
     expect(result.validFrom).toBeNull();
     expect(result.durationDays).toBe(7);
+    expect(result.durationHours).toBe(0);
 
     const expectedUntil = new Date(grantedAt);
     expectedUntil.setDate(expectedUntil.getDate() + 7);
@@ -152,11 +154,32 @@ describe("resolveTimeFields", () => {
   });
 
   it("computes validUntil for 30-day duration", () => {
-    const result = resolveTimeFields({ mode: "relative", durationDays: 30 }, grantedAt);
+    const result = resolveTimeFields({ mode: "relative", durationDays: 30, durationHours: 0 }, grantedAt);
     const expectedUntil = new Date(grantedAt);
     expectedUntil.setDate(expectedUntil.getDate() + 30);
     expect(result.validUntil?.getTime()).toBe(expectedUntil.getTime());
     expect(result.durationDays).toBe(30);
+  });
+
+  it("computes validUntil from durationHours for relative mode", () => {
+    const result = resolveTimeFields({ mode: "relative", durationDays: 0, durationHours: 6 }, grantedAt);
+    expect(result.validFrom).toBeNull();
+    expect(result.durationDays).toBe(0);
+    expect(result.durationHours).toBe(6);
+
+    const expectedUntil = new Date(grantedAt);
+    expectedUntil.setHours(expectedUntil.getHours() + 6);
+    expect(result.validUntil?.getTime()).toBe(expectedUntil.getTime());
+  });
+
+  it("computes validUntil from combined days and hours", () => {
+    const result = resolveTimeFields({ mode: "relative", durationDays: 1, durationHours: 12 }, grantedAt);
+    const expectedUntil = new Date(grantedAt);
+    expectedUntil.setDate(expectedUntil.getDate() + 1);
+    expectedUntil.setHours(expectedUntil.getHours() + 12);
+    expect(result.validUntil?.getTime()).toBe(expectedUntil.getTime());
+    expect(result.durationDays).toBe(1);
+    expect(result.durationHours).toBe(12);
   });
 
   it("passes through validFrom and validUntil for absolute mode", () => {
@@ -170,6 +193,7 @@ describe("resolveTimeFields", () => {
       validFrom: from,
       validUntil: until,
       durationDays: null,
+      durationHours: null,
     });
   });
 });

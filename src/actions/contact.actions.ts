@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import type { ContactSubmission } from "@prisma/client";
+import { logAdminAction } from "@/lib/audit";
 import type { ActionResult, PaginatedResult } from "@/types";
 
 const contactSchema = z.object({
@@ -119,8 +120,9 @@ export async function markSubmissionRead(
   isRead: boolean = true
 ): Promise<ActionResult<undefined>> {
   try {
-    await requireAdmin();
+    const session = await requireAdmin();
     await db.contactSubmission.update({ where: { id }, data: { isRead } });
+    logAdminAction(session, "CONTACT_READ", "ContactSubmission", id, { isRead });
     revalidatePath("/admin/contacts");
     return { success: true, data: undefined };
   } catch (err) {
@@ -136,8 +138,9 @@ export async function deleteSubmission(
   id: string
 ): Promise<ActionResult<undefined>> {
   try {
-    await requireAdmin();
+    const session = await requireAdmin();
     await db.contactSubmission.delete({ where: { id } });
+    logAdminAction(session, "CONTACT_DELETE", "ContactSubmission", id);
     revalidatePath("/admin/contacts");
     return { success: true, data: undefined };
   } catch (err) {

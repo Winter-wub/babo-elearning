@@ -11,6 +11,7 @@ import { DEFAULT_PAGE_SIZE, MAX_VIDEO_DURATION, SIGNED_URL_EXPIRY, VIDEO_THUMBNA
 import { isPermissionCurrentlyValid } from "@/lib/permission-utils";
 import { resolveThumbnailUrl } from "@/lib/thumbnail-utils";
 import { deleteObject } from "@/lib/r2";
+import { logAdminAction } from "@/lib/audit";
 import type { ActionResult, PaginatedResult, PublicVideo, VideoWithPermissions } from "@/types";
 import type { Video } from "@prisma/client";
 
@@ -168,13 +169,14 @@ export async function createVideo(
   data: z.infer<typeof CreateVideoSchema>
 ): Promise<ActionResult<Video>> {
   try {
-    await requireAdmin();
+    const session = await requireAdmin();
     const parsed = CreateVideoSchema.safeParse(data);
     if (!parsed.success) {
       return { success: false, error: parsed.error.issues[0]?.message ?? "ข้อมูลไม่ถูกต้อง" };
     }
 
     const video = await db.video.create({ data: parsed.data });
+    logAdminAction(session, "VIDEO_CREATE", "Video", video.id, { title: parsed.data.title });
     return { success: true, data: video };
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : "ไม่สามารถสร้างวิดีโอได้" };
@@ -187,7 +189,7 @@ export async function updateVideo(
   data: z.infer<typeof UpdateVideoSchema>
 ): Promise<ActionResult<Video>> {
   try {
-    await requireAdmin();
+    const session = await requireAdmin();
     const parsed = UpdateVideoSchema.safeParse(data);
     if (!parsed.success) {
       return { success: false, error: parsed.error.issues[0]?.message ?? "ข้อมูลไม่ถูกต้อง" };
@@ -211,6 +213,7 @@ export async function updateVideo(
     }
 
     const video = await db.video.update({ where: { id }, data: parsed.data });
+    logAdminAction(session, "VIDEO_UPDATE", "Video", id, parsed.data);
     revalidatePath("/admin/videos");
     return { success: true, data: video };
   } catch (err) {
@@ -221,8 +224,9 @@ export async function updateVideo(
 /** Soft-delete: set isActive=false. ADMIN only. */
 export async function deleteVideo(id: string): Promise<ActionResult<undefined>> {
   try {
-    await requireAdmin();
+    const session = await requireAdmin();
     await db.video.update({ where: { id }, data: { isActive: false } });
+    logAdminAction(session, "VIDEO_DELETE", "Video", id);
     revalidatePath("/admin/videos");
     return { success: true, data: undefined };
   } catch (err) {

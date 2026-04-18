@@ -20,6 +20,7 @@ import {
   LogIn,
   Link2,
   Bot,
+  ScrollText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -45,6 +46,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: "ตั้งค่าธีม", href: "/admin/theme", icon: Palette },
   { label: "ข้อความติดต่อ", href: "/admin/contacts", icon: Mail },
   { label: "วิเคราะห์", href: "/admin/analytics", icon: BarChart3 },
+  { label: "บันทึกการดำเนินการ", href: "/admin/audit-logs", icon: ScrollText },
   ...(process.env.NEXT_PUBLIC_AI_CHAT_ENABLED === "true"
     ? [{ label: "AI Chat", href: "/admin/ai-chat", icon: Bot, badge: "Beta" }]
     : []),

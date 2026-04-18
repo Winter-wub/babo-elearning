@@ -11,6 +11,7 @@ import {
   type PermissionTimeConfig,
   type PermissionTimeStatus,
 } from "@/lib/permission-utils";
+import { logAdminAction } from "@/lib/audit";
 import type { ActionResult, PaginatedResult, SafeUser, SafePermissionRow, VideoPermissionWithVideo } from "@/types";
 import type { Video, VideoPermission } from "@prisma/client";
 
@@ -77,6 +78,7 @@ export async function grantPermission(
       create: { userId, videoId, grantedBy: session.user.id, grantedAt: now, ...timeFields },
     });
 
+    logAdminAction(session, "PERMISSION_GRANT", "VideoPermission", permission.id, { userId, videoId, timeConfig });
     revalidatePath(`/admin/users/${userId}`);
     return { success: true, data: permission };
   } catch (err) {
@@ -93,12 +95,13 @@ export async function revokePermission(
   videoId: string
 ): Promise<ActionResult<undefined>> {
   try {
-    await requireAdmin();
+    const session = await requireAdmin();
 
     await db.videoPermission.delete({
       where: { userId_videoId: { userId, videoId } },
     });
 
+    logAdminAction(session, "PERMISSION_REVOKE", "VideoPermission", undefined, { userId, videoId });
     revalidatePath(`/admin/users/${userId}`);
     return { success: true, data: undefined };
   } catch (err) {
@@ -137,6 +140,7 @@ export async function bulkGrantPermissions(
       skipDuplicates: true,
     });
 
+    logAdminAction(session, "PERMISSION_BULK_GRANT", "VideoPermission", undefined, { userId, videoCount: videoIds.length, granted: result.count });
     revalidatePath(`/admin/users/${userId}`);
     return { success: true, data: { count: result.count } };
   } catch (err) {
@@ -153,7 +157,7 @@ export async function bulkRevokePermissions(
   videoIds: string[]
 ): Promise<ActionResult<{ count: number }>> {
   try {
-    await requireAdmin();
+    const session = await requireAdmin();
 
     // TODO(security/medium): Validate array size to prevent abuse (same as bulkGrantPermissions).
 
@@ -161,6 +165,7 @@ export async function bulkRevokePermissions(
       where: { userId, videoId: { in: videoIds } },
     });
 
+    logAdminAction(session, "PERMISSION_BULK_REVOKE", "VideoPermission", undefined, { userId, videoCount: videoIds.length, revoked: result.count });
     revalidatePath(`/admin/users/${userId}`);
     return { success: true, data: { count: result.count } };
   } catch (err) {
@@ -392,6 +397,7 @@ export async function bulkGrantPermissionsMulti(
       skipDuplicates: true,
     });
 
+    logAdminAction(session, "PERMISSION_BULK_GRANT", "VideoPermission", undefined, { userCount: userIds.length, videoCount: videoIds.length, granted: result.count });
     revalidatePath("/admin/permissions");
     return { success: true, data: { count: result.count } };
   } catch (err) {
@@ -410,7 +416,7 @@ export async function bulkRevokePermissionsByIds(
   permissionIds: string[]
 ): Promise<ActionResult<{ count: number }>> {
   try {
-    await requireAdmin();
+    const session = await requireAdmin();
 
     if (permissionIds.length === 0) {
       return { success: false, error: "ไม่ได้เลือกสิทธิ์" };
@@ -424,6 +430,7 @@ export async function bulkRevokePermissionsByIds(
       where: { id: { in: permissionIds } },
     });
 
+    logAdminAction(session, "PERMISSION_BULK_REVOKE", "VideoPermission", undefined, { count: permissionIds.length, revoked: result.count });
     revalidatePath("/admin/permissions");
     return { success: true, data: { count: result.count } };
   } catch (err) {
@@ -443,7 +450,7 @@ export async function updatePermissionExpiry(
   timeConfig: PermissionTimeConfig,
 ): Promise<ActionResult<VideoPermission>> {
   try {
-    await requireAdmin();
+    const session = await requireAdmin();
     PermissionTimeConfigSchema.parse(timeConfig);
 
     const existing = await db.videoPermission.findUnique({
@@ -459,6 +466,7 @@ export async function updatePermissionExpiry(
       data: timeFields,
     });
 
+    logAdminAction(session, "PERMISSION_UPDATE", "VideoPermission", permissionId, { timeConfig });
     revalidatePath("/admin/permissions");
     return { success: true, data: updated };
   } catch (err) {

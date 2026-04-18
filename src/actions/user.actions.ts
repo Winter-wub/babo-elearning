@@ -5,6 +5,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import { DEFAULT_PAGE_SIZE } from "@/lib/constants";
+import { logAdminAction } from "@/lib/audit";
 import type { ActionResult, PaginatedResult, SafeUser, SafeUserWithPermissions } from "@/types";
 
 // -----------------------------------------------------------------------
@@ -149,6 +150,7 @@ export async function updateUser(
       omit: { passwordHash: true },
     });
 
+    logAdminAction(session, "USER_UPDATE", "User", id, parsed.data);
     revalidatePath("/admin/users");
     revalidatePath(`/admin/users/${id}`);
     return { success: true, data: user as SafeUser };
@@ -165,7 +167,7 @@ export async function createUser(
   data: z.infer<typeof CreateUserSchema>
 ): Promise<ActionResult<SafeUser>> {
   try {
-    await requireAdmin();
+    const session = await requireAdmin();
     const parsed = CreateUserSchema.safeParse(data);
     if (!parsed.success) {
       return { success: false, error: parsed.error.issues[0]?.message ?? "ข้อมูลไม่ถูกต้อง" };
@@ -180,7 +182,6 @@ export async function createUser(
     const bcrypt = await import("bcryptjs");
     const { BCRYPT_SALT_ROUNDS } = await import("@/lib/constants");
     const passwordHash = await bcrypt.hash(parsed.data.password, BCRYPT_SALT_ROUNDS);
-
     const user = await db.user.create({
       data: {
         name: parsed.data.name,
@@ -191,6 +192,7 @@ export async function createUser(
       omit: { passwordHash: true },
     });
 
+    logAdminAction(session, "USER_CREATE", "User", user.id, { email: parsed.data.email, role: parsed.data.role });
     revalidatePath("/admin/users");
     return { success: true, data: user as SafeUser };
   } catch (err) {
@@ -209,6 +211,7 @@ export async function deleteUser(id: string): Promise<ActionResult<undefined>> {
 
     await db.user.update({ where: { id }, data: { isActive: false } });
 
+    logAdminAction(session, "USER_DEACTIVATE", "User", id);
     revalidatePath("/admin/users");
     revalidatePath(`/admin/users/${id}`);
     return { success: true, data: undefined };

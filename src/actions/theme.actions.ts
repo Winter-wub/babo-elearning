@@ -11,6 +11,7 @@ import {
   MAX_LOGO_SIZE_BYTES,
   ACCEPTED_LOGO_MIME_TYPES,
 } from "@/lib/constants";
+import { logAdminAction } from "@/lib/audit";
 import type { ActionResult } from "@/types";
 
 // -----------------------------------------------------------------------
@@ -111,7 +112,7 @@ export async function updateThemeSettings(
   settings: Omit<ThemeSettings, "logoUrl" | "logoSignedUrl">
 ): Promise<ActionResult<undefined>> {
   try {
-    await requireAdmin();
+    const session = await requireAdmin();
     ThemeSettingsSchema.parse(settings);
 
     const entries = [
@@ -125,6 +126,7 @@ export async function updateThemeSettings(
     const result = await bulkUpdateSiteContent(entries);
     if (!result.success) return result;
 
+    logAdminAction(session, "THEME_UPDATE", "Theme", undefined, settings);
     // Bust cache on all pages so the new theme takes effect
     revalidatePath("/", "layout");
     return { success: true, data: undefined };
@@ -181,12 +183,13 @@ export async function saveThemeLogoKey(
   key: string
 ): Promise<ActionResult<undefined>> {
   try {
-    await requireAdmin();
+    const session = await requireAdmin();
 
     const entries = [{ key: THEME_KEYS.logoUrl, value: key }];
     const result = await bulkUpdateSiteContent(entries);
     if (!result.success) return result;
 
+    logAdminAction(session, "THEME_LOGO_UPLOAD", "Theme", undefined, { key });
     revalidatePath("/", "layout");
     return { success: true, data: undefined };
   } catch (err) {
@@ -202,12 +205,13 @@ export async function saveThemeLogoKey(
  */
 export async function removeThemeLogo(): Promise<ActionResult<undefined>> {
   try {
-    await requireAdmin();
+    const session = await requireAdmin();
 
     const entries = [{ key: THEME_KEYS.logoUrl, value: "" }];
     const result = await bulkUpdateSiteContent(entries);
     if (!result.success) return result;
 
+    logAdminAction(session, "THEME_LOGO_REMOVE", "Theme");
     revalidatePath("/", "layout");
     return { success: true, data: undefined };
   } catch (err) {

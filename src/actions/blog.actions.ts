@@ -19,6 +19,7 @@ import {
   BLOG_VIDEO_KEY_PREFIX,
   ACCEPTED_BLOG_VIDEO_TYPES,
 } from "@/lib/constants";
+import { logAdminAction } from "@/lib/audit";
 import type { ActionResult, PaginatedResult, AdminBlogPostRow, AdminBlogPostDetail, PublicBlogPost, BlogPostDetail, BlogCategoryWithCount } from "@/types";
 import type { BlogCategory } from "@prisma/client";
 
@@ -386,6 +387,7 @@ export async function createBlogPost(
       },
     });
 
+    logAdminAction(session, "BLOG_CREATE", "BlogPost", post.id, { title: data.title, slug: data.slug });
     revalidateBlogPaths();
     return { success: true, data: { id: post.id, slug: post.slug } };
   } catch (err) {
@@ -402,7 +404,7 @@ export async function updateBlogPost(
   input: z.input<typeof UpdateBlogPostSchema>
 ): Promise<ActionResult<{ id: string; slug: string }>> {
   try {
-    await requireAdmin();
+    const session = await requireAdmin();
     const data = UpdateBlogPostSchema.parse(input);
 
     // Validate reserved slugs
@@ -466,6 +468,7 @@ export async function updateBlogPost(
       },
     });
 
+    logAdminAction(session, "BLOG_UPDATE", "BlogPost", id, { title: data.title, slug: data.slug });
     revalidateBlogPaths();
     if (existing.slug !== post.slug) {
       revalidatePath(`/blog/${existing.slug}`);
@@ -486,7 +489,7 @@ export async function deleteBlogPost(
   id: string
 ): Promise<ActionResult<undefined>> {
   try {
-    await requireAdmin();
+    const session = await requireAdmin();
     const post = await db.blogPost.findUnique({ where: { id } });
     if (!post) {
       return { success: false, error: "ไม่พบบทความ" };
@@ -504,6 +507,7 @@ export async function deleteBlogPost(
       }
     }
 
+    logAdminAction(session, "BLOG_DELETE", "BlogPost", id, { title: post.title, slug: post.slug });
     revalidateBlogPaths();
     revalidatePath(`/blog/${post.slug}`);
     return { success: true, data: undefined };
@@ -517,7 +521,7 @@ export async function toggleBlogPostStatus(
   id: string
 ): Promise<ActionResult<{ status: "DRAFT" | "PUBLISHED" }>> {
   try {
-    await requireAdmin();
+    const session = await requireAdmin();
     const post = await db.blogPost.findUnique({ where: { id } });
     if (!post) {
       return { success: false, error: "ไม่พบบทความ" };
@@ -538,6 +542,7 @@ export async function toggleBlogPostStatus(
       },
     });
 
+    logAdminAction(session, "BLOG_TOGGLE_STATUS", "BlogPost", id, { from: post.status, to: newStatus });
     revalidateBlogPaths();
     revalidatePath(`/blog/${post.slug}`);
     return { success: true, data: { status: newStatus } };
@@ -641,10 +646,11 @@ export async function createBlogCategory(
   input: z.input<typeof CreateCategorySchema>
 ): Promise<ActionResult<BlogCategory>> {
   try {
-    await requireAdmin();
+    const session = await requireAdmin();
     const data = CreateCategorySchema.parse(input);
 
     const category = await db.blogCategory.create({ data });
+    logAdminAction(session, "BLOG_CATEGORY_CREATE", "BlogCategory", category.id, { name: data.name });
     revalidateBlogPaths();
     return { success: true, data: category };
   } catch (err) {
@@ -661,10 +667,11 @@ export async function updateBlogCategory(
   input: z.input<typeof UpdateCategorySchema>
 ): Promise<ActionResult<BlogCategory>> {
   try {
-    await requireAdmin();
+    const session = await requireAdmin();
     const data = UpdateCategorySchema.parse(input);
 
     const category = await db.blogCategory.update({ where: { id }, data });
+    logAdminAction(session, "BLOG_CATEGORY_UPDATE", "BlogCategory", id, data);
     revalidateBlogPaths();
     return { success: true, data: category };
   } catch (err) {
@@ -680,7 +687,7 @@ export async function deleteBlogCategory(
   id: string
 ): Promise<ActionResult<undefined>> {
   try {
-    await requireAdmin();
+    const session = await requireAdmin();
 
     // Check if any posts use this category
     const count = await db.blogPostCategory.count({ where: { categoryId: id } });
@@ -689,6 +696,7 @@ export async function deleteBlogCategory(
     }
 
     await db.blogCategory.delete({ where: { id } });
+    logAdminAction(session, "BLOG_CATEGORY_DELETE", "BlogCategory", id);
     revalidateBlogPaths();
     return { success: true, data: undefined };
   } catch (err) {

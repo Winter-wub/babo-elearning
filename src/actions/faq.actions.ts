@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import type { Faq } from "@prisma/client";
+import { logAdminAction } from "@/lib/audit";
 import type { ActionResult } from "@/types";
 
 // -----------------------------------------------------------------------
@@ -81,9 +82,10 @@ export async function createFaq(
   input: z.input<typeof CreateFaqSchema>
 ): Promise<ActionResult<Faq>> {
   try {
-    await requireAdmin();
+    const session = await requireAdmin();
     const data = CreateFaqSchema.parse(input);
     const faq = await db.faq.create({ data });
+    logAdminAction(session, "FAQ_CREATE", "Faq", faq.id, { question: data.question });
     revalidatePath("/admin/faq");
     revalidatePath("/faq");
     return { success: true, data: faq };
@@ -101,9 +103,10 @@ export async function updateFaq(
   input: z.input<typeof UpdateFaqSchema>
 ): Promise<ActionResult<Faq>> {
   try {
-    await requireAdmin();
+    const session = await requireAdmin();
     const data = UpdateFaqSchema.parse(input);
     const faq = await db.faq.update({ where: { id }, data });
+    logAdminAction(session, "FAQ_UPDATE", "Faq", id, data);
     revalidatePath("/admin/faq");
     revalidatePath("/faq");
     return { success: true, data: faq };
@@ -118,8 +121,9 @@ export async function updateFaq(
 /** Delete a FAQ. */
 export async function deleteFaq(id: string): Promise<ActionResult<undefined>> {
   try {
-    await requireAdmin();
+    const session = await requireAdmin();
     await db.faq.delete({ where: { id } });
+    logAdminAction(session, "FAQ_DELETE", "Faq", id);
     revalidatePath("/admin/faq");
     revalidatePath("/faq");
     return { success: true, data: undefined };

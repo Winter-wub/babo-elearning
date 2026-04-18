@@ -14,6 +14,7 @@ import {
   MAX_MATERIALS_PER_VIDEO,
 } from "@/lib/constants";
 import { isPermissionCurrentlyValid } from "@/lib/permission-utils";
+import { logAdminAction } from "@/lib/audit";
 import type { ActionResult } from "@/types";
 
 // -----------------------------------------------------------------------
@@ -135,7 +136,7 @@ export async function createMaterial(
   input: z.input<typeof CreateMaterialSchema>
 ): Promise<ActionResult<PublicMaterial>> {
   try {
-    await requireAdmin();
+    const session = await requireAdmin();
 
     const data = CreateMaterialSchema.parse(input);
 
@@ -172,6 +173,7 @@ export async function createMaterial(
       select: PUBLIC_MATERIAL_SELECT,
     });
 
+    logAdminAction(session, "MATERIAL_CREATE", "CourseMaterial", material.id, { videoId: data.videoId, filename: data.filename });
     revalidatePath(`/admin/videos/${data.videoId}`);
     return { success: true, data: material };
   } catch (err) {
@@ -191,7 +193,7 @@ export async function deleteMaterial(
   materialId: string
 ): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    const session = await requireAdmin();
 
     const material = await db.courseMaterial.findUnique({
       where: { id: materialId },
@@ -209,6 +211,7 @@ export async function deleteMaterial(
       where: { id: materialId },
     });
 
+    logAdminAction(session, "MATERIAL_DELETE", "CourseMaterial", materialId, { videoId: material.videoId });
     revalidatePath(`/admin/videos/${material.videoId}`);
     return { success: true, data: undefined };
   } catch (err) {

@@ -7,6 +7,7 @@ import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import { INVITE_CODE_BYTES, MAX_INVITE_VIDEOS } from "@/lib/constants";
 import { getInviteLinkStatus, getPermissionLabel } from "@/lib/invite-utils";
+import { logAdminAction } from "@/lib/audit";
 import type {
   ActionResult,
   PaginatedResult,
@@ -110,6 +111,7 @@ export async function createInviteLink(
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
     const inviteUrl = `${baseUrl}/register?invite=${code}`;
 
+    logAdminAction(session, "INVITE_CREATE", "InviteLink", invite.id, { label, videoCount: videoIds.length });
     revalidatePath("/admin/invite-links");
 
     return { success: true, data: { inviteUrl, id: invite.id } };
@@ -258,13 +260,14 @@ export async function revokeInviteLink(
   id: string,
 ): Promise<ActionResult<undefined>> {
   try {
-    await requireAdmin();
+    const session = await requireAdmin();
 
     await db.inviteLink.update({
       where: { id },
       data: { isRevoked: true },
     });
 
+    logAdminAction(session, "INVITE_REVOKE", "InviteLink", id);
     revalidatePath("/admin/invite-links");
 
     return { success: true, data: undefined };

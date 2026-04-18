@@ -11,6 +11,7 @@ import {
   OAUTH_ENV_KEYS,
   type OAuthProviderId,
 } from "@/lib/constants";
+import { logAdminAction } from "@/lib/audit";
 import type { ActionResult } from "@/types";
 
 // -----------------------------------------------------------------------
@@ -125,7 +126,7 @@ export async function updateOAuthProvider(
   input: z.input<typeof UpdateProviderSchema>
 ): Promise<ActionResult<undefined>> {
   try {
-    await requireAdmin();
+    const session = await requireAdmin();
     const parsed = UpdateProviderSchema.parse(input);
 
     // Extra validation: non-empty credentials when enabling
@@ -172,6 +173,7 @@ export async function updateOAuthProvider(
     const result = await bulkUpdateSiteContent(entries);
     if (!result.success) return result;
 
+    logAdminAction(session, "OAUTH_UPDATE", "OAuthProvider", parsed.id, { enabled: parsed.enabled });
     revalidatePath("/", "layout");
     return { success: true, data: undefined };
   } catch (err) {

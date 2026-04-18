@@ -402,3 +402,23 @@ model BlogPostPlaylist {
   @@index([postId])
   @@index([playlistId])
 }
+
+// -----------------------------------------------------------------------
+// Audit Log — Tracks admin actions for accountability
+// -----------------------------------------------------------------------
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String
+  userEmail  String
+  action     String   // e.g. "USER_CREATE", "VIDEO_DELETE", "PERMISSION_GRANT"
+  entityType String   // e.g. "User", "Video", "Faq"
+  entityId   String?  // null for bulk or non-entity actions
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+  @@index([action])
+  @@index([entityType])
+  @@index([createdAt])
+}

@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import type { SiteContent } from "@prisma/client";
+import { logAdminAction } from "@/lib/audit";
 import type { ActionResult } from "@/types";
 
 // -----------------------------------------------------------------------
@@ -97,7 +98,7 @@ export async function updateSiteContent(
   value: string
 ): Promise<ActionResult<SiteContent>> {
   try {
-    await requireAdmin();
+    const session = await requireAdmin();
     UpdateSiteContentSchema.parse({ key, value });
 
     const item = await db.siteContent.upsert({
@@ -106,6 +107,7 @@ export async function updateSiteContent(
       create: { key, value },
     });
 
+    logAdminAction(session, "CONTENT_UPDATE", "SiteContent", key);
     revalidatePath("/admin/content");
     // Revalidate any public pages that might consume this content
     revalidatePath("/");

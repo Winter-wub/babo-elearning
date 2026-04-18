@@ -8,6 +8,7 @@ import { DEFAULT_PAGE_SIZE, PLAYLIST_THUMBNAIL_KEY_PREFIX } from "@/lib/constant
 import { resolveThumbnailUrl } from "@/lib/thumbnail-utils";
 import { deleteObject } from "@/lib/r2";
 import type { ActionResult, PublicPlaylist, PublicPlaylistSection, PlaylistWithVideos, PaginatedResult } from "@/types";
+import { logAdminAction } from "@/lib/audit";
 import type { Playlist, Video } from "@prisma/client";
 
 // -----------------------------------------------------------------------
@@ -375,7 +376,7 @@ export async function createPlaylist(
   input: z.input<typeof CreatePlaylistSchema>
 ): Promise<ActionResult<Playlist>> {
   try {
-    await requireAdmin();
+    const session = await requireAdmin();
     const data = CreatePlaylistSchema.parse(input);
     const slug = generateSlug(data.title);
 
@@ -389,6 +390,7 @@ export async function createPlaylist(
 
     const playlist = await db.playlist.create({ data: { ...data, slug } });
 
+    logAdminAction(session, "PLAYLIST_CREATE", "Playlist", playlist.id, { title: data.title });
     revalidatePath("/admin/playlists");
     return { success: true, data: playlist };
   } catch (err) {
@@ -405,7 +407,7 @@ export async function updatePlaylist(
   input: z.input<typeof UpdatePlaylistSchema>
 ): Promise<ActionResult<Playlist>> {
   try {
-    await requireAdmin();
+    const session = await requireAdmin();
     const data = UpdatePlaylistSchema.parse(input);
 
     // Validate thumbnailKey prefix if provided
@@ -432,6 +434,7 @@ export async function updatePlaylist(
 
     const playlist = await db.playlist.update({ where: { id }, data });
 
+    logAdminAction(session, "PLAYLIST_UPDATE", "Playlist", id, { title: data.title });
     revalidatePath("/admin/playlists");
     revalidatePath(`/admin/playlists/${id}`);
     return { success: true, data: playlist };
@@ -446,13 +449,14 @@ export async function updatePlaylist(
 /** Delete a playlist. */
 export async function deletePlaylist(id: string): Promise<ActionResult<undefined>> {
   try {
-    await requireAdmin();
+    const session = await requireAdmin();
     // Clean up R2 thumbnail before deleting the record
     const existing = await db.playlist.findUnique({ where: { id }, select: { thumbnailKey: true } });
     if (existing?.thumbnailKey) {
       deleteObject(existing.thumbnailKey).catch(() => {});
     }
     await db.playlist.delete({ where: { id } });
+    logAdminAction(session, "PLAYLIST_DELETE", "Playlist", id);
     revalidatePath("/admin/playlists");
     return { success: true, data: undefined };
   } catch (err) {

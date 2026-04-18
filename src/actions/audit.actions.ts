@@ -60,7 +60,7 @@ export async function getAuditLogs(
       ...((from || to) && {
         createdAt: {
           ...(from && { gte: from }),
-          ...(to && { lte: to }),
+          ...(to && { lte: new Date(to.getTime() + 86_400_000 - 1) }),
         },
       }),
     };

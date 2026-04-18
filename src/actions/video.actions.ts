@@ -213,7 +213,7 @@ export async function updateVideo(
     }
 
     const video = await db.video.update({ where: { id }, data: parsed.data });
-    logAdminAction(session, "VIDEO_UPDATE", "Video", id, parsed.data);
+    logAdminAction(session, "VIDEO_UPDATE", "Video", id, { title: parsed.data.title, isActive: parsed.data.isActive });
     revalidatePath("/admin/videos");
     return { success: true, data: video };
   } catch (err) {

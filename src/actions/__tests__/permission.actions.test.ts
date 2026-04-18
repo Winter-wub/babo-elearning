@@ -30,6 +30,9 @@ vi.mock("@/lib/db", () => ({
     video: {
       findMany: vi.fn(),
     },
+    auditLog: {
+      create: vi.fn().mockResolvedValue({}),
+    },
   },
 }));
 

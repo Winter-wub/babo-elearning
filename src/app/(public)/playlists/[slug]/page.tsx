@@ -11,7 +11,6 @@ import {
 } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { getPlaylistBySlug } from "@/actions/playlist.actions";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -206,10 +205,6 @@ export default async function PublicPlaylistPage({
                 <CardTitle className="text-lg">เริ่มเรียนหลักสูตรนี้</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <Badge variant="secondary" className="text-sm">
-                  ฟรี
-                </Badge>
-
                 {isAuthenticated ? (
                   <Button asChild className="w-full" size="lg">
                     <Link href={`/playlists/${playlist.slug}`}>

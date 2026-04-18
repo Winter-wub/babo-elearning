@@ -474,8 +474,9 @@ export async function addVideoToPlaylist(
   position: number = 0
 ): Promise<ActionResult<undefined>> {
   try {
-    await requireAdmin();
+    const session = await requireAdmin();
     await db.playlistVideo.create({ data: { playlistId, videoId, position } });
+    logAdminAction(session, "PLAYLIST_ADD_VIDEO", "Playlist", playlistId, { videoId });
     revalidatePath(`/admin/playlists/${playlistId}`);
     return { success: true, data: undefined };
   } catch (err) {
@@ -492,10 +493,11 @@ export async function removeVideoFromPlaylist(
   videoId: string
 ): Promise<ActionResult<undefined>> {
   try {
-    await requireAdmin();
+    const session = await requireAdmin();
     await db.playlistVideo.delete({
       where: { playlistId_videoId: { playlistId, videoId } },
     });
+    logAdminAction(session, "PLAYLIST_REMOVE_VIDEO", "Playlist", playlistId, { videoId });
     revalidatePath(`/admin/playlists/${playlistId}`);
     return { success: true, data: undefined };
   } catch (err) {

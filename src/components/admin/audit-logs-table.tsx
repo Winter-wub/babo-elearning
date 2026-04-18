@@ -61,6 +61,8 @@ const ACTION_LABELS: Record<string, string> = {
   PLAYLIST_CREATE: "สร้างเพลย์ลิสต์",
   PLAYLIST_UPDATE: "แก้ไขเพลย์ลิสต์",
   PLAYLIST_DELETE: "ลบเพลย์ลิสต์",
+  PLAYLIST_ADD_VIDEO: "เพิ่มวิดีโอในเพลย์ลิสต์",
+  PLAYLIST_REMOVE_VIDEO: "ลบวิดีโอจากเพลย์ลิสต์",
   MATERIAL_CREATE: "เพิ่มเอกสาร",
   MATERIAL_DELETE: "ลบเอกสาร",
   CONTACT_READ: "อ่านข้อความ",
@@ -112,6 +114,8 @@ export function AuditLogsTable({
   const currentAction = searchParams.get("action") ?? "";
   const currentEntity = searchParams.get("entityType") ?? "";
   const currentSearch = searchParams.get("search") ?? "";
+  const currentFrom = searchParams.get("from") ?? "";
+  const currentTo = searchParams.get("to") ?? "";
 
   const [searchInput, setSearchInput] = React.useState(currentSearch);
   const [expandedRows, setExpandedRows] = React.useState<Set<string>>(
@@ -207,6 +211,25 @@ export function AuditLogsTable({
               <Search className="h-4 w-4" />
             </Button>
           </form>
+
+          <Input
+            type="date"
+            value={currentFrom}
+            onChange={(e) =>
+              pushParams({ from: e.target.value || undefined, page: "1" })
+            }
+            className="w-36"
+            aria-label="ตั้งแต่วันที่"
+          />
+          <Input
+            type="date"
+            value={currentTo}
+            onChange={(e) =>
+              pushParams({ to: e.target.value || undefined, page: "1" })
+            }
+            className="w-36"
+            aria-label="ถึงวันที่"
+          />
         </div>
 
         <p className="text-sm text-muted-foreground">

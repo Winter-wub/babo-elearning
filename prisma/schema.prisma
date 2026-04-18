@@ -421,4 +421,5 @@ model AuditLog {
   @@index([action])
   @@index([entityType])
   @@index([createdAt])
+  @@index([createdAt, action, entityType]) // composite for filtered admin page queries
 }

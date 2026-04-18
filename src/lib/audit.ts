@@ -43,9 +43,13 @@ export function logAdminAction(
   entityId?: string,
   metadata?: Prisma.InputJsonValue,
 ): void {
+  if (!session.user.email) {
+    console.error("[audit] Session missing email, skipping audit");
+    return;
+  }
   logAudit({
     userId: session.user.id,
-    userEmail: session.user.email!,
+    userEmail: session.user.email,
     action,
     entityType,
     entityId,

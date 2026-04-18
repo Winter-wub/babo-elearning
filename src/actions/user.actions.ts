@@ -150,7 +150,7 @@ export async function updateUser(
       omit: { passwordHash: true },
     });
 
-    logAdminAction(session, "USER_UPDATE", "User", id, parsed.data);
+    logAdminAction(session, "USER_UPDATE", "User", id, { name: parsed.data.name, email: parsed.data.email, isActive: parsed.data.isActive });
     revalidatePath("/admin/users");
     revalidatePath(`/admin/users/${id}`);
     return { success: true, data: user as SafeUser };

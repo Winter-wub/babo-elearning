@@ -124,7 +124,13 @@ export async function updateSiteContent(
   }
 }
 
-/** Bulk upsert multiple SiteContent entries. */
+/**
+ * Bulk upsert multiple SiteContent entries.
+ * NOTE: This function does not emit its own audit log because callers
+ * (updateThemeSettings, saveThemeLogoKey, updateOAuthProvider) each
+ * produce their own audit entry with richer context. If you call this
+ * directly from a new feature, add a logAdminAction call at the call site.
+ */
 export async function bulkUpdateSiteContent(
   entries: { key: string; value: string }[]
 ): Promise<ActionResult<undefined>> {

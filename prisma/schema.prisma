@@ -19,6 +19,7 @@ model User {
   role          Role      @default(STUDENT)
   isActive      Boolean   @default(true)
   emailVerified DateTime?
+  tokenVersion  Int       @default(0)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -33,6 +34,8 @@ model User {
   chatConversations       AdminChatConversation[]
   blogPosts               BlogPost[]
   exerciseAttempts        ExerciseAttempt[]
+  passwordResetTokens     PasswordResetToken[]     @relation("UserResetTokens")
+  adminRequestedResets    PasswordResetToken[]     @relation("AdminRequestedResets")
 
   @@index([email])
   @@index([role])
@@ -57,6 +60,34 @@ model PendingRegistration {
 
   @@index([email])
   @@index([sessionToken])
+}
+
+/**
+ * Password reset tokens. Raw token is emailed to the user; only its
+ * SHA-256 hash is stored. Expiry defaults to 1 hour. Consumed tokens
+ * are retained (not deleted) so the audit log remains referentially
+ * intact. On successful reset, all other unconsumed tokens for the
+ * same user are also marked consumed, and User.tokenVersion is bumped
+ * to invalidate existing JWT sessions.
+ *
+ * requestedByAdminId is null for self-service "forgot password" flow,
+ * and set to the admin's userId when the reset was admin-initiated.
+ */
+model PasswordResetToken {
+  id                 String    @id @default(cuid())
+  userId             String
+  tokenHash          String    @unique
+  expiresAt          DateTime
+  consumedAt         DateTime?
+  requestedByAdminId String?
+  createdAt          DateTime  @default(now())
+
+  user        User  @relation("UserResetTokens", fields: [userId], references: [id], onDelete: Cascade)
+  requestedBy User? @relation("AdminRequestedResets", fields: [requestedByAdminId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@index([userId, createdAt])
 }
 
 model EmailVerificationToken {

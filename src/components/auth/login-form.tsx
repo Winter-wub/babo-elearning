@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { signIn, getSession } from "next-auth/react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -132,7 +133,16 @@ export function LoginForm({
 
           {/* Password field */}
           <div className="space-y-2">
-            <Label htmlFor="login-password">รหัสผ่าน</Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="login-password">รหัสผ่าน</Label>
+              <Link
+                href="/forgot-password"
+                className="text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+                tabIndex={0}
+              >
+                ลืมรหัสผ่าน?
+              </Link>
+            </div>
             <Input
               id="login-password"
               type="password"

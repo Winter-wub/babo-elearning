@@ -7,8 +7,13 @@ function createPrismaClient() {
   if (!connectionString) {
     throw new Error("DATABASE_URL environment variable is not set.");
   }
-  const useSSL = !connectionString.includes("localhost") && !connectionString.includes("127.0.0.1");
-  const pool = new pg.Pool({ connectionString, ssl: useSSL ? true : false });
+  // Honour an explicit sslmode=disable in the URL (used by docker-compose where
+  // the containerised postgres has no TLS). Otherwise enable SSL for any non-loopback host.
+  const sslDisabled =
+    /[?&]sslmode=disable(\b|$)/.test(connectionString) ||
+    connectionString.includes("localhost") ||
+    connectionString.includes("127.0.0.1");
+  const pool = new pg.Pool({ connectionString, ssl: sslDisabled ? false : true });
   const adapter = new PrismaPg(pool);
   return new PrismaClient({ adapter });
 }

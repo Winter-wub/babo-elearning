@@ -112,10 +112,11 @@ services:
         R2_PUBLIC_ENDPOINT: http://localhost:9000
     restart: unless-stopped
     env_file:
-      # docker compose loads .env.local automatically; this makes it explicit
-      - path: .env.local
-        required: false
+      # Order matters: later files override earlier ones. Load .env.example
+      # first as defaults, then .env.local with real secrets/overrides.
       - path: .env.example
+        required: false
+      - path: .env.local
         required: false
     environment:
       # Ensure the app connects to the containerised Postgres, not localhost

@@ -80,6 +80,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth(async () => {
             email: user.email,
             name: user.name,
             role: user.role,
+            tokenVersion: user.tokenVersion,
           };
         },
       }),
@@ -88,6 +89,35 @@ export const { handlers, auth, signIn, signOut } = NextAuth(async () => {
     callbacks: {
       // Preserve all existing callbacks from authConfig (authorized, jwt, session)
       ...authConfig.callbacks,
+
+      // Override session callback (runs server-side, has DB access) to
+      // invalidate stale JWTs whose tokenVersion no longer matches the DB.
+      // A password reset increments User.tokenVersion, forcing logout on
+      // the next server-rendered page load for any sessions issued before
+      // the reset. Edge middleware still honours the JWT as-is (no DB on
+      // edge), so invalidation takes effect on the next server component
+      // render — acceptable for this feature's threat model.
+      async session({ session, token }) {
+        const userId = token?.id as string | undefined;
+        if (!userId || !session.user) return session;
+
+        const dbUser = await db.user.findUnique({
+          where: { id: userId },
+          select: { tokenVersion: true, isActive: true },
+        });
+
+        const expectedVersion = (token.tokenVersion as number | undefined) ?? 0;
+        const actualVersion = dbUser?.tokenVersion ?? 0;
+
+        if (!dbUser || !dbUser.isActive || actualVersion !== expectedVersion) {
+          // Stale or revoked — strip user so `!!auth?.user` checks fail downstream
+          return { expires: session.expires } as typeof session;
+        }
+
+        session.user.id = userId;
+        session.user.role = token.role as "STUDENT" | "ADMIN";
+        return session;
+      },
 
       // signIn callback: handles OAuth account linking.
       // Must live here (not auth.config.ts) because it uses Prisma (Node.js only).

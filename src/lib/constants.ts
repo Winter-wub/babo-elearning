@@ -109,6 +109,19 @@ export const OTP_RESEND_COOLDOWN_MS = 60 * 1000;
 export const OTP_SESSION_TTL_MS = 60 * 60 * 1000;
 
 // -----------------------------------------------------------------------
+// Password reset
+// -----------------------------------------------------------------------
+
+/** Raw random bytes for password reset tokens (32 → 64 hex chars). */
+export const PASSWORD_RESET_TOKEN_BYTES = 32;
+
+/** Password reset token TTL in milliseconds (1 hour). */
+export const PASSWORD_RESET_TOKEN_TTL_MS = 60 * 60 * 1000;
+
+/** Max self-service reset requests per user per hour. */
+export const PASSWORD_RESET_MAX_PER_HOUR = 3;
+
+// -----------------------------------------------------------------------
 // Invite links
 // -----------------------------------------------------------------------
 

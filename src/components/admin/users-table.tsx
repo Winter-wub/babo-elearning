@@ -54,6 +54,7 @@ import { useToast } from "@/hooks/use-toast";
 import { createUser, updateUser, deleteUser } from "@/actions/user.actions";
 import type { SafeUserWithCount } from "@/actions/user.actions";
 import type { PaginationMeta } from "@/types";
+import { ResetPasswordDialog } from "@/components/admin/reset-password-dialog";
 
 // -----------------------------------------------------------------------
 // Types
@@ -120,6 +121,8 @@ export function UsersTable({ users, meta }: UsersTableProps) {
   const [createOpen, setCreateOpen] = React.useState(false);
   const [editOpen, setEditOpen] = React.useState(false);
   const [editTarget, setEditTarget] = React.useState<SafeUserWithCount | null>(null);
+  const [resetPasswordTarget, setResetPasswordTarget] =
+    React.useState<SafeUserWithCount | null>(null);
   const [isPending, startTransition] = React.useTransition();
 
   const [createForm, setCreateForm] = React.useState<CreateUserFormState>({
@@ -474,6 +477,15 @@ export function UsersTable({ users, meta }: UsersTableProps) {
                             ดูสิทธิ์
                           </Link>
                         </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onSelect={(e) => {
+                            // Prevent closing the dropdown before opening the dialog
+                            e.preventDefault();
+                            setResetPasswordTarget(user);
+                          }}
+                        >
+                          รีเซ็ตรหัสผ่าน
+                        </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
                           className={user.isActive ? "text-amber-600 focus:text-amber-600" : "text-green-600 focus:text-green-600"}
@@ -527,6 +539,17 @@ export function UsersTable({ users, meta }: UsersTableProps) {
             </Button>
           </div>
         </div>
+      )}
+
+      {/* Reset password dialog */}
+      {resetPasswordTarget && (
+        <ResetPasswordDialog
+          open={!!resetPasswordTarget}
+          onOpenChange={(open) => {
+            if (!open) setResetPasswordTarget(null);
+          }}
+          user={resetPasswordTarget}
+        />
       )}
 
       {/* Edit dialog */}

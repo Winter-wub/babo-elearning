@@ -44,9 +44,15 @@ export const authConfig: NextAuthConfig = {
       }
 
       // ── Auth pages ──────────────────────────────────────────────────────
-      // Redirect already-authenticated users away from /login and /register.
+      // Redirect already-authenticated users away from auth flows. Includes
+      // /forgot-password and /reset-password because a signed-in attacker
+      // (stolen session) must not be able to turn session theft into a
+      // password reset and thus full account takeover.
       const isAuthPage =
-        pathname.startsWith("/login") || pathname.startsWith("/register");
+        pathname.startsWith("/login") ||
+        pathname.startsWith("/register") ||
+        pathname.startsWith("/forgot-password") ||
+        pathname.startsWith("/reset-password");
       if (isAuthPage && isLoggedIn) {
         const redirectTo =
           role === "ADMIN" ? "/admin/dashboard" : "/dashboard";
@@ -63,6 +69,7 @@ export const authConfig: NextAuthConfig = {
         token.id = user.id;
         // Default to STUDENT for new OAuth users where role may be undefined
         token.role = user.role ?? "STUDENT";
+        token.tokenVersion = user.tokenVersion ?? 0;
       }
       return token;
     },

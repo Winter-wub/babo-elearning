@@ -42,6 +42,15 @@ services:
       NODE_ENV: development
       # Enable Next.js fast refresh
       WATCHPACK_POLLING: "true"
+      # Hard-override so the container always talks to the compose `db` service,
+      # regardless of what DATABASE_URL is set in the host's .env (which points
+      # at localhost for Prisma CLI usage on the host).
+      DATABASE_URL: "postgresql://elearning:elearning_dev_password@db:5432/elearning?schema=public&sslmode=disable"
+      # Host-facing URLs — must reflect the exposed port (3002), not the
+      # in-container port (3000). Otherwise Auth.js redirects and emailed
+      # links land on the wrong origin.
+      AUTH_URL: "http://localhost:3002"
+      NEXT_PUBLIC_APP_URL: "http://localhost:3002"
       # Prisma shadow database for development migrations (optional)
       # SHADOW_DATABASE_URL: ...
 

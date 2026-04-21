@@ -162,6 +162,8 @@ export function BlogPostForm({ mode, post, categories, playlists }: BlogPostForm
       toast({ title: mode === "create" ? "สร้างบทความแล้ว" : "บันทึกบทความแล้ว" });
       if (mode === "create") {
         router.push(`/admin/blog/${result.data.id}`);
+      } else {
+        router.refresh();
       }
     } else {
       toast({ title: result.error, variant: "destructive" });
@@ -198,9 +200,9 @@ export function BlogPostForm({ mode, post, categories, playlists }: BlogPostForm
           {status === "PUBLISHED" ? "เผยแพร่แล้ว" : "ฉบับร่าง"}
         </Badge>
 
-        {mode === "edit" && post?.slug && (
+        {mode === "edit" && slug && status === "PUBLISHED" && (
           <Button variant="ghost" size="sm" asChild className="hidden sm:flex">
-            <a href={`/blog/${post.slug}`} target="_blank" rel="noopener noreferrer">
+            <a href={`/blog/${slug}`} target="_blank" rel="noopener noreferrer">
               <ExternalLink className="mr-1 h-3.5 w-3.5" />
               ดูตัวอย่าง
             </a>

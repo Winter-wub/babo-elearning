@@ -128,3 +128,4 @@ jobs:
       - key: AUTH_SECRET
         scope: RUN_TIME
         type: SECRET
+

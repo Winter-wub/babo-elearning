@@ -19,6 +19,13 @@
 
 name: e-learning-platform
 region: sgp
+envs:
+  - key: DATABASE_URL
+    scope: RUN_TIME
+    type: SECRET
+  - key: AUTH_SECRET
+    scope: RUN_TIME
+    type: SECRET
 
 services:
   - name: web
@@ -49,12 +56,6 @@ services:
         value: "GTM-MC95HJ63"
 
       # --- Runtime: Auth ---
-      - key: DATABASE_URL
-        scope: RUN_TIME
-        type: SECRET
-      - key: AUTH_SECRET
-        scope: RUN_TIME
-        type: SECRET
       - key: AUTH_URL
         scope: RUN_TIME
         value: "https://englishwithgift.com"
@@ -121,7 +122,3 @@ jobs:
     instance_size_slug: apps-s-1vcpu-0.5gb
     run_command: >
       bash -c 'for i in 1 2 3; do node /prisma-cli/node_modules/prisma/build/index.js migrate deploy --schema /app/prisma/schema.prisma && exit 0; echo "Migration attempt $i failed, retrying in 10s..."; sleep 10; done; exit 1'
-    envs:
-      - key: DATABASE_URL
-        scope: RUN_TIME
-        type: SECRET

@@ -125,3 +125,6 @@ jobs:
       - key: DATABASE_URL
         scope: RUN_TIME
         type: SECRET
+      - key: AUTH_SECRET
+        scope: RUN_TIME
+        type: SECRET

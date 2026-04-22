@@ -108,7 +108,8 @@ jobs:
       branch: main
     instance_count: 1
     instance_size_slug: apps-s-1vcpu-0.5gb
-    run_command: "node /prisma-cli/node_modules/prisma/build/index.js migrate deploy --schema /app/prisma/schema.prisma"
+    run_command: >
+      bash -c 'for i in 1 2 3; do node /prisma-cli/node_modules/prisma/build/index.js migrate deploy --schema /app/prisma/schema.prisma && exit 0; echo "Migration attempt $i failed, retrying in 10s..."; sleep 10; done; exit 1'
     envs:
       - key: DATABASE_URL
         scope: RUN_TIME

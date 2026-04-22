@@ -4,6 +4,7 @@ import "./globals.css";
 import { APP_NAME, APP_DESCRIPTION } from "@/lib/constants";
 import { getThemeSettings } from "@/actions/theme.actions";
 import { ThemeStyle } from "@/components/providers/theme-style";
+import { GoogleTagManager } from "@next/third-parties/google";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -31,6 +32,7 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const themeSettings = await getThemeSettings();
+  const gtmId = process.env.NEXT_PUBLIC_GTM_ID;
 
   return (
     <html
@@ -48,6 +50,9 @@ export default async function RootLayout({
       </head>
       <body className="min-h-full flex flex-col bg-background text-foreground transition-colors duration-200">
         {children}
+        {gtmId && process.env.NODE_ENV === "production" && (
+          <GoogleTagManager gtmId={gtmId} />
+        )}
       </body>
     </html>
   );

@@ -41,14 +41,14 @@ const nextConfig: NextConfig = {
               // TODO(security/medium): Remove 'unsafe-eval' for production builds.
               // Use 'unsafe-eval' only in development; in production use nonce-based CSP.
               // Example: process.env.NODE_ENV === "development" ? "script-src 'self' 'unsafe-eval' 'unsafe-inline'" : "script-src 'self' 'unsafe-inline'"
-              "script-src 'self' 'unsafe-eval' 'unsafe-inline'", // unsafe-eval required by Next.js dev
+              "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://www.googletagmanager.com https://www.google-analytics.com", // unsafe-eval required by Next.js dev
               "style-src 'self' 'unsafe-inline'",
-              `img-src 'self' blob: data: https: https://lh3.googleusercontent.com https://graph.facebook.com https://platform-lookaside.fbsbx.com https://img.youtube.com${process.env.R2_ENDPOINT ? ` ${process.env.R2_ENDPOINT}` : ""}${process.env.R2_PUBLIC_ENDPOINT ? ` ${process.env.R2_PUBLIC_ENDPOINT}` : ""}`,
+              `img-src 'self' blob: data: https: https://lh3.googleusercontent.com https://graph.facebook.com https://platform-lookaside.fbsbx.com https://img.youtube.com https://www.google-analytics.com https://stats.g.doubleclick.net${process.env.R2_ENDPOINT ? ` ${process.env.R2_ENDPOINT}` : ""}${process.env.R2_PUBLIC_ENDPOINT ? ` ${process.env.R2_PUBLIC_ENDPOINT}` : ""}`,
               `media-src 'self' blob: https://*.r2.cloudflarestorage.com https://fly.storage.tigris.dev${process.env.R2_ENDPOINT ? ` ${process.env.R2_ENDPOINT}` : ""}${process.env.R2_PUBLIC_ENDPOINT ? ` ${process.env.R2_PUBLIC_ENDPOINT}` : ""}`,
-              `connect-src 'self' https://*.r2.cloudflarestorage.com https://fly.storage.tigris.dev https://accounts.google.com https://graph.facebook.com https://appleid.apple.com${process.env.R2_ENDPOINT ? ` ${process.env.R2_ENDPOINT}` : ""}${process.env.R2_PUBLIC_ENDPOINT ? ` ${process.env.R2_PUBLIC_ENDPOINT}` : ""}`,
+              `connect-src 'self' https://*.r2.cloudflarestorage.com https://fly.storage.tigris.dev https://accounts.google.com https://graph.facebook.com https://appleid.apple.com https://www.googletagmanager.com https://www.google-analytics.com${process.env.R2_ENDPOINT ? ` ${process.env.R2_ENDPOINT}` : ""}${process.env.R2_PUBLIC_ENDPOINT ? ` ${process.env.R2_PUBLIC_ENDPOINT}` : ""}`,
               "font-src 'self'",
               "object-src 'self' https://*.r2.cloudflarestorage.com https://fly.storage.tigris.dev",
-              `frame-src 'self' https://accounts.google.com https://www.youtube.com https://www.youtube-nocookie.com https://*.r2.cloudflarestorage.com https://fly.storage.tigris.dev${process.env.R2_ENDPOINT ? ` ${process.env.R2_ENDPOINT}` : ""}`,
+              `frame-src 'self' https://accounts.google.com https://www.youtube.com https://www.youtube-nocookie.com https://*.r2.cloudflarestorage.com https://fly.storage.tigris.dev https://www.googletagmanager.com${process.env.R2_ENDPOINT ? ` ${process.env.R2_ENDPOINT}` : ""}`,
               "frame-ancestors 'self'",
               "base-uri 'self'",
               "form-action 'self' https://accounts.google.com https://www.facebook.com https://appleid.apple.com",

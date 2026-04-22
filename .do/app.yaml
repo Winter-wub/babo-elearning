@@ -44,6 +44,9 @@ services:
       - key: NEXT_PUBLIC_APP_URL
         scope: BUILD_TIME
         value: "https://englishwithgift.com"
+      - key: NEXT_PUBLIC_GTM_ID
+        scope: RUN_AND_BUILD_TIME
+        value: "GTM-MC95HJ63"
 
       # --- Runtime: Auth ---
       - key: DATABASE_URL

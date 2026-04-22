@@ -24,7 +24,7 @@ services:
   - name: web
     dockerfile_path: Dockerfile
     github:
-      repo: Winter-wub/e-learning-platform
+      repo: Winter-wub/babo-elearning
       branch: main
       deploy_on_push: true
     instance_count: 1
@@ -88,7 +88,7 @@ services:
         type: SECRET
       - key: MAIL_FROM_EMAIL
         scope: RUN_TIME
-        value: "noreply@englishwithgift.com"
+        value: "no-reply@englishwithgift.com"
       - key: MAIL_FROM_NAME
         scope: RUN_TIME
         value: "English with Gift"
@@ -98,13 +98,24 @@ services:
         scope: RUN_TIME
         type: SECRET
 
+      # --- Runtime: Cloudflare AI (for AI chat feature) ---
+      - key: CLOUDFLARE_ACCOUNT_ID
+        scope: RUN_TIME
+        type: SECRET
+      - key: CLOUDFLARE_AI_API_TOKEN
+        scope: RUN_TIME
+        type: SECRET
+      - key: NEXT_PUBLIC_AI_CHAT_ENABLED
+        scope: BUILD_TIME
+        value: "true"
+
 jobs:
   # Pre-deploy job: run Prisma migrations before new version receives traffic
   - name: migrate
     kind: PRE_DEPLOY
     dockerfile_path: Dockerfile
     github:
-      repo: Winter-wub/e-learning-platform
+      repo: Winter-wub/babo-elearning
       branch: main
     instance_count: 1
     instance_size_slug: apps-s-1vcpu-0.5gb

@@ -344,3 +344,19 @@ export const SLIP_UPLOAD_RATE_LIMIT = 5;
 
 /** Expiry duration for slip signed URLs in seconds (15 minutes). */
 export const SLIP_SIGNED_URL_EXPIRY = 900;
+
+/** SiteContent keys for checkout bank details. */
+export const CHECKOUT_KEYS = {
+  bankName: "checkout.bank_name",
+  accountNumber: "checkout.account_number",
+  accountName: "checkout.account_name",
+  promptpayId: "checkout.promptpay_id",
+} as const;
+
+/** Default bank detail values (shown until admin sets real values). */
+export const CHECKOUT_DEFAULTS = {
+  bankName: "กสิกรไทย (KBANK)",
+  accountNumber: "XXX-X-XXXXX-X",
+  accountName: "ชื่อ นามสกุล",
+  promptpayId: "",
+} as const;

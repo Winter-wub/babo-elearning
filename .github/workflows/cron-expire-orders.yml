@@ -1,0 +1,17 @@
+name: Expire Unpaid Orders
+
+on:
+  schedule:
+    # Run every hour
+    - cron: '0 * * * *'
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  expire:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Expire pending orders past deadline
+        run: |
+          curl -s -X POST \
+            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
+            https://englishwithgift.com/api/cron/expire-orders

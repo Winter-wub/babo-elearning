@@ -1,10 +1,13 @@
 "use client";
 
+import * as React from "react";
 import { useSession, signOut } from "next-auth/react";
 import { Menu, LogOut, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { HeaderHelpButton } from "@/components/layout/header-help-button";
+import { CartIcon } from "@/components/cart/cart-icon";
+import { CartDrawer } from "@/components/cart/cart-drawer";
 import { Avatar } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -25,6 +28,7 @@ export function Header({ onMenuClick }: HeaderProps) {
   const userName = session?.user?.name ?? "User";
   const userEmail = session?.user?.email ?? "";
   const userRole = session?.user?.role ?? "STUDENT";
+  const [cartOpen, setCartOpen] = React.useState(false);
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-background px-4 sm:px-6">
@@ -44,6 +48,9 @@ export function Header({ onMenuClick }: HeaderProps) {
       {/* Right side: help + theme toggle + user menu */}
       <div className="flex items-center gap-1">
       <HeaderHelpButton />
+      {userRole === "STUDENT" && (
+        <CartIcon onClick={() => setCartOpen(true)} />
+      )}
       <div data-tour="header-theme-toggle">
         <ThemeToggle />
       </div>
@@ -89,6 +96,9 @@ export function Header({ onMenuClick }: HeaderProps) {
         </DropdownMenuContent>
       </DropdownMenu>
       </div>
+      {userRole === "STUDENT" && (
+        <CartDrawer open={cartOpen} onOpenChange={setCartOpen} />
+      )}
     </header>
   );
 }

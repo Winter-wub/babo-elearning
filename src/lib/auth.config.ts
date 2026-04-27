@@ -38,7 +38,12 @@ export const authConfig: NextAuthConfig = {
       // /dashboard and /videos/* require any authenticated user.
       // Admins are also allowed here (they can preview as a student would).
       const isStudentRoute =
-        pathname.startsWith("/dashboard") || pathname.startsWith("/videos");
+        pathname.startsWith("/dashboard") ||
+        pathname.startsWith("/videos") ||
+        pathname.startsWith("/orders") ||
+        pathname.startsWith("/checkout") ||
+        pathname.startsWith("/cart") ||
+        pathname.startsWith("/profile");
       if (isStudentRoute) {
         return isLoggedIn; // unauthenticated → redirects to /login
       }

@@ -251,3 +251,65 @@ export function passwordChangedEmailTemplate({ name }: PasswordChangedEmailOptio
 export function passwordChangedEmailSubject(): string {
   return `[${APP_NAME}] รหัสผ่านของคุณถูกเปลี่ยนแล้ว`;
 }
+
+// ---------------------------------------------------------------------------
+// Order email templates
+// ---------------------------------------------------------------------------
+
+import { formatPriceTHB } from "@/lib/order-utils";
+
+interface OrderApprovedEmailOptions {
+  name: string;
+  orderNumber: string;
+  courseTitles: string[];
+  totalSatang: number;
+  dashboardUrl: string;
+}
+
+export function orderApprovedEmailTemplate(opts: OrderApprovedEmailOptions): string {
+  const appName = escHtml(APP_NAME);
+  const name = escHtml(opts.name);
+  const items = opts.courseTitles.map((t) => `<li>${escHtml(t)}</li>`).join("");
+
+  return `<div style="font-family:sans-serif;max-width:520px;margin:0 auto">
+  <h2>สวัสดี ${name} 👋</h2>
+  <p>คำสั่งซื้อ <strong>${escHtml(opts.orderNumber)}</strong> ได้รับการยืนยันแล้ว!</p>
+  <p><strong>คอร์สที่ได้รับสิทธิ์:</strong></p>
+  <ul>${items}</ul>
+  <p>ยอดรวม: <strong>${formatPriceTHB(opts.totalSatang)}</strong></p>
+  <p><a href="${escHtml(opts.dashboardUrl)}" style="display:inline-block;padding:10px 24px;background:#000;color:#fff;text-decoration:none;border-radius:6px">เข้าเรียนเลย</a></p>
+  <p style="color:#888;font-size:12px">&copy; ${new Date().getFullYear()} ${appName}</p>
+</div>`;
+}
+
+interface OrderRejectedEmailOptions {
+  name: string;
+  orderNumber: string;
+  reason: string;
+  reuploadUrl: string;
+}
+
+export function orderRejectedEmailTemplate(opts: OrderRejectedEmailOptions): string {
+  const appName = escHtml(APP_NAME);
+  const name = escHtml(opts.name);
+
+  return `<div style="font-family:sans-serif;max-width:520px;margin:0 auto">
+  <h2>สวัสดี ${name}</h2>
+  <p>หลักฐานการชำระเงินสำหรับคำสั่งซื้อ <strong>${escHtml(opts.orderNumber)}</strong> ถูกปฏิเสธ</p>
+  <p><strong>เหตุผล:</strong> ${escHtml(opts.reason)}</p>
+  <p>คุณสามารถอัปโหลดสลิปใหม่ได้:</p>
+  <p><a href="${escHtml(opts.reuploadUrl)}" style="display:inline-block;padding:10px 24px;background:#000;color:#fff;text-decoration:none;border-radius:6px">อัปโหลดสลิปใหม่</a></p>
+  <p style="color:#888;font-size:12px">&copy; ${new Date().getFullYear()} ${appName}</p>
+</div>`;
+}
+
+export function orderSubmittedEmailTemplate(opts: { name: string; orderNumber: string; totalSatang: number }): string {
+  const appName = escHtml(APP_NAME);
+  return `<div style="font-family:sans-serif;max-width:520px;margin:0 auto">
+  <h2>สวัสดี ${escHtml(opts.name)} 👋</h2>
+  <p>เราได้รับหลักฐานการชำระเงินสำหรับคำสั่งซื้อ <strong>${escHtml(opts.orderNumber)}</strong> แล้ว</p>
+  <p>ยอดรวม: <strong>${formatPriceTHB(opts.totalSatang)}</strong></p>
+  <p>ทีมงานจะตรวจสอบและยืนยันภายใน 24 ชั่วโมง</p>
+  <p style="color:#888;font-size:12px">&copy; ${new Date().getFullYear()} ${appName}</p>
+</div>`;
+}

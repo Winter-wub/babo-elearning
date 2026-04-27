@@ -33,6 +33,7 @@ interface NavItem {
 // Static nav links displayed in the center of the header
 const NAV_ITEMS: NavItem[] = [
   { label: "หน้าแรก", href: "/" },
+  { label: "คอร์สเรียน", href: "/courses" },
   { label: "บทความ", href: "/blog" },
   { label: "เกี่ยวกับเรา", href: "/about" },
   { label: "คำถามที่พบบ่อย", href: "/faq" },

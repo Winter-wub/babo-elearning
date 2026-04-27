@@ -3,7 +3,7 @@
 import { useCallback, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Video, X, GraduationCap, UserCircle, ListVideo } from "lucide-react";
+import { LayoutDashboard, Video, X, GraduationCap, UserCircle, ListVideo, ShoppingCart, Receipt } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
@@ -17,6 +17,8 @@ const NAV_ITEMS: NavItem[] = [
   { label: "แดชบอร์ด", href: "/dashboard", icon: LayoutDashboard },
   { label: "วิดีโอของฉัน", href: "/videos", icon: Video },
   { label: "เพลย์ลิสต์", href: "/playlists", icon: ListVideo },
+  { label: "ตะกร้า", href: "/cart", icon: ShoppingCart },
+  { label: "คำสั่งซื้อ", href: "/orders", icon: Receipt },
   { label: "โปรไฟล์ของฉัน", href: "/profile", icon: UserCircle },
 ];
 

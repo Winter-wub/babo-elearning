@@ -204,3 +204,22 @@ export async function deleteObject(key: string): Promise<void> {
 
   await getR2Client().send(command);
 }
+
+/**
+ * Uploads an object to R2 directly from server-side code.
+ * Used for payment slip uploads where the file comes through FormData.
+ */
+export async function uploadObject(
+  key: string,
+  body: Buffer | Uint8Array,
+  contentType: string,
+): Promise<void> {
+  const command = new PutObjectCommand({
+    Bucket: R2_BUCKET_NAME,
+    Key: key,
+    Body: body,
+    ContentType: contentType,
+  });
+
+  await getR2Client().send(command);
+}

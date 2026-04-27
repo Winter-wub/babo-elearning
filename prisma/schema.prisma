@@ -36,6 +36,9 @@ model User {
   exerciseAttempts        ExerciseAttempt[]
   passwordResetTokens     PasswordResetToken[]     @relation("UserResetTokens")
   adminRequestedResets    PasswordResetToken[]     @relation("AdminRequestedResets")
+  cart                    Cart?
+  orders                  Order[]                  @relation("UserOrders")
+  approvedOrders          Order[]                  @relation("AdminOrders")
 
   @@index([email])
   @@index([role])
@@ -232,6 +235,7 @@ model Playlist {
 
   videos    PlaylistVideo[]
   blogPosts BlogPostPlaylist[]
+  product   Product?
 
   @@index([isActive])
   @@index([isFeatured])
@@ -555,4 +559,112 @@ model AuditLog {
   @@index([entityType])
   @@index([createdAt])
   @@index([createdAt, action, entityType]) // composite for filtered admin page queries
+}
+
+// -----------------------------------------------------------------------
+// Cart, Product, Order & Payment — Phase 1
+// -----------------------------------------------------------------------
+
+enum OrderStatus {
+  PENDING_PAYMENT
+  PENDING_VERIFICATION
+  APPROVED
+  REJECTED
+  EXPIRED
+  CANCELLED
+}
+
+model Product {
+  id                String   @id @default(cuid())
+  playlistId        String   @unique
+  priceSatang       Int
+  salePriceSatang   Int?
+  accessDurationDays Int     @default(365)
+  isActive          Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  playlist   Playlist    @relation(fields: [playlistId], references: [id], onDelete: Restrict)
+  cartItems  CartItem[]
+  orderItems OrderItem[]
+}
+
+model Cart {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user  User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items CartItem[]
+}
+
+model CartItem {
+  id        String   @id @default(cuid())
+  cartId    String
+  productId String
+  createdAt DateTime @default(now())
+
+  cart    Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([cartId, productId])
+  @@index([cartId])
+  @@index([productId])
+}
+
+model Order {
+  id               String      @id @default(cuid())
+  orderNumber      String      @unique
+  userId           String
+  status           OrderStatus @default(PENDING_PAYMENT)
+  totalSatang      Int
+  adminNote        String?
+  rejectionReason  String?
+  expiresAt        DateTime
+  paidAt           DateTime?
+  approvedAt       DateTime?
+  rejectedAt       DateTime?
+  adminId          String?
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  user          User         @relation("UserOrders", fields: [userId], references: [id], onDelete: Restrict)
+  admin         User?        @relation("AdminOrders", fields: [adminId], references: [id], onDelete: SetNull)
+  items         OrderItem[]
+  paymentSlip   PaymentSlip?
+
+  @@index([userId])
+  @@index([userId, createdAt])
+  @@index([status])
+  @@index([expiresAt])
+  @@index([status, createdAt])
+}
+
+model OrderItem {
+  id                 String   @id @default(cuid())
+  orderId                    String
+  productId                  String
+  playlistId                 String
+  snapshotTitle              String
+  snapshotPriceSatang        Int
+  snapshotAccessDurationDays Int      @default(365)
+  createdAt                  DateTime @default(now())
+
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([productId])
+}
+
+model PaymentSlip {
+  id          String   @id @default(cuid())
+  orderId     String   @unique
+  s3Key       String   @unique
+  contentType String
+  fileSize    Int
+  uploadedAt  DateTime @default(now())
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
 }

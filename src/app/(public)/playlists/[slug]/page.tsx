@@ -10,8 +10,11 @@ import {
   BookOpen,
 } from "lucide-react";
 import { auth } from "@/lib/auth";
+import { db } from "@/lib/db";
 import { getPlaylistBySlug } from "@/actions/playlist.actions";
 import { Button } from "@/components/ui/button";
+import { PriceDisplay } from "@/components/shared/price-display";
+import { AddToCartButton } from "@/components/cart/add-to-cart-button";
 import {
   Card,
   CardContent,
@@ -67,7 +70,37 @@ export default async function PublicPlaylistPage({
 
   const playlist = result.data;
   const isAuthenticated = !!session?.user;
+  const userId = session?.user?.id;
   const videoCount = playlist.videos.length;
+
+  // Check if this playlist has a paid product
+  const product = await db.product.findUnique({
+    where: { playlistId: playlist.id },
+    select: { id: true, priceSatang: true, salePriceSatang: true, isActive: true },
+  });
+
+  // Check if user already owns all videos in this playlist
+  let hasAllPermissions = false;
+  if (userId && videoCount > 0) {
+    const ownedCount = await db.videoPermission.count({
+      where: {
+        userId,
+        videoId: { in: playlist.videos.map((pv) => pv.video.id) },
+      },
+    });
+    hasAllPermissions = ownedCount >= videoCount;
+  }
+
+  // Check if product is already in user's cart
+  let isInCart = false;
+  if (userId && product) {
+    const cartItem = await db.cartItem.findFirst({
+      where: { cart: { userId }, productId: product.id },
+    });
+    isInCart = !!cartItem;
+  }
+
+  const isPaidProduct = product?.isActive && product.priceSatang > 0;
   const totalSeconds = playlist.videos.reduce(
     (sum, pv) => sum + pv.video.duration,
     0
@@ -205,7 +238,38 @@ export default async function PublicPlaylistPage({
                 <CardTitle className="text-lg">เริ่มเรียนหลักสูตรนี้</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {isAuthenticated ? (
+                {hasAllPermissions ? (
+                  <Button asChild className="w-full" size="lg">
+                    <Link href={`/playlists/${playlist.slug}`}>
+                      เข้าเรียนเลย
+                    </Link>
+                  </Button>
+                ) : isPaidProduct ? (
+                  <>
+                    <div className="text-center">
+                      <PriceDisplay
+                        priceSatang={product.priceSatang}
+                        salePriceSatang={product.salePriceSatang}
+                        className="text-lg"
+                      />
+                    </div>
+                    {isAuthenticated ? (
+                      <AddToCartButton
+                        productId={product.id}
+                        isInCart={isInCart}
+                        className="w-full"
+                      />
+                    ) : (
+                      <Button asChild className="w-full" size="lg">
+                        <Link
+                          href={`/login?callbackUrl=${encodeURIComponent(`/playlists/${playlist.slug}`)}`}
+                        >
+                          เข้าสู่ระบบเพื่อซื้อคอร์ส
+                        </Link>
+                      </Button>
+                    )}
+                  </>
+                ) : isAuthenticated ? (
                   <Button asChild className="w-full" size="lg">
                     <Link href={`/playlists/${playlist.slug}`}>
                       เข้าเรียนเลย

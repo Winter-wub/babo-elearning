@@ -318,3 +318,29 @@ export const ACCEPTED_LOGO_MIME_TYPES = [
   "image/webp",
   "image/jpeg",
 ] as const;
+
+// -----------------------------------------------------------------------
+// Order / checkout constraints
+// -----------------------------------------------------------------------
+
+/** Order payment window in hours before auto-expiry. */
+export const ORDER_EXPIRY_HOURS = 24;
+
+/** Maximum payment slip file size in bytes (10 MB). */
+export const MAX_SLIP_SIZE_BYTES = 10 * 1024 * 1024;
+
+/** Accepted payment slip MIME types. */
+export const ACCEPTED_SLIP_MIME_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+] as const;
+
+/** R2 key prefix for payment slip images. */
+export const SLIP_KEY_PREFIX = "payment-slips/";
+
+/** Maximum slip uploads per user per hour (rate limit). */
+export const SLIP_UPLOAD_RATE_LIMIT = 5;
+
+/** Expiry duration for slip signed URLs in seconds (15 minutes). */
+export const SLIP_SIGNED_URL_EXPIRY = 900;

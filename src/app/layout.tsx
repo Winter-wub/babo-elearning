@@ -6,6 +6,7 @@ import { getThemeSettings } from "@/actions/theme.actions";
 import { ThemeStyle } from "@/components/providers/theme-style";
 import { Toaster } from "@/components/providers/toast-provider";
 import { GoogleTagManager } from "@next/third-parties/google";
+import { VersionCheck } from "@/components/version-check";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -52,6 +53,7 @@ export default async function RootLayout({
       <body className="min-h-full flex flex-col bg-background text-foreground transition-colors duration-200">
         {children}
         <Toaster />
+        <VersionCheck />
         {gtmId && process.env.NODE_ENV === "production" && (
           <GoogleTagManager gtmId={gtmId} />
         )}

@@ -3,6 +3,8 @@ import { getSiteContent } from "@/actions/content.actions";
 import { CHECKOUT_KEYS } from "@/lib/constants";
 import { PaymentMethodsForm } from "@/components/admin/payment-methods-form";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "ช่องทางชำระเงิน",
 };

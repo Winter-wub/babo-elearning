@@ -109,9 +109,10 @@ services:
         scope: BUILD_TIME
         value: "true"
       # --- Build-time: Version check ---
-      - key: NEXT_BUILD_ID
-        scope: BUILD_TIME
-        value: "${COMMIT_SHA}"
+      # DigitalOcean provides SOURCE_COMMIT automatically at runtime (git commit SHA)
+      - key: SOURCE_COMMIT
+        scope: RUN_TIME
+        value: "${SOURCE_COMMIT}"
 
 jobs:
   # Pre-deploy job: run Prisma migrations before new version receives traffic

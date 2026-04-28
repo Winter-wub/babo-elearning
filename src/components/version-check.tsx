@@ -9,7 +9,7 @@ export function VersionCheck() {
   useEffect(() => {
     async function init() {
       try {
-        const res = await fetch("/_next/__BUILD_ID_CHECK_");
+        const res = await fetch("/api/build-id");
         initialBuildId.current = await res.text();
       } catch {
         // ignore - offline or fetch failed
@@ -20,7 +20,7 @@ export function VersionCheck() {
 
     const interval = setInterval(async () => {
       try {
-        const res = await fetch("/_next/__BUILD_ID_CHECK_");
+        const res = await fetch("/api/build-id");
         const current = await res.text();
         if (initialBuildId.current && current !== initialBuildId.current) {
           toast({

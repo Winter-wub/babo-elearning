@@ -108,6 +108,10 @@ services:
       - key: NEXT_PUBLIC_AI_CHAT_ENABLED
         scope: BUILD_TIME
         value: "true"
+      # --- Build-time: Version check ---
+      - key: NEXT_BUILD_ID
+        scope: BUILD_TIME
+        value: "${COMMIT_SHA}"
 
 jobs:
   # Pre-deploy job: run Prisma migrations before new version receives traffic

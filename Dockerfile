@@ -64,6 +64,9 @@ ARG NEXT_PUBLIC_APP_URL=http://localhost:3000
 ENV NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL}
 ARG NEXT_PUBLIC_AI_CHAT_ENABLED=false
 ENV NEXT_PUBLIC_AI_CHAT_ENABLED=${NEXT_PUBLIC_AI_CHAT_ENABLED}
+# Build ID for version checking — use git commit SHA or timestamp
+ARG NEXT_BUILD_ID
+ENV NEXT_BUILD_ID=${NEXT_BUILD_ID}
 # R2 endpoint vars — used by next.config.ts headers() to build CSP at build time.
 # In Docker dev, R2_ENDPOINT points to the internal MinIO hostname (http://minio:9000)
 # and R2_PUBLIC_ENDPOINT to the host-reachable address (http://localhost:9000).

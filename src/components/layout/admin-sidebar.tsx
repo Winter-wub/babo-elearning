@@ -207,7 +207,7 @@ export function AdminSidebar({ open, onClose, appName = "อีเลิร์�
         </div>
 
         {/* Navigation links */}
-        <nav data-tour="sidebar-nav" className="flex-1 space-y-1 px-3 py-4">
+        <nav data-tour="sidebar-nav" className="flex-1 overflow-y-auto space-y-1 px-3 py-4">
           {GROUPED_NAV_ITEMS.map((group) => {
             const isExpanded = groupStates[group.group];
             const hasActiveItem = group.items.some(item => isActive(item.href));

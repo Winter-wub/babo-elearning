@@ -109,10 +109,12 @@ services:
         scope: BUILD_TIME
         value: "true"
       # --- Build-time: Version check ---
-      # DigitalOcean provides SOURCE_COMMIT automatically at runtime (git commit SHA)
-      - key: SOURCE_COMMIT
+      # DigitalOcean provides COMMIT_HASH as a bindable variable at runtime
+      # See: https://docs.digitalocean.com/products/app-platform/how-to/use-environment-variables/
+      # ${_self.COMMIT_HASH} = git commit hash used for this build
+      - key: COMMIT_HASH
         scope: RUN_TIME
-        value: "${SOURCE_COMMIT}"
+        value: "${_self.COMMIT_HASH}"
 
 jobs:
   # Pre-deploy job: run Prisma migrations before new version receives traffic

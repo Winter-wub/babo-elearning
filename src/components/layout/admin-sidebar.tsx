@@ -22,6 +22,7 @@ import {
   Bot,
   ScrollText,
   Package,
+  ShoppingCart,
   Receipt,
   CreditCard,
   ChevronDown,
@@ -71,6 +72,7 @@ const GROUPED_NAV_ITEMS = [
     group: "พาณิชย์",
     items: [
       { label: "สินค้า", href: "/admin/products", icon: Package },
+      { label: "ตะกร้าสินค้า", href: "/admin/carts", icon: ShoppingCart },
       { label: "คำสั่งซื้อ", href: "/admin/orders", icon: Receipt },
       { label: "ช่องทางชำระเงิน", href: "/admin/payment-methods", icon: CreditCard },
     ],

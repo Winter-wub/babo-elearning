@@ -3,7 +3,8 @@ import { OrderStatus } from "@prisma/client";
 
 const VALID_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
   PENDING_PAYMENT: [OrderStatus.PENDING_VERIFICATION, OrderStatus.EXPIRED, OrderStatus.CANCELLED],
-  PENDING_VERIFICATION: [OrderStatus.APPROVED, OrderStatus.REJECTED],
+  // Self-transition: student can re-upload slip while awaiting verification
+  PENDING_VERIFICATION: [OrderStatus.PENDING_VERIFICATION, OrderStatus.APPROVED, OrderStatus.REJECTED],
   APPROVED: [],
   REJECTED: [OrderStatus.PENDING_VERIFICATION],
   EXPIRED: [],

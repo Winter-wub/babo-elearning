@@ -27,7 +27,8 @@ export function Header({ onMenuClick }: HeaderProps) {
 
   const userName = session?.user?.name ?? "User";
   const userEmail = session?.user?.email ?? "";
-  const userRole = session?.user?.role ?? "STUDENT";
+  const userRole = session?.user?.role;
+  const isStudent = userRole === "STUDENT";
   const [cartOpen, setCartOpen] = React.useState(false);
 
   return (
@@ -48,7 +49,7 @@ export function Header({ onMenuClick }: HeaderProps) {
       {/* Right side: help + theme toggle + user menu */}
       <div className="flex items-center gap-1">
       <HeaderHelpButton />
-      {userRole === "STUDENT" && (
+      {isStudent && (
         <CartIcon onClick={() => setCartOpen(true)} />
       )}
       <div data-tour="header-theme-toggle">
@@ -66,7 +67,7 @@ export function Header({ onMenuClick }: HeaderProps) {
             <div className="hidden text-left sm:block">
               <p className="text-sm font-medium leading-none">{userName}</p>
               <p className="text-xs text-muted-foreground">
-                {userRole === "ADMIN" ? "ผู้ดูแลระบบ" : "นักเรียน"}
+                {userRole === "ADMIN" ? "ผู้ดูแลระบบ" : userRole === "STUDENT" ? "นักเรียน" : ""}
               </p>
             </div>
           </Button>
@@ -96,7 +97,7 @@ export function Header({ onMenuClick }: HeaderProps) {
         </DropdownMenuContent>
       </DropdownMenu>
       </div>
-      {userRole === "STUDENT" && (
+      {isStudent && (
         <CartDrawer open={cartOpen} onOpenChange={setCartOpen} />
       )}
     </header>

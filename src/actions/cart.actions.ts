@@ -1,10 +1,12 @@
 "use server";
 
+import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
-import type { ActionResult } from "@/types";
-import type { Cart, CartItem, Product, Playlist } from "@prisma/client";
+import { DEFAULT_PAGE_SIZE } from "@/lib/constants";
+import type { ActionResult, PaginatedResult } from "@/types";
+import type { Cart, CartItem, Product, Playlist, Prisma } from "@prisma/client";
 
 async function requireAuth() {
   const session = await auth();
@@ -158,5 +160,109 @@ export async function clearCart(): Promise<ActionResult<undefined>> {
     return { success: true, data: undefined };
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : "ไม่สามารถล้างตะกร้า" };
+  }
+}
+
+// -----------------------------------------------------------------------
+// Admin actions
+// -----------------------------------------------------------------------
+
+async function requireAdmin() {
+  const session = await auth();
+  if (!session?.user || session.user.role !== "ADMIN") throw new Error("ไม่มีสิทธิ์");
+  return session;
+}
+
+export type AdminCartItem = {
+  id: string;
+  product: {
+    priceSatang: number;
+    salePriceSatang: number | null;
+    isActive: boolean;
+    playlist: { title: string; slug: string; thumbnailUrl: string | null };
+  };
+};
+
+export type AdminCartRow = {
+  id: string;
+  userId: string;
+  user: { name: string | null; email: string };
+  itemCount: number;
+  totalSatang: number;
+  updatedAt: Date;
+  items: AdminCartItem[];
+};
+
+const GetAdminCartsSchema = z.object({
+  page: z.coerce.number().int().positive().default(1),
+  pageSize: z.coerce.number().int().positive().max(100).default(DEFAULT_PAGE_SIZE),
+  search: z.string().trim().optional(),
+});
+
+export async function getAdminCarts(
+  input: z.input<typeof GetAdminCartsSchema> = {}
+): Promise<ActionResult<PaginatedResult<AdminCartRow>>> {
+  try {
+    await requireAdmin();
+    const { page, pageSize, search } = GetAdminCartsSchema.parse(input);
+
+    const where: Prisma.CartWhereInput = { items: { some: {} } };
+    if (search && search.length > 0) {
+      where.user = {
+        OR: [
+          { name: { contains: search, mode: "insensitive" } },
+          { email: { contains: search, mode: "insensitive" } },
+        ],
+      };
+    }
+
+    const [carts, total] = await Promise.all([
+      db.cart.findMany({
+        where,
+        orderBy: { updatedAt: "desc" },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+        include: {
+          user: { select: { name: true, email: true } },
+          items: {
+            include: {
+              product: {
+                select: {
+                  priceSatang: true,
+                  salePriceSatang: true,
+                  isActive: true,
+                  playlist: { select: { title: true, slug: true, thumbnailUrl: true } },
+                },
+              },
+            },
+            orderBy: { createdAt: "desc" },
+          },
+        },
+      }),
+      db.cart.count({ where }),
+    ]);
+
+    const items: AdminCartRow[] = carts.map((cart) => ({
+      id: cart.id,
+      userId: cart.userId,
+      user: cart.user,
+      itemCount: cart.items.length,
+      totalSatang: cart.items.reduce(
+        (sum, item) => sum + (item.product.salePriceSatang ?? item.product.priceSatang),
+        0
+      ),
+      updatedAt: cart.updatedAt,
+      items: cart.items.map((item) => ({
+        id: item.id,
+        product: item.product,
+      })),
+    }));
+
+    return {
+      success: true,
+      data: { items, meta: { total, page, pageSize, totalPages: Math.ceil(total / pageSize) } },
+    };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : "ไม่สามารถดึงข้อมูล" };
   }
 }

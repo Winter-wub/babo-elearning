@@ -172,7 +172,9 @@ export async function uploadSlip(orderId: string, formData: FormData): Promise<A
 
     // Validate file
     const file = formData.get("slip") as File | null;
-    if (!file) return { success: false, error: "กรุณาเลือกไฟล์สลิป" };
+    if (!file) {
+      return { success: false, error: "กรุณาเลือกไฟล์สลิป" };
+    }
     if (file.size > MAX_SLIP_SIZE_BYTES) {
       return { success: false, error: "ไฟล์ใหญ่เกินไป (สูงสุด 10MB)" };
     }

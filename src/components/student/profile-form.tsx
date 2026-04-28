@@ -162,11 +162,11 @@ export function ProfileForm({ profile }: ProfileFormProps) {
               <p className="text-sm font-medium text-muted-foreground">
                 สถานะบัญชี
               </p>
-              <p className="mt-1">
+              <div className="mt-1">
                 <Badge variant={profile.isActive ? "default" : "destructive"}>
                   {profile.isActive ? "ใช้งานอยู่" : "ไม่ใช้งาน"}
                 </Badge>
-              </p>
+              </div>
             </div>
           </div>
         </CardContent>

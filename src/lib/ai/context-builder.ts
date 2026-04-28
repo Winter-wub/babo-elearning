@@ -85,6 +85,15 @@ export async function buildPlatformContext(): Promise<string> {
     activeInviteLinks,
     recentContacts,
     faqItems,
+    // Order & Product data
+    activeProducts,
+    totalOrders,
+    pendingPaymentOrders,
+    pendingVerificationOrders,
+    approvedOrders,
+    rejectedOrders,
+    expiredOrders,
+    recentOrders,
   ] = await Promise.all([
     db.user.count(),
     db.user.count({ where: { isActive: true } }),
@@ -131,6 +140,25 @@ export async function buildPlatformContext(): Promise<string> {
       orderBy: { sortOrder: "asc" },
       take: 20,
       select: { question: true, answer: true },
+    }),
+    // Order & Product data
+    db.product.count({ where: { isActive: true } }),
+    db.order.count(),
+    db.order.count({ where: { status: "PENDING_PAYMENT" } }),
+    db.order.count({ where: { status: "PENDING_VERIFICATION" } }),
+    db.order.count({ where: { status: "APPROVED" } }),
+    db.order.count({ where: { status: "REJECTED" } }),
+    db.order.count({ where: { status: "EXPIRED" } }),
+    db.order.findMany({
+      take: 10,
+      orderBy: { createdAt: "desc" },
+      select: {
+        orderNumber: true,
+        status: true,
+        totalSatang: true,
+        createdAt: true,
+        user: { select: { name: true, email: true } },
+      },
     }),
   ]);
 
@@ -184,6 +212,22 @@ export async function buildPlatformContext(): Promise<string> {
       (c) => `  - [${c.isRead ? "อ่านแล้ว" : "ยังไม่อ่าน"}] ${c.name}: "${c.subject}" (${formatDate(c.createdAt)})`
     ),
     ``,
+    `### สินค้า (Products)`,
+    `- สินค้าที่เปิดขาย: ${activeProducts}`,
+    ``,
+    `### คำสั่งซื้อ (Orders)`,
+    `- คำสั่งซื้อทั้งหมด: ${totalOrders}`,
+    `- รอชำระเงิน: ${pendingPaymentOrders}`,
+    `- รอตรวจสอบสลิป: ${pendingVerificationOrders}`,
+    `- อนุมัติแล้ว: ${approvedOrders}`,
+    `- ปฏิเสธ: ${rejectedOrders}`,
+    `- หมดอายุ: ${expiredOrders}`,
+    ``,
+    `คำสั่งซื้อล่าสุด 10 รายการ:`,
+    ...sanitizeForLLM(recentOrders).map(
+      (o) => `  - ${o.orderNumber} — ${o.user.name ?? o.user.email} — ฿${(o.totalSatang / 100).toFixed(2)} — ${o.status} — ${formatDate(o.createdAt)}`
+    ),
+    ``,
     `### คำถามที่พบบ่อย (FAQs)`,
     `จำนวน FAQ ที่เปิดใช้งาน: ${faqItems.length}`,
     ...faqItems.map((f) => `  - Q: ${f.question}\n    A: ${f.answer.slice(0, 200)}`),
@@ -209,9 +253,9 @@ export async function buildSystemPrompt(): Promise<string> {
   const prompt = `คุณคือผู้ช่วย AI ของแพลตฟอร์มอีเลิร์นนิง สำหรับช่วยผู้ดูแลระบบ (Admin) จัดการแพลตฟอร์ม
 
 หน้าที่ของคุณ:
-- ตอบคำถามเกี่ยวกับข้อมูลแพลตฟอร์ม (นักเรียน, คอร์ส, วิดีโอ, สิทธิ์การเข้าถึง)
-- วิเคราะห์ข้อมูลและให้ข้อมูลเชิงลึก
-- ช่วยแนะนำการดำเนินการสำหรับผู้ดูแลระบบ
+- ตอบคำถามเกี่ยวกับข้อมูลแพลตฟอร์ม (นักเรียน, คอร์ส, วิดีโอ, สิทธิ์การเข้าถึง, คำสั่งซื้อ, การชำระเงิน)
+- วิเคราะห์ข้อมูลคำสั่งซื้อ สรุปยอดขาย และสถานะการชำระเงิน
+- แนะนำการดำเนินการ เช่น ตรวจสอบสลิปที่รอ, ติดตามคำสั่งซื้อที่ค้าง
 - ตอบเป็นภาษาไทย ยกเว้นคำศัพท์เฉพาะทาง
 
 ข้อจำกัด:

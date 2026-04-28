@@ -283,4 +283,69 @@ export const TOUR_STEPS: TourConfig = {
       },
     },
   ],
+
+  "/admin/products": [
+    {
+      element: '[data-tour="products-search"]',
+      popover: {
+        title: "ค้นหาสินค้า",
+        description: "ค้นหาสินค้าตามชื่อคอร์ส หรือคลิก 'สร้างสินค้า' เพื่อเพิ่มคอร์สใหม่สำหรับขาย",
+        side: "bottom",
+      },
+    },
+    {
+      element: '[data-tour="products-table"]',
+      popover: {
+        title: "ตารางสินค้า",
+        description: "จัดการราคา ราคาลด ระยะเวลาเข้าถึง และเปิด/ปิดการขายสินค้าได้ที่นี่",
+        side: "top",
+      },
+    },
+  ],
+
+  "/admin/orders": [
+    {
+      element: '[data-tour="orders-filters"]',
+      popover: {
+        title: "กรองตามสถานะ",
+        description: "กรองคำสั่งซื้อตามสถานะ: รอตรวจสอบ, รอชำระเงิน, อนุมัติแล้ว, ปฏิเสธ คลิก 'รอตรวจสอบ' เพื่อดูสลิปที่รอการยืนยัน",
+        side: "bottom",
+      },
+    },
+    {
+      element: '[data-tour="orders-table"]',
+      popover: {
+        title: "ตารางคำสั่งซื้อ",
+        description: "ดูรายการคำสั่งซื้อทั้งหมด คลิกไอคอนตาเพื่อดูรายละเอียด ตรวจสอบสลิป และอนุมัติ/ปฏิเสธ",
+        side: "top",
+      },
+    },
+  ],
+
+  "/admin/payment-methods": [
+    {
+      element: '[data-tour="bank-transfer-section"]',
+      popover: {
+        title: "โอนเงินผ่านธนาคาร",
+        description: "กรอกข้อมูลบัญชีธนาคาร เปิด/ปิดสวิตช์เพื่อแสดงหรือซ่อนตัวเลือกนี้ในหน้าชำระเงิน",
+        side: "right",
+      },
+    },
+    {
+      element: '[data-tour="promptpay-section"]',
+      popover: {
+        title: "พร้อมเพย์",
+        description: "กรอกหมายเลขพร้อมเพย์ (เบอร์โทร หรือเลขบัตรประชาชน) เปิดสวิตช์เพื่อให้ลูกค้าเห็นตัวเลือกนี้",
+        side: "right",
+      },
+    },
+    {
+      element: '[data-tour="payment-preview"]',
+      popover: {
+        title: "ตัวอย่างที่ลูกค้าจะเห็น",
+        description: "แสดงตัวอย่างข้อมูลที่ลูกค้าจะเห็นในหน้าชำระเงิน อัปเดตทันทีเมื่อคุณแก้ไข",
+        side: "left",
+      },
+    },
+  ],
 };

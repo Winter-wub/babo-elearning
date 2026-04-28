@@ -64,7 +64,7 @@ export function PaymentMethodsForm({ initialData }: PaymentMethodsFormProps) {
       {/* Left: Form */}
       <div className="space-y-6">
         {/* Bank Transfer */}
-        <Card>
+        <Card data-tour="bank-transfer-section">
           <CardHeader className="pb-4">
             <div className="flex items-center justify-between">
               <CardTitle className="flex items-center gap-2 text-lg">
@@ -119,7 +119,7 @@ export function PaymentMethodsForm({ initialData }: PaymentMethodsFormProps) {
         </Card>
 
         {/* PromptPay */}
-        <Card>
+        <Card data-tour="promptpay-section">
           <CardHeader className="pb-4">
             <div className="flex items-center justify-between">
               <CardTitle className="flex items-center gap-2 text-lg">
@@ -161,7 +161,7 @@ export function PaymentMethodsForm({ initialData }: PaymentMethodsFormProps) {
 
       {/* Right: Live Preview */}
       <div>
-        <Card className="sticky top-24">
+        <Card className="sticky top-24" data-tour="payment-preview">
           <CardHeader className="pb-3">
             <CardTitle className="text-base">ตัวอย่างที่ลูกค้าจะเห็น</CardTitle>
           </CardHeader>

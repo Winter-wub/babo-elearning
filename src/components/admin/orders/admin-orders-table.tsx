@@ -51,7 +51,7 @@ export function AdminOrdersTable({ orders, meta }: AdminOrdersTableProps) {
   return (
     <div className="space-y-4">
       {/* Status filter tabs */}
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-2" data-tour="orders-filters">
         {STATUS_TABS.map((tab) => (
           <Button
             key={tab.label}
@@ -68,7 +68,7 @@ export function AdminOrdersTable({ orders, meta }: AdminOrdersTableProps) {
         <div className="py-12 text-center text-muted-foreground">ไม่พบคำสั่งซื้อ</div>
       ) : (
         <>
-          <Table>
+          <Table data-tour="orders-table">
             <TableHeader>
               <TableRow>
                 <TableHead>หมายเลข</TableHead>

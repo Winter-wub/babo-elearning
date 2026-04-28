@@ -228,7 +228,7 @@ export function ProductsTable({ products, meta }: ProductsTableProps) {
       {/* Toolbar */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         {/* Search */}
-        <div className="flex flex-1 flex-wrap gap-2">
+        <div className="flex flex-1 flex-wrap gap-2" data-tour="products-search">
           <div className="relative w-full max-w-xs">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
@@ -252,7 +252,7 @@ export function ProductsTable({ products, meta }: ProductsTableProps) {
       </div>
 
       {/* Table */}
-      <div className="rounded-md border">
+      <div className="rounded-md border" data-tour="products-table">
         <Table>
           <TableHeader>
             <TableRow>

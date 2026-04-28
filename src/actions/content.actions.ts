@@ -153,7 +153,9 @@ export async function bulkUpdateSiteContent(
     );
 
     revalidatePath("/admin/content");
+    revalidatePath("/admin/payment-methods");
     revalidatePath("/admin/hero");
+    revalidatePath("/checkout");
     revalidatePath("/");
     revalidatePath("/about");
     revalidatePath("/contact");

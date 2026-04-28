@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Copy, CheckCheck, Clock, Building2 } from "lucide-react";
+import { Loader2, Copy, CheckCheck, Clock, Building2, CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -16,6 +16,8 @@ interface BankDetails {
   accountNumber: string;
   accountName: string;
   promptpayId: string;
+  bankTransferEnabled: boolean;
+  promptpayEnabled: boolean;
 }
 
 interface CheckoutContentProps {
@@ -92,53 +94,74 @@ export function CheckoutContent({ cart, bankDetails }: CheckoutContentProps) {
       </Card>
 
       {/* Bank details */}
-      <Card className="bg-muted/50">
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Building2 className="h-5 w-5" />
-            โอนเงินเข้าบัญชี
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs text-muted-foreground">ธนาคาร</p>
-              <p className="font-medium">{bankDetails.bankName}</p>
-            </div>
-            <CopyButton text={bankDetails.bankName} field="bank" />
-          </div>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs text-muted-foreground">เลขบัญชี</p>
-              <p className="font-mono font-medium">{bankDetails.accountNumber}</p>
-            </div>
-            <CopyButton text={bankDetails.accountNumber.replace(/-/g, "")} field="account" />
-          </div>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs text-muted-foreground">ชื่อบัญชี</p>
-              <p className="font-medium">{bankDetails.accountName}</p>
-            </div>
-            <CopyButton text={bankDetails.accountName} field="name" />
-          </div>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs text-muted-foreground">จำนวนเงิน</p>
-              <p className="text-lg font-bold text-primary">{formatPriceTHB(subtotal)}</p>
-            </div>
-            <CopyButton text={String(subtotal / 100)} field="amount" />
-          </div>
-          {bankDetails.promptpayId && (
-            <div className="border-t pt-3">
-              <p className="text-xs text-muted-foreground mb-1">พร้อมเพย์</p>
-              <div className="flex items-center justify-between">
-                <p className="font-mono font-medium">{bankDetails.promptpayId}</p>
-                <CopyButton text={bankDetails.promptpayId} field="promptpay" />
+      {bankDetails.bankTransferEnabled && (
+        <Card className="bg-muted/50">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Building2 className="h-5 w-5" />
+              โอนเงินเข้าบัญชี
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-muted-foreground">ธนาคาร</p>
+                <p className="font-medium">{bankDetails.bankName}</p>
               </div>
+              <CopyButton text={bankDetails.bankName} field="bank" />
             </div>
-          )}
-        </CardContent>
-      </Card>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-muted-foreground">เลขบัญชี</p>
+                <p className="font-mono font-medium">{bankDetails.accountNumber}</p>
+              </div>
+              <CopyButton text={bankDetails.accountNumber.replace(/-/g, "")} field="account" />
+            </div>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-muted-foreground">ชื่อบัญชี</p>
+                <p className="font-medium">{bankDetails.accountName}</p>
+              </div>
+              <CopyButton text={bankDetails.accountName} field="name" />
+            </div>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-muted-foreground">จำนวนเงิน</p>
+                <p className="text-lg font-bold text-primary">{formatPriceTHB(subtotal)}</p>
+              </div>
+              <CopyButton text={String(subtotal / 100)} field="amount" />
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* PromptPay */}
+      {bankDetails.promptpayEnabled && bankDetails.promptpayId && (
+        <Card className="bg-muted/50">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <CreditCard className="h-5 w-5" />
+              พร้อมเพย์
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-muted-foreground">หมายเลขพร้อมเพย์</p>
+                <p className="font-mono font-medium">{bankDetails.promptpayId}</p>
+              </div>
+              <CopyButton text={bankDetails.promptpayId} field="promptpay" />
+            </div>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-muted-foreground">จำนวนเงิน</p>
+                <p className="text-lg font-bold text-primary">{formatPriceTHB(subtotal)}</p>
+              </div>
+              <CopyButton text={String(subtotal / 100)} field="amount2" />
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <Alert>
         <Clock className="h-4 w-4" />

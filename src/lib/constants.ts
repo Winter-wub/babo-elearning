@@ -351,6 +351,8 @@ export const CHECKOUT_KEYS = {
   accountNumber: "checkout.account_number",
   accountName: "checkout.account_name",
   promptpayId: "checkout.promptpay_id",
+  bankTransferEnabled: "checkout.bank_transfer_enabled",
+  promptpayEnabled: "checkout.promptpay_enabled",
 } as const;
 
 /** Default bank detail values (shown until admin sets real values). */

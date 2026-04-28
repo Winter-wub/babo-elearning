@@ -25,6 +25,8 @@ export default async function CheckoutPage() {
     accountNumber: contentMap[CHECKOUT_KEYS.accountNumber] || CHECKOUT_DEFAULTS.accountNumber,
     accountName: contentMap[CHECKOUT_KEYS.accountName] || CHECKOUT_DEFAULTS.accountName,
     promptpayId: contentMap[CHECKOUT_KEYS.promptpayId] || CHECKOUT_DEFAULTS.promptpayId,
+    bankTransferEnabled: contentMap[CHECKOUT_KEYS.bankTransferEnabled] !== "false",
+    promptpayEnabled: contentMap[CHECKOUT_KEYS.promptpayEnabled] === "true",
   };
 
   return (

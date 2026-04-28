@@ -23,6 +23,7 @@ import {
   ScrollText,
   Package,
   Receipt,
+  CreditCard,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -42,6 +43,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: "เพลย์ลิสต์", href: "/admin/playlists", icon: ListVideo },
   { label: "สินค้า", href: "/admin/products", icon: Package },
   { label: "คำสั่งซื้อ", href: "/admin/orders", icon: Receipt },
+  { label: "ช่องทางชำระเงิน", href: "/admin/payment-methods", icon: CreditCard },
   { label: "สิทธิ์การเข้าถึง", href: "/admin/permissions", icon: Shield },
   { label: "ลิงก์เชิญ", href: "/admin/invite-links", icon: Link2 },
   { label: "ผู้ให้บริการล็อกอิน", href: "/admin/oauth", icon: LogIn },

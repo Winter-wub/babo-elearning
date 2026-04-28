@@ -6,10 +6,8 @@ export { HomeFooter } from "./home-footer";
 export { HomeHero } from "./home-hero";
 /** @deprecated Use HomeHero instead */
 export { HomeHeroCarousel } from "./home-hero-carousel";
-export { TrendingSection } from "./trending-section";
-export { TrendingListItem } from "./trending-list-item";
+export { FeaturedCarousel } from "./featured-carousel";
 export { PlaylistCard } from "./playlist-card";
-export { FeaturedPlaylistsSection } from "./featured-playlists-section";
 export { CategoryPlaylistsGrid } from "./category-playlists-grid";
 export { PlaylistSection } from "./playlist-section";
 export { LatestBlogSection } from "./latest-blog-section";

@@ -149,36 +149,41 @@ test.describe("Home page — Hero section", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Trending section
+// Featured course banner carousel
 // ---------------------------------------------------------------------------
 
-test.describe("Home page — Trending section", () => {
+test.describe("Home page — Course Banner Carousel", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
   });
 
-  test('data-testid="trending-section" is present on the page', async ({
-    page,
-  }) => {
-    await expect(page.getByTestId("trending-section")).toBeAttached();
+  test("trending section no longer exists", async ({ page }) => {
+    await expect(page.getByTestId("trending-section")).toHaveCount(0);
   });
 
-  test('"Top 10 Trending" heading is visible', async ({ page }) => {
+  test("featured playlists grid no longer exists", async ({ page }) => {
     await expect(
-      page.getByRole("heading", { name: /top 10 trending/i })
-    ).toBeVisible();
+      page.getByRole("heading", { name: /เพลย์ลิสต์แนะนำ/ })
+    ).toHaveCount(0);
   });
 
-  // Requires seed data — skipped when the DB is not guaranteed to be seeded
-  // with video records.  The test is still written so CI with a full seed
-  // can run it by removing test.skip.
-  test.skip("at least one ranked item is visible when seed data exists", async ({
+  test.skip("carousel is visible when featured playlists exist", async ({
     page,
   }) => {
-    // The trending list uses an ordered list with aria-label="Trending videos"
-    const list = page.getByRole("list", { name: "Trending videos" });
-    const items = list.getByRole("listitem");
-    await expect(items.first()).toBeVisible();
+    await expect(page.getByTestId("course-banner-carousel")).toBeVisible();
+  });
+
+  test.skip("each banner links to a playlist detail page", async ({
+    page,
+  }) => {
+    const carousel = page.getByTestId("course-banner-carousel");
+    const links = carousel.locator("a");
+    const count = await links.count();
+    expect(count).toBeGreaterThan(0);
+    for (let i = 0; i < count; i++) {
+      const href = await links.nth(i).getAttribute("href");
+      expect(href).toMatch(/^\/playlists\//);
+    }
   });
 });
 

@@ -3,10 +3,13 @@ import { sendEmail } from "@/lib/email";
 import { formatPriceTHB } from "@/lib/order-utils";
 import { APP_NAME } from "@/lib/constants";
 import {
-  orderSubmittedEmailTemplate,
   orderApprovedEmailTemplate,
   orderRejectedEmailTemplate,
 } from "@/lib/email-templates";
+
+function escTelegram(s: string): string {
+  return s.replace(/[<>&]/g, (c) => (c === "<" ? "&lt;" : c === ">" ? "&gt;" : "&amp;"));
+}
 
 interface NotifyNewSlipParams {
   orderNumber: string;
@@ -24,10 +27,10 @@ export function notifyNewSlip(params: NotifyNewSlipParams): void {
   const telegramMsg = [
     `🧾 <b>คำสั่งซื้อใหม่</b>`,
     ``,
-    `หมายเลข: ${orderNumber}`,
-    `นักเรียน: ${studentName} (${studentEmail})`,
+    `หมายเลข: ${escTelegram(orderNumber)}`,
+    `นักเรียน: ${escTelegram(studentName)} (${escTelegram(studentEmail)})`,
     `ยอดรวม: ${formatPriceTHB(totalSatang)}`,
-    `คอร์ส: ${courseTitles.join(", ")}`,
+    `คอร์ส: ${escTelegram(courseTitles.join(", "))}`,
     ``,
     `<a href="${appUrl}/admin/orders/${orderId}">ตรวจสอบ →</a>`,
   ].join("\n");

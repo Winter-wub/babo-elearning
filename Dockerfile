@@ -40,6 +40,10 @@ ENV NEXT_PUBLIC_AI_CHAT_ENABLED=${NEXT_PUBLIC_AI_CHAT_ENABLED}
 RUN pnpm exec prisma generate
 RUN pnpm build
 
+# Create self-contained Prisma CLI bundle with all dependencies (flat npm layout)
+# pnpm's strict node_modules breaks require() chains in the runner stage
+RUN npm install --prefix /prisma-cli --no-package-lock --no-save prisma@$(node -p "require('./node_modules/prisma/package.json').version")
+
 # 4. Runner stage — Minimal production image
 FROM node:24-alpine AS runner
 # openssl is required for Prisma runtime on Alpine
@@ -59,16 +63,13 @@ COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# Prisma production support: Copy schema, migrations, and CLI for DO migrate job
-COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
-COPY --from=builder --chown=nextjs:nodejs /app/prisma.config.ts ./prisma.config.ts
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules/prisma ./node_modules/prisma
+# Prisma runtime: @prisma/client for the web service
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@prisma ./node_modules/@prisma
 
-# Symlink prisma CLI for DO migrate job
-RUN ln -s /app/node_modules/prisma/build/index.js /usr/local/bin/prisma && \
-    mkdir -p /prisma-cli/node_modules && \
-    ln -s /app/node_modules/prisma /prisma-cli/node_modules/prisma
+# Prisma CLI: self-contained bundle with all deps for DO migrate job
+COPY --from=builder /prisma-cli/node_modules /prisma-cli/node_modules
+COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
+COPY --from=builder --chown=nextjs:nodejs /app/prisma.config.ts ./prisma.config.ts
 
 USER nextjs
 EXPOSE 3000

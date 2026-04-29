@@ -59,12 +59,16 @@ COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# Prisma production support: Copy schema and migrations for DO migrate job
+# Prisma production support: Copy schema, migrations, and CLI for DO migrate job
 COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
 COPY --from=builder --chown=nextjs:nodejs /app/prisma.config.ts ./prisma.config.ts
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/prisma ./node_modules/prisma
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@prisma ./node_modules/@prisma
 
-# Note: We don't include the Prisma CLI here to keep the image small (~200MB).
-# DigitalOcean's migrate job should use `npx prisma migrate deploy`.
+# Symlink prisma CLI for DO migrate job
+RUN ln -s /app/node_modules/prisma/build/index.js /usr/local/bin/prisma && \
+    mkdir -p /prisma-cli/node_modules && \
+    ln -s /app/node_modules/prisma /prisma-cli/node_modules/prisma
 
 USER nextjs
 EXPOSE 3000

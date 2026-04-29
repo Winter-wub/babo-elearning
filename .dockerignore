@@ -9,6 +9,7 @@
 # --- Dependencies (reinstalled inside the image) ---
 node_modules
 .pnpm-store
+.npm
 
 # --- Next.js build artifacts ---
 .next
@@ -25,13 +26,16 @@ out
 !.env.example
 # keep .env.example so the runner stage can reference it for documentation
 
-# --- Test artifacts ---
+# --- Test and QA artifacts ---
 coverage
 __tests__
 **/*.test.ts
 **/*.test.tsx
 **/*.spec.ts
 **/*.spec.tsx
+e2e
+playwright-report
+qa-screenshots
 
 # --- Documentation ---
 docs

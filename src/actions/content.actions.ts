@@ -78,11 +78,28 @@ export async function getSiteContentByPrefix(
   }
 }
 
-/** Get all SiteContent entries (admin). */
+const REQUIRED_KEYS: Record<string, string> = {
+  "contact.line.url": "",
+};
+
+/** Get all SiteContent entries (admin). Auto-creates any missing required keys. */
 export async function getAllSiteContent(): Promise<ActionResult<SiteContent[]>> {
   try {
     await requireAdmin();
     const items = await db.siteContent.findMany({ orderBy: { key: "asc" } });
+
+    const existingKeys = new Set(items.map((i) => i.key));
+    const missing = Object.entries(REQUIRED_KEYS).filter(([k]) => !existingKeys.has(k));
+    if (missing.length > 0) {
+      const created = await db.$transaction(
+        missing.map(([key, value]) =>
+          db.siteContent.upsert({ where: { key }, update: {}, create: { key, value } })
+        )
+      );
+      items.push(...created);
+      items.sort((a, b) => a.key.localeCompare(b.key));
+    }
+
     return { success: true, data: items };
   } catch (err) {
     return {

@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
 import { Menu, LogOut, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -33,7 +34,7 @@ export function Header({ onMenuClick }: HeaderProps) {
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-background px-4 sm:px-6">
-      {/* Left side: hamburger + title area */}
+      {/* Left side: hamburger + public nav links */}
       <div className="flex items-center gap-3">
         <Button
           variant="ghost"
@@ -44,6 +45,22 @@ export function Header({ onMenuClick }: HeaderProps) {
         >
           <Menu className="h-5 w-5" />
         </Button>
+        {isStudent && (
+          <nav className="hidden items-center gap-1 lg:flex" aria-label="เมนูสาธารณะ">
+            <Button variant="ghost" size="sm" asChild>
+              <Link href="/">หน้าแรก</Link>
+            </Button>
+            <Button variant="ghost" size="sm" asChild>
+              <Link href="/courses">คอร์สเรียน</Link>
+            </Button>
+            <Button variant="ghost" size="sm" asChild>
+              <Link href="/blog">บทความ</Link>
+            </Button>
+            <Button variant="ghost" size="sm" asChild>
+              <Link href="/about">เกี่ยวกับเรา</Link>
+            </Button>
+          </nav>
+        )}
       </div>
 
       {/* Right side: help + theme toggle + user menu */}

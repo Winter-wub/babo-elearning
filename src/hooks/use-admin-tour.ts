@@ -20,7 +20,10 @@ function getStepsForPath(pathname: string) {
   if (TOUR_STEPS[pathname]) return TOUR_STEPS[pathname];
   // Strip query-string–style suffixes for pages like /admin/videos?isActive=true
   const base = pathname.split("?")[0];
-  return TOUR_STEPS[base] ?? null;
+  if (TOUR_STEPS[base]) return TOUR_STEPS[base];
+  // Dynamic route match: /admin/playlists/<id> → /admin/playlists/edit
+  if (/^\/admin\/playlists\/[^/]+$/.test(base)) return TOUR_STEPS["/admin/playlists/edit"] ?? null;
+  return null;
 }
 
 function hasSeenTour(pathname: string): boolean {

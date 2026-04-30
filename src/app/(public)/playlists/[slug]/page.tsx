@@ -9,19 +9,23 @@ import {
   ArrowLeft,
   BookOpen,
 } from "lucide-react";
+import { LineIcon } from "@/components/icons/line-icon";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getPlaylistBySlug } from "@/actions/playlist.actions";
+import { getVideoExerciseStatus } from "@/actions/exercise.actions";
+import { getSiteContent } from "@/actions/content.actions";
 import { Button } from "@/components/ui/button";
 import { PriceDisplay } from "@/components/shared/price-display";
 import { AddToCartButton } from "@/components/cart/add-to-cart-button";
+import { DemoVideoSection } from "@/components/courses/demo-video-section";
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { formatDuration } from "@/lib/utils";
+import { formatDuration, isSafeHref } from "@/lib/utils";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -100,6 +104,22 @@ export default async function PublicPlaylistPage({
     isInCart = !!cartItem;
   }
 
+  // Fetch LINE URL from CMS + demo video pre-test status
+  const lineContent = await getSiteContent(["contact.line.url"]);
+  const rawLineUrl = lineContent["contact.line.url"] || "";
+  const lineUrl = isSafeHref(rawLineUrl) ? rawLineUrl : "";
+
+  let demoPreTest: { exerciseId: string; title: string } | null = null;
+  if (playlist.demoVideo && isAuthenticated) {
+    const exerciseResult = await getVideoExerciseStatus(playlist.demoVideo.id);
+    if (exerciseResult.success && exerciseResult.data.preTest) {
+      demoPreTest = {
+        exerciseId: exerciseResult.data.preTest.exerciseId,
+        title: exerciseResult.data.preTest.title,
+      };
+    }
+  }
+
   const isPaidProduct = product?.isActive && product.priceSatang > 0;
   const totalSeconds = playlist.videos.reduce(
     (sum, pv) => sum + pv.video.duration,
@@ -134,21 +154,31 @@ export default async function PublicPlaylistPage({
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
         {/* ── Main content (left 2/3) ── */}
         <div className="lg:col-span-2 space-y-8">
-          {/* Hero / Thumbnail */}
-          <div className="relative aspect-video w-full overflow-hidden rounded-xl bg-muted">
-            {playlist.thumbnailUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={playlist.thumbnailUrl}
-                alt={playlist.title}
-                className="h-full w-full object-cover"
-              />
-            ) : (
-              <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/20 via-muted to-muted">
-                <Play className="h-16 w-16 text-muted-foreground/30" />
-              </div>
-            )}
-          </div>
+          {/* Hero / Demo Video or Thumbnail */}
+          {playlist.demoVideo ? (
+            <DemoVideoSection
+              demoVideo={playlist.demoVideo}
+              isAuthenticated={isAuthenticated}
+              preTest={demoPreTest}
+              lineUrl={lineUrl || undefined}
+              playlistSlug={playlist.slug}
+            />
+          ) : (
+            <div className="relative aspect-video w-full overflow-hidden rounded-xl bg-muted">
+              {playlist.thumbnailUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={playlist.thumbnailUrl}
+                  alt={playlist.title}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/20 via-muted to-muted">
+                  <Play className="h-16 w-16 text-muted-foreground/30" />
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Title & description */}
           <div>
@@ -282,6 +312,20 @@ export default async function PublicPlaylistPage({
                     >
                       เข้าสู่ระบบเพื่อเรียน
                     </Link>
+                  </Button>
+                )}
+
+                {lineUrl && (
+                  <Button
+                    asChild
+                    variant="outline"
+                    className="w-full gap-2 border-[#06C755] text-[#06C755] hover:bg-[#06C755] hover:text-white"
+                    size="lg"
+                  >
+                    <a href={lineUrl} target="_blank" rel="noopener noreferrer">
+                      <LineIcon className="h-4 w-4" />
+                      สอบถามเพิ่มเติม
+                    </a>
                   </Button>
                 )}
               </CardContent>

@@ -21,3 +21,8 @@ export function formatDuration(seconds: number): string {
 
   return h > 0 ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
 }
+
+/** Validate that a href is safe (relative path or http/https URL). Blocks javascript: and data: schemes. */
+export function isSafeHref(value: string): boolean {
+  return value === "" || /^(\/|https?:\/\/)/.test(value);
+}

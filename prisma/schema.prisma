@@ -158,10 +158,11 @@ model Video {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  permissions VideoPermission[]
-  playlists   PlaylistVideo[]
-  materials   CourseMaterial[]
-  exercises   Exercise[]
+  permissions   VideoPermission[]
+  playlists     PlaylistVideo[]
+  materials     CourseMaterial[]
+  exercises     Exercise[]
+  playlistDemos Playlist[]        @relation("PlaylistDemoVideo")
 
   @@index([isActive])
   @@index([isFeatured])
@@ -230,12 +231,14 @@ model Playlist {
   isActive     Boolean  @default(true)
   isFeatured   Boolean  @default(false)
   sortOrder    Int      @default(0)
+  demoVideoId  String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
   videos    PlaylistVideo[]
   blogPosts BlogPostPlaylist[]
   product   Product?
+  demoVideo Video?             @relation("PlaylistDemoVideo", fields: [demoVideoId], references: [id], onDelete: SetNull)
 
   @@index([isActive])
   @@index([isFeatured])

@@ -303,6 +303,18 @@ export const TOUR_STEPS: TourConfig = {
     },
   ],
 
+  "/admin/playlists/edit": [
+    {
+      element: '[data-tour="demo-video-selector"]',
+      popover: {
+        title: "วิดีโอตัวอย่าง (Demo)",
+        description:
+          "เลือกวิดีโอตัวอย่างฟรีสำหรับคอร์สนี้ ผู้ใช้ที่สมัครสมาชิกแล้วสามารถดูได้โดยไม่ต้องซื้อ เหมาะสำหรับดึงดูดลูกค้าใหม่",
+        side: "bottom",
+      },
+    },
+  ],
+
   "/admin/orders": [
     {
       element: '[data-tour="orders-filters"]',

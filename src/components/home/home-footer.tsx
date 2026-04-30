@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { ExternalLink } from "lucide-react";
 import { getSiteContent } from "@/actions/content.actions";
+import { isSafeHref } from "@/lib/utils";
 
 // Footer column definition type
 interface FooterColumn {
@@ -35,6 +37,7 @@ const CONTENT_KEYS: Record<string, string> = {
     "แพลตฟอร์มอีเลิร์นนิงมอบคอร์สวิดีโอจากผู้เชี่ยวชาญด้านการเงิน การลงทุน และการวางแผนภาษี ช่วยให้คุณสร้างความรู้ที่ยั่งยืนตามจังหวะของคุณ",
   "footer.about.address": "123 Learning Street,\nBangkok, Thailand 10110",
   "footer.copyright": "แพลตฟอร์มอีเลิร์นนิง สงวนลิขสิทธิ์",
+  "contact.line.url": "",
 };
 
 export async function HomeFooter() {
@@ -54,7 +57,7 @@ export async function HomeFooter() {
         <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-3">
 
           {/* First two columns are generated from the data array */}
-          {FOOTER_COLUMNS.map((col) => (
+          {FOOTER_COLUMNS.map((col, colIndex) => (
             <div key={col.heading}>
               <h3 className="text-sm font-semibold text-foreground">
                 {col.heading}
@@ -70,6 +73,22 @@ export async function HomeFooter() {
                     </Link>
                   </li>
                 ))}
+                {colIndex === 1 && c("contact.line.url") && isSafeHref(c("contact.line.url")) && (
+                  <li>
+                    <a
+                      href={c("contact.line.url")}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:underline"
+                    >
+                      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#06C755] text-[10px] font-bold text-white">
+                        L
+                      </span>
+                      LINE สอบถามข้อมูล
+                      <ExternalLink className="h-3 w-3" />
+                    </a>
+                  </li>
+                )}
               </ul>
             </div>
           ))}

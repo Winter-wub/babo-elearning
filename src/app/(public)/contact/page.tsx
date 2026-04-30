@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
-import { Mail, Phone, MapPin } from "lucide-react";
+import { Mail, Phone, MapPin, ExternalLink } from "lucide-react";
+import { LineIcon } from "@/components/icons/line-icon";
 import { getSiteContent } from "@/actions/content.actions";
 import { ContactForm } from "@/components/contact/ContactForm";
+import { isSafeHref } from "@/lib/utils";
 
 export const metadata: Metadata = {
   title: "ติดต่อเรา",
@@ -13,6 +15,7 @@ const CONTACT_KEYS: Record<string, string> = {
   "contact.email": "support@elearning.example.com",
   "contact.phone": "+66 2 123 4567",
   "contact.address": "123 Learning Street, Bangkok, Thailand 10110",
+  "contact.line.url": "",
   "contact.hero.title": "ติดต่อเรา",
   "contact.hero.subtitle":
     "มีคำถามหรือข้อเสนอแนะ? เรายินดีรับฟังจากคุณ กรอกแบบฟอร์มหรือติดต่อเราผ่านช่องทางด้านล่าง",
@@ -107,7 +110,58 @@ export default async function ContactPage() {
                   </p>
                 </div>
               </div>
+
+              {/* LINE */}
+              {c("contact.line.url") && isSafeHref(c("contact.line.url")) && (
+                <div className="flex gap-4">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#06C755]/10">
+                    <LineIcon
+                      className="h-5 w-5 text-[#06C755]"
+                      aria-hidden="true"
+                    />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-foreground">LINE</p>
+                    <a
+                      href={c("contact.line.url")}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
+                    >
+                      สอบถามข้อมูลทาง LINE
+                      <ExternalLink className="h-3 w-3" />
+                    </a>
+                  </div>
+                </div>
+              )}
             </div>
+
+            {/* LINE CTA Card */}
+            {c("contact.line.url") && isSafeHref(c("contact.line.url")) && (
+              <div className="rounded-lg border border-[#06C755]/30 bg-[#06C755]/5 p-6">
+                <div className="mb-3 flex items-center gap-2">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-[#06C755] px-2.5 py-0.5 text-xs font-bold text-white">
+                    <LineIcon className="h-3.5 w-3.5" />
+                    LINE
+                  </span>
+                </div>
+                <h3 className="text-sm font-semibold text-foreground">
+                  สอบถามรายละเอียดเพิ่มเติม
+                </h3>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  แอดไลน์เพื่อสอบถามข้อมูลคอร์สเรียน หรือปรึกษาเรื่องการเลือกคอร์สที่เหมาะกับคุณ
+                </p>
+                <a
+                  href={c("contact.line.url")}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-3 inline-flex items-center gap-2 rounded-lg bg-[#06C755] px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90"
+                >
+                  <LineIcon className="h-4 w-4" />
+                  เพิ่มเพื่อนทาง LINE
+                </a>
+              </div>
+            )}
 
             {/* Operating Hours */}
             <div className="rounded-lg border border-border bg-card p-6">

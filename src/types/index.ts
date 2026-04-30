@@ -93,6 +93,7 @@ export type PlaylistWithVideos = {
   description: string | null;
   thumbnailUrl: string | null;
   slug: string;
+  demoVideo?: { id: string; title: string; thumbnailUrl: string | null; duration: number } | null;
   videos: {
     position: number;
     video: Pick<Video, "id" | "title" | "description" | "duration" | "thumbnailUrl" | "playCount">;

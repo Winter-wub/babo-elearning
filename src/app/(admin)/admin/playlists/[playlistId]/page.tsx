@@ -54,7 +54,9 @@ export default async function EditPlaylistPage({ params }: EditPlaylistPageProps
           sortOrder: playlist.sortOrder,
           thumbnailKey: playlist.thumbnailKey,
           thumbnailUrl: playlist.thumbnailUrl,
+          demoVideoId: playlist.demoVideoId,
         }}
+        allVideos={allVideos.map((v) => ({ id: v.id, title: v.title }))}
       />
 
       <PlaylistVideosManager

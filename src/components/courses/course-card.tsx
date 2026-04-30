@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Play } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { PriceDisplay } from "@/components/shared/price-display";
 import type { Product, Playlist } from "@prisma/client";
@@ -11,9 +12,10 @@ type CourseProduct = Product & {
 
 interface CourseCardProps {
   product: CourseProduct;
+  hasDemo?: boolean;
 }
 
-export function CourseCard({ product }: CourseCardProps) {
+export function CourseCard({ product, hasDemo }: CourseCardProps) {
   const { playlist } = product;
 
   return (
@@ -41,6 +43,14 @@ export function CourseCard({ product }: CourseCardProps) {
             {playlist._count.videos} วิดีโอ
           </Badge>
         </div>
+        {hasDemo && (
+          <div className="absolute right-2 top-2">
+            <Badge className="gap-1 text-xs shadow-lg">
+              <Play className="h-3 w-3 fill-current" />
+              ดูตัวอย่าง
+            </Badge>
+          </div>
+        )}
       </div>
       <div className="mt-2 space-y-1">
         <p className="text-sm font-medium leading-snug text-foreground transition-colors group-hover:text-primary">

@@ -29,7 +29,11 @@ export default async function CoursesPage() {
       ) : (
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {products.map((product) => (
-            <CourseCard key={product.id} product={product} />
+            <CourseCard
+              key={product.id}
+              product={product}
+              hasDemo={product.playlist.hasDemo}
+            />
           ))}
         </div>
       )}

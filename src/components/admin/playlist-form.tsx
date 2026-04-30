@@ -35,10 +35,17 @@ interface PlaylistFormData {
   sortOrder: number;
   thumbnailKey?: string | null;
   thumbnailUrl?: string | null;
+  demoVideoId?: string | null;
+}
+
+interface VideoOption {
+  id: string;
+  title: string;
 }
 
 interface PlaylistFormProps {
   playlist?: PlaylistFormData;
+  allVideos?: VideoOption[];
 }
 
 // -----------------------------------------------------------------------
@@ -56,7 +63,7 @@ function generateSlug(title: string): string {
 // Component
 // -----------------------------------------------------------------------
 
-export function PlaylistForm({ playlist }: PlaylistFormProps) {
+export function PlaylistForm({ playlist, allVideos = [] }: PlaylistFormProps) {
   const router = useRouter();
   const { toast } = useToast();
   const isEditing = Boolean(playlist?.id);
@@ -75,6 +82,7 @@ export function PlaylistForm({ playlist }: PlaylistFormProps) {
   const [thumbnailUrl, setThumbnailUrl] = React.useState<string | null>(
     resolveThumbnailUrl(playlist?.thumbnailKey ?? null, playlist?.thumbnailUrl ?? null)
   );
+  const [demoVideoId, setDemoVideoId] = React.useState<string | null>(playlist?.demoVideoId ?? null);
   const [slugManuallyEdited, setSlugManuallyEdited] = React.useState(false);
   const [isPending, startTransition] = React.useTransition();
 
@@ -115,6 +123,7 @@ export function PlaylistForm({ playlist }: PlaylistFormProps) {
         isFeatured,
         sortOrder,
         thumbnailKey,
+        demoVideoId,
       };
 
       const result = isEditing
@@ -191,6 +200,29 @@ export function PlaylistForm({ playlist }: PlaylistFormProps) {
             getUploadUrl={getUploadPlaylistThumbnailUrl}
             label="รูปตัวอย่างเพลย์ลิสต์"
           />
+
+          {/* Demo Video */}
+          {isEditing && allVideos.length > 0 && (
+            <div className="space-y-2" data-tour="demo-video-selector">
+              <Label htmlFor="demoVideoId">วิดีโอตัวอย่าง (Demo)</Label>
+              <select
+                id="demoVideoId"
+                value={demoVideoId ?? ""}
+                onChange={(e) => setDemoVideoId(e.target.value || null)}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              >
+                <option value="">ไม่มีวิดีโอตัวอย่าง</option>
+                {allVideos.map((v) => (
+                  <option key={v.id} value={v.id}>
+                    {v.title}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-muted-foreground">
+                เลือกวิดีโอที่จะแสดงเป็นตัวอย่างฟรีในหน้าคอร์ส ผู้ใช้ที่สมัครสมาชิกแล้วสามารถดูได้โดยไม่ต้องซื้อ
+              </p>
+            </div>
+          )}
 
           {/* Slug */}
           <div className="space-y-2">

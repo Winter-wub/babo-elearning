@@ -53,6 +53,7 @@ export type ProductWithPlaylist = Product & {
 
 type PublicProductWithPlaylist = Product & {
   playlist: Pick<Playlist, "id" | "title" | "slug" | "thumbnailUrl" | "isActive"> & {
+    hasDemo: boolean;
     _count: { videos: number };
   };
 };
@@ -254,12 +255,25 @@ export async function getPublicProducts(): Promise<
             slug: true,
             thumbnailUrl: true,
             isActive: true,
+            demoVideoId: true,
             _count: { select: { videos: true } },
           },
         },
       },
     });
-    return { success: true, data: items };
+    const data: PublicProductWithPlaylist[] = items.map((item) => ({
+      ...item,
+      playlist: {
+        id: item.playlist.id,
+        title: item.playlist.title,
+        slug: item.playlist.slug,
+        thumbnailUrl: item.playlist.thumbnailUrl,
+        isActive: item.playlist.isActive,
+        hasDemo: !!item.playlist.demoVideoId,
+        _count: item.playlist._count,
+      },
+    }));
+    return { success: true, data };
   } catch (err) {
     return {
       success: false,

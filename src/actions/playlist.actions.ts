@@ -196,6 +196,15 @@ export async function getPlaylistBySlug(
     const playlist = await db.playlist.findUnique({
       where: { slug, isActive: true },
       include: {
+        demoVideo: {
+          select: {
+            id: true,
+            title: true,
+            thumbnailUrl: true,
+            thumbnailKey: true,
+            duration: true,
+          },
+        },
         videos: {
           include: {
             video: {
@@ -225,6 +234,14 @@ export async function getPlaylistBySlug(
       description: playlist.description,
       thumbnailUrl: resolveThumbnailUrl(playlist.thumbnailKey, playlist.thumbnailUrl),
       slug: playlist.slug,
+      demoVideo: playlist.demoVideo
+        ? {
+            id: playlist.demoVideo.id,
+            title: playlist.demoVideo.title,
+            thumbnailUrl: resolveThumbnailUrl(playlist.demoVideo.thumbnailKey, playlist.demoVideo.thumbnailUrl),
+            duration: playlist.demoVideo.duration,
+          }
+        : null,
       videos: playlist.videos.map((pv) => ({
         position: pv.position,
         video: {
@@ -287,6 +304,7 @@ const UpdatePlaylistSchema = z.object({
   isActive: z.boolean().optional(),
   isFeatured: z.boolean().optional(),
   sortOrder: z.coerce.number().int().optional(),
+  demoVideoId: z.string().cuid().optional().nullable(),
 });
 
 const GetPlaylistsSchema = z.object({
@@ -410,6 +428,15 @@ export async function updatePlaylist(
     const session = await requireAdmin();
     const data = UpdatePlaylistSchema.parse(input);
 
+    // Validate demoVideoId references an active video
+    if (data.demoVideoId) {
+      const videoExists = await db.video.findUnique({
+        where: { id: data.demoVideoId, isActive: true },
+        select: { id: true },
+      });
+      if (!videoExists) return { success: false, error: "ไม่พบวิดีโอที่เลือก" };
+    }
+
     // Validate thumbnailKey prefix if provided
     if (data.thumbnailKey && !data.thumbnailKey.startsWith(PLAYLIST_THUMBNAIL_KEY_PREFIX)) {
       return { success: false, error: "Invalid thumbnail key prefix" };
@@ -437,6 +464,8 @@ export async function updatePlaylist(
     logAdminAction(session, "PLAYLIST_UPDATE", "Playlist", id, { title: data.title });
     revalidatePath("/admin/playlists");
     revalidatePath(`/admin/playlists/${id}`);
+    revalidatePath(`/playlists/${playlist.slug}`);
+    revalidatePath("/courses");
     return { success: true, data: playlist };
   } catch (err) {
     return {

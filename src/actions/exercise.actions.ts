@@ -385,12 +385,18 @@ export async function getStudentExercise(
 
     if (!exercise) return { success: false, error: "ไม่พบแบบฝึกหัด" };
 
-    // Verify the student has access to this video
-    const permission = await db.videoPermission.findUnique({
-      where: { userId_videoId: { userId: session.user.id, videoId: exercise.videoId } },
-      select: { id: true },
-    });
-    if (!permission) return { success: false, error: "ไม่มีสิทธิ์เข้าถึงวิดีโอนี้" };
+    // Verify the student has access: either via VideoPermission or as a playlist demo video
+    const [permission, isDemoVideo] = await Promise.all([
+      db.videoPermission.findUnique({
+        where: { userId_videoId: { userId: session.user.id, videoId: exercise.videoId } },
+        select: { id: true },
+      }),
+      db.playlist.findFirst({
+        where: { demoVideoId: exercise.videoId, isActive: true },
+        select: { id: true },
+      }),
+    ]);
+    if (!permission && !isDemoVideo) return { success: false, error: "ไม่มีสิทธิ์เข้าถึงวิดีโอนี้" };
 
     // Strip correct answers from config for student view
     const safeQuestions = exercise.questions.map((q) => ({
@@ -529,12 +535,18 @@ export async function submitExercise(
     });
     if (!exercise) return { success: false, error: "ไม่พบแบบฝึกหัด" };
 
-    // Verify video access permission
-    const permission = await db.videoPermission.findUnique({
-      where: { userId_videoId: { userId: session.user.id, videoId: exercise.videoId } },
-      select: { id: true },
-    });
-    if (!permission) return { success: false, error: "ไม่มีสิทธิ์เข้าถึงวิดีโอนี้" };
+    // Verify access: either via VideoPermission or as a playlist demo video
+    const [permission, isDemoVideo] = await Promise.all([
+      db.videoPermission.findUnique({
+        where: { userId_videoId: { userId: session.user.id, videoId: exercise.videoId } },
+        select: { id: true },
+      }),
+      db.playlist.findFirst({
+        where: { demoVideoId: exercise.videoId, isActive: true },
+        select: { id: true },
+      }),
+    ]);
+    if (!permission && !isDemoVideo) return { success: false, error: "ไม่มีสิทธิ์เข้าถึงวิดีโอนี้" };
 
     // Grade each question
     let totalPoints = 0;

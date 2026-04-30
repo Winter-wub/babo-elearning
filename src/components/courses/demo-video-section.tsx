@@ -223,7 +223,7 @@ export function DemoVideoSection({
         <ScoreDisplay
           result={exerciseResult}
           exerciseType="PRE_TEST"
-          onContinueWatching={handleProceedToCta}
+          onPrimaryAction={handleProceedToCta}
           onRetake={handleRetakePreTest}
         />
       </div>

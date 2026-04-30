@@ -16,13 +16,8 @@ import {
   type ExerciseWithQuestions,
   type ExerciseForStudent,
   type ExerciseResult,
-  type ChoiceConfig,
-  type TrueFalseConfig,
-  type ShortAnswerConfig,
-  type FillInBlankConfig,
-  type MatchingConfig,
-  type LinearScaleConfig,
 } from "@/types/exercise";
+import { gradeAnswer, getCorrectAnswer, stripCorrectAnswers } from "@/lib/exercise-grading";
 
 // -----------------------------------------------------------------------
 // Helpers
@@ -40,6 +35,14 @@ async function requireAuth() {
   const session = await auth();
   if (!session?.user) throw new Error("ไม่มีสิทธิ์");
   return session;
+}
+
+function revalidateExercisePath(videoId: string | null) {
+  if (videoId) {
+    revalidatePath(`/admin/videos/${videoId}`);
+  } else {
+    revalidatePath("/admin/exams");
+  }
 }
 
 // -----------------------------------------------------------------------
@@ -86,7 +89,7 @@ export async function createExercise(
       title: data.title,
     });
 
-    revalidatePath(`/admin/videos/${data.videoId}`);
+    revalidateExercisePath(data.videoId);
     return { success: true, data: exercise };
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : "Failed to create exercise" };
@@ -119,7 +122,7 @@ export async function updateExercise(
       changes: data,
     });
 
-    revalidatePath(`/admin/videos/${exercise.videoId}`);
+    revalidateExercisePath(exercise.videoId);
     return { success: true, data: exercise };
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : "Failed to update exercise" };
@@ -145,7 +148,7 @@ export async function deleteExercise(
       type: exercise.type,
     });
 
-    revalidatePath(`/admin/videos/${exercise.videoId}`);
+    revalidateExercisePath(exercise.videoId);
     return { success: true, data: undefined };
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : "Failed to delete exercise" };
@@ -206,7 +209,7 @@ export async function addQuestion(
       type: data.type,
     });
 
-    revalidatePath(`/admin/videos/${exercise.videoId}`);
+    revalidateExercisePath(exercise.videoId);
     return { success: true, data: exercise };
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : "Failed to add question" };
@@ -254,7 +257,7 @@ export async function updateQuestion(
       exerciseId: question.exerciseId,
     });
 
-    revalidatePath(`/admin/videos/${exercise.videoId}`);
+    revalidateExercisePath(exercise.videoId);
     return { success: true, data: exercise };
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : "Failed to update question" };
@@ -287,7 +290,7 @@ export async function deleteQuestion(
       exerciseId: question.exerciseId,
     });
 
-    revalidatePath(`/admin/videos/${exercise.videoId}`);
+    revalidateExercisePath(exercise.videoId);
     return { success: true, data: exercise };
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : "Failed to delete question" };
@@ -334,7 +337,7 @@ export async function reorderQuestions(
       questionIds: data.questionIds,
     });
 
-    revalidatePath(`/admin/videos/${exercise.videoId}`);
+    revalidateExercisePath(exercise.videoId);
     return { success: true, data: exercise };
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : "Failed to reorder questions" };
@@ -385,18 +388,20 @@ export async function getStudentExercise(
 
     if (!exercise) return { success: false, error: "ไม่พบแบบฝึกหัด" };
 
-    // Verify the student has access: either via VideoPermission or as a playlist demo video
-    const [permission, isDemoVideo] = await Promise.all([
-      db.videoPermission.findUnique({
-        where: { userId_videoId: { userId: session.user.id, videoId: exercise.videoId } },
-        select: { id: true },
-      }),
-      db.playlist.findFirst({
-        where: { demoVideoId: exercise.videoId, isActive: true },
-        select: { id: true },
-      }),
-    ]);
-    if (!permission && !isDemoVideo) return { success: false, error: "ไม่มีสิทธิ์เข้าถึงวิดีโอนี้" };
+    // Verify the student has access (video-bound exercises only)
+    if (exercise.videoId) {
+      const [permission, isDemoVideo] = await Promise.all([
+        db.videoPermission.findUnique({
+          where: { userId_videoId: { userId: session.user.id, videoId: exercise.videoId } },
+          select: { id: true },
+        }),
+        db.playlist.findFirst({
+          where: { demoVideoId: exercise.videoId, isActive: true },
+          select: { id: true },
+        }),
+      ]);
+      if (!permission && !isDemoVideo) return { success: false, error: "ไม่มีสิทธิ์เข้าถึงวิดีโอนี้" };
+    }
 
     // Strip correct answers from config for student view
     const safeQuestions = exercise.questions.map((q) => ({
@@ -425,49 +430,6 @@ export async function getStudentExercise(
   }
 }
 
-/** Strip correct answer info from config so students can't cheat */
-function stripCorrectAnswers(type: string, config: Record<string, unknown>): Record<string, unknown> {
-  switch (type) {
-    case "MULTIPLE_CHOICE":
-    case "CHECKBOXES":
-    case "DROPDOWN": {
-      const c = config as unknown as ChoiceConfig;
-      return {
-        options: c.options.map((o) => ({ id: o.id, text: o.text })),
-        shuffleOptions: c.shuffleOptions,
-      };
-    }
-    case "TRUE_FALSE":
-      return {}; // hide correct answer
-    case "SHORT_ANSWER":
-      return { maxLength: (config as unknown as ShortAnswerConfig).maxLength };
-    case "PARAGRAPH":
-      return { maxLength: (config as unknown as { maxLength: number }).maxLength };
-    case "LINEAR_SCALE": {
-      const c = config as unknown as LinearScaleConfig;
-      return { min: c.min, max: c.max, minLabel: c.minLabel, maxLabel: c.maxLabel };
-    }
-    case "MATCHING": {
-      const c = config as unknown as MatchingConfig;
-      // Give left items, Fisher-Yates shuffle right items
-      const rights = c.pairs.map((p) => p.right);
-      for (let i = rights.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [rights[i], rights[j]] = [rights[j], rights[i]];
-      }
-      return {
-        leftItems: c.pairs.map((p) => ({ id: p.id, text: p.left })),
-        rightItems: rights,
-      };
-    }
-    case "FILL_IN_BLANK": {
-      const c = config as unknown as FillInBlankConfig;
-      return { blanks: c.blanks.map((b) => ({ id: b.id })) };
-    }
-    default:
-      return {};
-  }
-}
 
 // -----------------------------------------------------------------------
 // Student: Get video exercise status (for gating)
@@ -535,18 +497,20 @@ export async function submitExercise(
     });
     if (!exercise) return { success: false, error: "ไม่พบแบบฝึกหัด" };
 
-    // Verify access: either via VideoPermission or as a playlist demo video
-    const [permission, isDemoVideo] = await Promise.all([
-      db.videoPermission.findUnique({
-        where: { userId_videoId: { userId: session.user.id, videoId: exercise.videoId } },
-        select: { id: true },
-      }),
-      db.playlist.findFirst({
-        where: { demoVideoId: exercise.videoId, isActive: true },
-        select: { id: true },
-      }),
-    ]);
-    if (!permission && !isDemoVideo) return { success: false, error: "ไม่มีสิทธิ์เข้าถึงวิดีโอนี้" };
+    // Verify access (video-bound exercises only)
+    if (exercise.videoId) {
+      const [permission, isDemoVideo] = await Promise.all([
+        db.videoPermission.findUnique({
+          where: { userId_videoId: { userId: session.user.id, videoId: exercise.videoId } },
+          select: { id: true },
+        }),
+        db.playlist.findFirst({
+          where: { demoVideoId: exercise.videoId, isActive: true },
+          select: { id: true },
+        }),
+      ]);
+      if (!permission && !isDemoVideo) return { success: false, error: "ไม่มีสิทธิ์เข้าถึงวิดีโอนี้" };
+    }
 
     // Grade each question
     let totalPoints = 0;
@@ -618,8 +582,8 @@ export async function submitExercise(
       });
     }, { isolationLevel: "Serializable" });
 
-    // Build result — only reveal correct answers for PRE_TEST or if the student passed
-    const showCorrectAnswers = exercise.type === "PRE_TEST" || passed;
+    // Reveal correct answers for PRE_TEST, STANDALONE, or if passed
+    const showCorrectAnswers = exercise.type === "PRE_TEST" || exercise.type === "STANDALONE" || passed;
     const resultAnswers = attempt.answers.map((a) => ({
       questionId: a.questionId,
       questionText: a.question.text,
@@ -632,7 +596,11 @@ export async function submitExercise(
         : null,
     }));
 
-    revalidatePath(`/videos/${exercise.videoId}`);
+    if (exercise.videoId) {
+      revalidatePath(`/videos/${exercise.videoId}`);
+    } else {
+      revalidatePath(`/exam/${exercise.id}`);
+    }
 
     return {
       success: true,
@@ -650,134 +618,3 @@ export async function submitExercise(
   }
 }
 
-// -----------------------------------------------------------------------
-// Grading logic
-// -----------------------------------------------------------------------
-
-function gradeAnswer(
-  type: string,
-  config: Record<string, unknown>,
-  answer: unknown,
-  maxPoints: number
-): { correct: boolean | null; points: number } {
-  if (answer === undefined || answer === null || answer === "") {
-    return { correct: false, points: 0 };
-  }
-
-  switch (type) {
-    case "MULTIPLE_CHOICE":
-    case "DROPDOWN": {
-      const c = config as unknown as ChoiceConfig;
-      const correctOption = c.options.find((o) => o.isCorrect);
-      const isCorrect = correctOption?.id === answer;
-      return { correct: isCorrect, points: isCorrect ? maxPoints : 0 };
-    }
-
-    case "CHECKBOXES": {
-      const c = config as unknown as ChoiceConfig;
-      const correctIds = new Set(c.options.filter((o) => o.isCorrect).map((o) => o.id));
-      const selectedIds = new Set(answer as string[]);
-      const isCorrect =
-        correctIds.size === selectedIds.size &&
-        [...correctIds].every((id) => selectedIds.has(id));
-      return { correct: isCorrect, points: isCorrect ? maxPoints : 0 };
-    }
-
-    case "TRUE_FALSE": {
-      const c = config as unknown as TrueFalseConfig;
-      const isCorrect = c.correctAnswer === answer;
-      return { correct: isCorrect, points: isCorrect ? maxPoints : 0 };
-    }
-
-    case "SHORT_ANSWER": {
-      const c = config as unknown as ShortAnswerConfig;
-      const studentStr = String(answer);
-      const isCorrect = c.correctAnswers.some((a) =>
-        c.caseSensitive ? a === studentStr : a.toLowerCase() === studentStr.toLowerCase()
-      );
-      return { correct: isCorrect, points: isCorrect ? maxPoints : 0 };
-    }
-
-    case "FILL_IN_BLANK": {
-      const c = config as unknown as FillInBlankConfig;
-      const studentAnswers = answer as Record<string, string>;
-      let allCorrect = true;
-
-      for (const blank of c.blanks) {
-        const studentStr = studentAnswers[blank.id] ?? "";
-        const matches = blank.acceptedAnswers.some((a) =>
-          blank.caseSensitive ? a === studentStr : a.toLowerCase() === studentStr.toLowerCase()
-        );
-        if (!matches) allCorrect = false;
-      }
-
-      return { correct: allCorrect, points: allCorrect ? maxPoints : 0 };
-    }
-
-    case "MATCHING": {
-      const c = config as unknown as MatchingConfig;
-      const studentPairs = answer as Record<string, string>;
-      let allCorrect = true;
-
-      for (const pair of c.pairs) {
-        if (studentPairs[pair.id] !== pair.right) {
-          allCorrect = false;
-          break;
-        }
-      }
-
-      return { correct: allCorrect, points: allCorrect ? maxPoints : 0 };
-    }
-
-    case "LINEAR_SCALE": {
-      const c = config as unknown as LinearScaleConfig;
-      if (c.correctValue === null) {
-        // Survey-style — no correct answer, always award points
-        return { correct: null, points: 0 };
-      }
-      const isCorrect = Number(answer) === c.correctValue;
-      return { correct: isCorrect, points: isCorrect ? maxPoints : 0 };
-    }
-
-    case "PARAGRAPH": {
-      // Manual grading — mark as pending
-      return { correct: null, points: 0 };
-    }
-
-    default:
-      return { correct: null, points: 0 };
-  }
-}
-
-function getCorrectAnswer(type: string, config: Record<string, unknown>): unknown {
-  switch (type) {
-    case "MULTIPLE_CHOICE":
-    case "DROPDOWN": {
-      const c = config as unknown as ChoiceConfig;
-      const correct = c.options.find((o) => o.isCorrect);
-      return correct?.text ?? null;
-    }
-    case "CHECKBOXES": {
-      const c = config as unknown as ChoiceConfig;
-      return c.options.filter((o) => o.isCorrect).map((o) => o.text);
-    }
-    case "TRUE_FALSE":
-      return (config as unknown as TrueFalseConfig).correctAnswer;
-    case "SHORT_ANSWER":
-      return (config as unknown as ShortAnswerConfig).correctAnswers;
-    case "FILL_IN_BLANK": {
-      const c = config as unknown as FillInBlankConfig;
-      return c.blanks.map((b) => b.acceptedAnswers[0]);
-    }
-    case "MATCHING": {
-      const c = config as unknown as MatchingConfig;
-      return Object.fromEntries(c.pairs.map((p) => [p.left, p.right]));
-    }
-    case "LINEAR_SCALE":
-      return (config as unknown as LinearScaleConfig).correctValue;
-    case "PARAGRAPH":
-      return null; // manual grading
-    default:
-      return null;
-  }
-}

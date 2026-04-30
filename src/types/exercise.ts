@@ -130,6 +130,13 @@ export const CreateExerciseSchema = z.object({
   maxAttempts: z.number().int().min(1).max(100).nullable().default(null),
 });
 
+export const CreateStandaloneExamSchema = z.object({
+  title: z.string().min(1, "Title is required").max(255),
+  description: z.string().max(500).optional(),
+  passingScore: z.number().int().min(0).max(100).default(80),
+  maxAttempts: z.number().int().min(1).max(100).nullable().default(null),
+});
+
 export const UpdateExerciseSchema = z.object({
   exerciseId: z.string().min(1),
   title: z.string().min(1).max(255).optional(),

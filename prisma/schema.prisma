@@ -456,6 +456,7 @@ model BlogPostPlaylist {
 enum ExerciseType {
   PRE_TEST
   POST_TEST
+  STANDALONE
 }
 
 enum QuestionType {
@@ -472,7 +473,7 @@ enum QuestionType {
 
 model Exercise {
   id           String       @id @default(cuid())
-  videoId      String
+  videoId      String?
   type         ExerciseType
   title        String
   description  String?
@@ -482,12 +483,13 @@ model Exercise {
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
 
-  video     Video              @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  video     Video?             @relation(fields: [videoId], references: [id], onDelete: Cascade)
   questions ExerciseQuestion[]
   attempts  ExerciseAttempt[]
 
-  @@unique([videoId, type]) // one pre-test + one post-test per video
+  @@unique([videoId, type])
   @@index([videoId])
+  @@index([type])
 }
 
 model ExerciseQuestion {

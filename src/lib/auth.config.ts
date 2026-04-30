@@ -43,7 +43,8 @@ export const authConfig: NextAuthConfig = {
         pathname.startsWith("/orders") ||
         pathname.startsWith("/checkout") ||
         pathname.startsWith("/cart") ||
-        pathname.startsWith("/profile");
+        pathname.startsWith("/profile") ||
+        pathname.startsWith("/exam");
       if (isStudentRoute) {
         return isLoggedIn; // unauthenticated → redirects to /login
       }

@@ -172,7 +172,7 @@ export function ExerciseGate({
       <ScoreDisplay
         result={lastResult}
         exerciseType={lastExerciseType}
-        onContinueWatching={handleContinueWatching}
+        onPrimaryAction={handleContinueWatching}
         onRetake={() => {
           setLastResult(null);
           setState(lastExerciseType === "PRE_TEST" ? "pre-test" : "post-test");

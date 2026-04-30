@@ -12,9 +12,10 @@ import type { ExerciseResult } from "@/types/exercise";
 
 interface ScoreDisplayProps {
   result: ExerciseResult;
-  exerciseType: "PRE_TEST" | "POST_TEST";
-  onContinueWatching: () => void;
+  exerciseType: "PRE_TEST" | "POST_TEST" | "STANDALONE";
+  onPrimaryAction: () => void;
   onRetake: () => void;
+  primaryActionLabel?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -24,8 +25,9 @@ interface ScoreDisplayProps {
 export function ScoreDisplay({
   result,
   exerciseType,
-  onContinueWatching,
+  onPrimaryAction,
   onRetake,
+  primaryActionLabel,
 }: ScoreDisplayProps) {
   const isPassed = result.passed;
 
@@ -35,7 +37,7 @@ export function ScoreDisplay({
         {/* Score header */}
         <div className="text-center space-y-4">
           <Badge variant={exerciseType === "PRE_TEST" ? "outline" : "default"}>
-            {exerciseType === "PRE_TEST" ? "ผลแบบทดสอบก่อนเรียน" : "ผลแบบทดสอบหลังเรียน"}
+            {exerciseType === "PRE_TEST" ? "ผลแบบทดสอบก่อนเรียน" : exerciseType === "STANDALONE" ? "ผลแบบทดสอบวัดระดับ" : "ผลแบบทดสอบหลังเรียน"}
           </Badge>
 
           {/* Score circle */}
@@ -134,8 +136,8 @@ export function ScoreDisplay({
         <Button variant="outline" onClick={onRetake}>
           ทำอีกครั้ง
         </Button>
-        <Button onClick={onContinueWatching}>
-          {exerciseType === "PRE_TEST" ? "ดูวิดีโอ →" : "ดูวิดีโอต่อ →"}
+        <Button onClick={onPrimaryAction}>
+          {primaryActionLabel ?? (exerciseType === "PRE_TEST" ? "ดูวิดีโอ →" : exerciseType === "STANDALONE" ? "ดูคอร์สเรียน →" : "ดูวิดีโอต่อ →")}
         </Button>
       </CardFooter>
     </Card>

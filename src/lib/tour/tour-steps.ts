@@ -334,6 +334,27 @@ export const TOUR_STEPS: TourConfig = {
     },
   ],
 
+  "/admin/exams": [
+    {
+      element: '[data-tour="exams-toolbar"]',
+      popover: {
+        title: "จัดการแบบทดสอบวัดระดับ",
+        description:
+          "สร้างแบบทดสอบแบบ Standalone สำหรับวัดระดับภาษาอังกฤษบนหน้าแรก ผู้ใช้ต้องเข้าสู่ระบบก่อนทำแบบทดสอบ",
+        side: "bottom",
+      },
+    },
+    {
+      element: '[data-tour="exams-list"]',
+      popover: {
+        title: "รายการแบบทดสอบ",
+        description:
+          "ดูแบบทดสอบทั้งหมด คลิก 'แก้ไข' เพื่อเพิ่มคำถาม ตั้งค่าคะแนนผ่าน หรือคัดลอกลิงก์ไปใส่หน้าแรก",
+        side: "top",
+      },
+    },
+  ],
+
   "/admin/payment-methods": [
     {
       element: '[data-tour="bank-transfer-section"]',

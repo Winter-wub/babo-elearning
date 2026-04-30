@@ -27,6 +27,7 @@ import {
   CreditCard,
   ChevronDown,
   ChevronRight,
+  ClipboardCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -54,6 +55,7 @@ const GROUPED_NAV_ITEMS = [
       { label: "วิดีโอ", href: "/admin/videos?isActive=true", icon: Video },
       { label: "เพลย์ลิสต์", href: "/admin/playlists", icon: ListVideo },
       { label: "บล็อก", href: "/admin/blog", icon: BookOpen },
+      { label: "แบบทดสอบ", href: "/admin/exams", icon: ClipboardCheck },
       { label: "คำถามที่พบบ่อย", href: "/admin/faq", icon: HelpCircle },
       { label: "เนื้อหา", href: "/admin/content", icon: FileText },
       { label: "ตั้งค่าธีม", href: "/admin/theme", icon: Palette },

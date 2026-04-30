@@ -26,8 +26,10 @@ import type { ExerciseForStudent, ExerciseResult } from "@/types/exercise";
 interface ExerciseTakerProps {
   exerciseId: string;
   exerciseTitle: string;
-  exerciseType: "PRE_TEST" | "POST_TEST";
+  exerciseType: "PRE_TEST" | "POST_TEST" | "STANDALONE";
   onComplete: (result: ExerciseResult) => void;
+  preloadedExercise?: ExerciseForStudent;
+  customSubmit?: (data: { exerciseId: string; answers: Record<string, unknown> }) => Promise<{ success: boolean; data?: ExerciseResult; error?: string }>;
 }
 
 // ---------------------------------------------------------------------------
@@ -39,6 +41,8 @@ export function ExerciseTaker({
   exerciseTitle,
   exerciseType,
   onComplete,
+  preloadedExercise,
+  customSubmit,
 }: ExerciseTakerProps) {
   const [exercise, setExercise] = useState<ExerciseForStudent | null>(null);
   const [loading, setLoading] = useState(true);
@@ -50,11 +54,16 @@ export function ExerciseTaker({
   const [started, setStarted] = useState(false);
 
   useEffect(() => {
+    if (preloadedExercise) {
+      setExercise(preloadedExercise);
+      setLoading(false);
+      return;
+    }
     getStudentExercise(exerciseId).then((result) => {
       if (result.success) setExercise(result.data);
       setLoading(false);
     });
-  }, [exerciseId]);
+  }, [exerciseId, preloadedExercise]);
 
   const setAnswer = useCallback((questionId: string, value: unknown) => {
     setAnswers((prev) => ({ ...prev, [questionId]: value }));
@@ -64,18 +73,19 @@ export function ExerciseTaker({
     setShowConfirm(false);
     setSubmitError(null);
     setSubmitting(true);
-    const result = await submitExercise({
+    const submitFn = customSubmit ?? submitExercise;
+    const result = await submitFn({
       exerciseId,
       answers,
     });
     setSubmitting(false);
 
-    if (result.success) {
+    if (result.success && "data" in result && result.data) {
       onComplete(result.data);
     } else {
-      setSubmitError(result.error ?? "เกิดข้อผิดพลาดในการส่งคำตอบ");
+      setSubmitError("error" in result ? (result.error ?? "เกิดข้อผิดพลาดในการส่งคำตอบ") : "เกิดข้อผิดพลาดในการส่งคำตอบ");
     }
-  }, [exerciseId, answers, onComplete]);
+  }, [exerciseId, answers, onComplete, customSubmit]);
 
   if (loading) {
     return (
@@ -102,7 +112,7 @@ export function ExerciseTaker({
         <CardHeader className="text-center">
           <div className="flex justify-center">
             <Badge variant={exerciseType === "PRE_TEST" ? "outline" : "default"} className="mb-2">
-              {exerciseType === "PRE_TEST" ? "แบบทดสอบก่อนเรียน" : "แบบทดสอบหลังเรียน"}
+              {exerciseType === "PRE_TEST" ? "แบบทดสอบก่อนเรียน" : exerciseType === "STANDALONE" ? "แบบทดสอบวัดระดับ" : "แบบทดสอบหลังเรียน"}
             </Badge>
           </div>
           <CardTitle>{exerciseTitle}</CardTitle>
@@ -116,7 +126,9 @@ export function ExerciseTaker({
           <p className="text-sm text-muted-foreground mb-6">
             {exerciseType === "PRE_TEST"
               ? "แบบทดสอบนี้ช่วยประเมินความรู้ก่อนเรียน"
-              : "ทำแบบทดสอบหลังเรียนเพื่อวัดความเข้าใจ"}
+              : exerciseType === "STANDALONE"
+                ? "ทดสอบความรู้ภาษาอังกฤษของคุณเพื่อแนะนำคอร์สที่เหมาะสม"
+                : "ทำแบบทดสอบหลังเรียนเพื่อวัดความเข้าใจ"}
           </p>
           <Button size="lg" onClick={() => setStarted(true)}>
             เริ่มทำแบบทดสอบ
@@ -138,7 +150,7 @@ export function ExerciseTaker({
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between mb-2">
             <Badge variant={exerciseType === "PRE_TEST" ? "outline" : "default"} className="text-[10px]">
-              {exerciseType === "PRE_TEST" ? "Pre-test" : "Post-test"}
+              {exerciseType === "PRE_TEST" ? "Pre-test" : exerciseType === "STANDALONE" ? "วัดระดับ" : "Post-test"}
             </Badge>
             <span className="text-xs text-muted-foreground">
               ข้อ {currentIndex + 1} จาก {exercise.questions.length}

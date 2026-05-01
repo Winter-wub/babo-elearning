@@ -1,6 +1,7 @@
 "use server";
 
 import { z } from "zod";
+import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
@@ -49,6 +50,33 @@ export type OrderWithItems = Order & {
   user: Pick<import("@prisma/client").User, "id" | "name" | "email">;
   paymentSlip: Pick<PaymentSlip, "id" | "contentType" | "fileSize" | "uploadedAt"> | null;
 };
+
+function parseGaCookies(cookieStore: Awaited<ReturnType<typeof cookies>>) {
+  let gaClientId: string | null = null;
+  let gaSessionId: string | null = null;
+
+  // _ga cookie format: GA1.1.<client_id> or GA1.2.<client_id>
+  const gaCookie = cookieStore.get("_ga")?.value;
+  if (gaCookie) {
+    const parts = gaCookie.split(".");
+    if (parts.length >= 4) {
+      gaClientId = `${parts[2]}.${parts[3]}`;
+    }
+  }
+
+  // _ga_<CONTAINER_ID> cookie contains session_id
+  // For G-9G4M95SG6L, the cookie is _ga_9G4M95SG6L
+  // Format: GS1.1.<session_id>.<timestamp>...
+  const gaSessionCookie = cookieStore.get("_ga_9G4M95SG6L")?.value;
+  if (gaSessionCookie) {
+    const parts = gaSessionCookie.split(".");
+    if (parts.length >= 3) {
+      gaSessionId = parts[2];
+    }
+  }
+
+  return { gaClientId, gaSessionId };
+}
 
 // -----------------------------------------------------------------------
 // Student actions
@@ -101,6 +129,10 @@ export async function createOrder(): Promise<ActionResult<{ orderId: string }>> 
       return sum + (item.product.salePriceSatang ?? item.product.priceSatang);
     }, 0);
 
+    // Capture GA cookies for attribution
+    const cookieStore = await cookies();
+    const { gaClientId, gaSessionId } = parseGaCookies(cookieStore);
+
     // Create order + items in transaction
     const order = await db.$transaction(async (tx) => {
       const newOrder = await tx.order.create({
@@ -110,6 +142,8 @@ export async function createOrder(): Promise<ActionResult<{ orderId: string }>> 
           status: OrderStatus.PENDING_PAYMENT,
           totalSatang,
           expiresAt: new Date(Date.now() + ORDER_EXPIRY_HOURS * 60 * 60 * 1000),
+          gaClientId,
+          gaSessionId,
         },
       });
 
@@ -424,6 +458,8 @@ export async function approveOrder(orderId: string, adminNote?: string): Promise
       orderId: order.id,
       orderNumber: order.orderNumber,
       userId: order.userId,
+      gaClientId: order.gaClientId,
+      gaSessionId: order.gaSessionId,
       totalSatang: order.totalSatang,
       items: order.items.map((item) => ({
         productId: item.productId,

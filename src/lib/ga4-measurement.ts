@@ -4,6 +4,8 @@ interface ServerPurchaseParams {
   orderId: string;
   orderNumber: string;
   userId: string;
+  gaClientId?: string | null;
+  gaSessionId?: string | null;
   totalSatang: number;
   items: Array<{
     productId: string;
@@ -22,25 +24,26 @@ export async function trackServerPurchase(params: ServerPurchaseParams): Promise
 
   const url = `${GA4_ENDPOINT}?measurement_id=${measurementId}&api_secret=${apiSecret}`;
 
+  const eventParams: Record<string, unknown> = {
+    transaction_id: params.orderId,
+    currency: "THB",
+    value: params.totalSatang / 100,
+    items: params.items.map((item) => ({
+      item_id: item.productId,
+      item_name: item.snapshotTitle,
+      price: item.snapshotPriceSatang / 100,
+      quantity: 1,
+      item_category: "course",
+    })),
+  };
+
+  if (params.gaSessionId) {
+    eventParams.session_id = params.gaSessionId;
+  }
+
   const body = {
-    client_id: params.userId,
-    events: [
-      {
-        name: "purchase",
-        params: {
-          transaction_id: params.orderId,
-          currency: "THB",
-          value: params.totalSatang / 100,
-          items: params.items.map((item) => ({
-            item_id: item.productId,
-            item_name: item.snapshotTitle,
-            price: item.snapshotPriceSatang / 100,
-            quantity: 1,
-            item_category: "course",
-          })),
-        },
-      },
-    ],
+    client_id: params.gaClientId || params.userId,
+    events: [{ name: "purchase", params: eventParams }],
   };
 
   try {

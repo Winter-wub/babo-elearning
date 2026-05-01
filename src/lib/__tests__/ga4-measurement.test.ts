@@ -50,6 +50,34 @@ describe("GA4 Measurement Protocol", () => {
     });
   });
 
+  it("uses gaClientId when available for attribution", async () => {
+    process.env.GA4_MEASUREMENT_ID = "G-TEST123";
+    process.env.GA4_API_SECRET = "secret_abc";
+
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response());
+    await trackServerPurchase({
+      ...mockParams,
+      gaClientId: "1234567890.1234567890",
+      gaSessionId: "1717000000",
+    });
+
+    const body = JSON.parse(fetchSpy.mock.calls[0][1]!.body as string);
+    expect(body.client_id).toBe("1234567890.1234567890");
+    expect(body.events[0].params.session_id).toBe("1717000000");
+  });
+
+  it("falls back to userId when gaClientId is null", async () => {
+    process.env.GA4_MEASUREMENT_ID = "G-TEST123";
+    process.env.GA4_API_SECRET = "secret_abc";
+
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response());
+    await trackServerPurchase({ ...mockParams, gaClientId: null, gaSessionId: null });
+
+    const body = JSON.parse(fetchSpy.mock.calls[0][1]!.body as string);
+    expect(body.client_id).toBe("user_456");
+    expect(body.events[0].params.session_id).toBeUndefined();
+  });
+
   it("handles fetch failure gracefully", async () => {
     process.env.GA4_MEASUREMENT_ID = "G-TEST123";
     process.env.GA4_API_SECRET = "secret_abc";

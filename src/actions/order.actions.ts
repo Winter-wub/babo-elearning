@@ -7,6 +7,7 @@ import { auth } from "@/lib/auth";
 import { uploadObject, getPlaybackUrl, deleteObject } from "@/lib/r2";
 import { logAdminAction } from "@/lib/audit";
 import { notifyNewSlip, notifyOrderApproved, notifyOrderRejected } from "@/lib/notifications";
+import { trackServerPurchase } from "@/lib/ga4-measurement";
 import {
   ORDER_EXPIRY_HOURS,
   MAX_SLIP_SIZE_BYTES,
@@ -418,6 +419,18 @@ export async function approveOrder(orderId: string, adminNote?: string): Promise
     });
 
     logAdminAction(session, "ORDER_APPROVE", "Order", orderId, { adminNote });
+
+    trackServerPurchase({
+      orderId: order.id,
+      orderNumber: order.orderNumber,
+      userId: order.userId,
+      totalSatang: order.totalSatang,
+      items: order.items.map((item) => ({
+        productId: item.productId,
+        snapshotTitle: item.snapshotTitle,
+        snapshotPriceSatang: item.snapshotPriceSatang,
+      })),
+    });
 
     const user = await db.user.findUnique({ where: { id: order.userId }, select: { name: true, email: true } });
     if (user) {

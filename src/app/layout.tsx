@@ -54,7 +54,7 @@ export default async function RootLayout({
         {children}
         <Toaster />
         <VersionCheck />
-        {gtmId && process.env.NODE_ENV === "production" && (
+        {gtmId && (process.env.NODE_ENV === "production" || process.env.NEXT_PUBLIC_ENABLE_GTM === "true") && (
           <GoogleTagManager gtmId={gtmId} />
         )}
       </body>

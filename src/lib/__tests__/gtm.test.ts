@@ -5,6 +5,7 @@ import {
   trackViewCart,
   trackBeginCheckout,
   trackPurchase,
+  trackPurchaseConfirmed,
   trackSlipUploaded,
 } from "../gtm";
 
@@ -28,7 +29,7 @@ describe("GTM tracking", () => {
   beforeEach(() => {
     dataLayer = [];
     (globalThis as any).window = { dataLayer };
-    vi.stubGlobal("sessionStorage", {
+    vi.stubGlobal("localStorage", {
       getItem: vi.fn().mockReturnValue(null),
       setItem: vi.fn(),
     });
@@ -80,10 +81,24 @@ describe("GTM tracking", () => {
     expect(dataLayer).toHaveLength(1);
     expect(dataLayer[0]).toMatchObject({ event: "purchase", transaction_id: "order_123" });
 
-    // Simulate sessionStorage already set
-    (sessionStorage.getItem as ReturnType<typeof vi.fn>).mockReturnValue("1");
+    (localStorage.getItem as ReturnType<typeof vi.fn>).mockReturnValue("1");
     trackPurchase("order_123", [], 0);
-    expect(dataLayer).toHaveLength(1); // no duplicate
+    expect(dataLayer).toHaveLength(1);
+  });
+
+  it("trackPurchaseConfirmed fires with correct event name", () => {
+    trackPurchaseConfirmed("order_789", [{ item_id: "p1", item_name: "Test", price: 100, quantity: 1, item_category: "course" }], 10000);
+    expect(dataLayer).toHaveLength(1);
+    expect(dataLayer[0]).toMatchObject({ event: "purchase_confirmed", transaction_id: "order_789", currency: "THB", value: 100 });
+  });
+
+  it("trackPurchaseConfirmed deduplicates by orderId", () => {
+    trackPurchaseConfirmed("order_789", [{ item_id: "p1", item_name: "Test", price: 100, quantity: 1, item_category: "course" }], 10000);
+    expect(dataLayer).toHaveLength(1);
+
+    (localStorage.getItem as ReturnType<typeof vi.fn>).mockReturnValue("1");
+    trackPurchaseConfirmed("order_789", [], 0);
+    expect(dataLayer).toHaveLength(1);
   });
 
   it("trackSlipUploaded pushes custom event", () => {

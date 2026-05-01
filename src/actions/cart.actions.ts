@@ -80,13 +80,20 @@ export async function getCart(): Promise<ActionResult<CartWithItems>> {
 }
 
 // ADD TO CART
-export async function addToCart(productId: string): Promise<ActionResult<undefined>> {
+export type AddToCartProduct = {
+  id: string;
+  priceSatang: number;
+  salePriceSatang: number | null;
+  playlist: { title: string };
+};
+
+export async function addToCart(productId: string): Promise<ActionResult<AddToCartProduct>> {
   try {
     const session = await requireAuth();
     const userId = session.user.id;
 
     // Validate product exists and is active
-    const product = await db.product.findUnique({ where: { id: productId }, include: { playlist: { select: { isActive: true } } } });
+    const product = await db.product.findUnique({ where: { id: productId }, include: { playlist: { select: { isActive: true, title: true } } } });
     if (!product || !product.isActive || !product.playlist.isActive) {
       return { success: false, error: "สินค้านี้ไม่พร้อมจำหน่าย" };
     }
@@ -105,7 +112,15 @@ export async function addToCart(productId: string): Promise<ActionResult<undefin
     });
 
     revalidatePath("/cart");
-    return { success: true, data: undefined };
+    return {
+      success: true,
+      data: {
+        id: product.id,
+        priceSatang: product.priceSatang,
+        salePriceSatang: product.salePriceSatang,
+        playlist: { title: product.playlist.title },
+      },
+    };
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : "ไม่สามารถเพิ่มสินค้า" };
   }

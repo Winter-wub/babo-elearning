@@ -52,10 +52,24 @@ export function trackBeginCheckout(items: Parameters<typeof toGtmItem>[0][], tot
 export function trackPurchase(orderId: string, items: GtmItem[], totalSatang: number) {
   if (typeof window === "undefined") return;
   const key = `purchase_fired_${orderId}`;
-  if (sessionStorage.getItem(key)) return;
-  sessionStorage.setItem(key, "1");
+  if (localStorage.getItem(key)) return;
+  localStorage.setItem(key, "1");
 
   pushEvent("purchase", {
+    transaction_id: orderId,
+    currency: "THB",
+    value: totalSatang / 100,
+    items,
+  });
+}
+
+export function trackPurchaseConfirmed(orderId: string, items: GtmItem[], totalSatang: number) {
+  if (typeof window === "undefined") return;
+  const key = `purchase_confirmed_fired_${orderId}`;
+  if (localStorage.getItem(key)) return;
+  localStorage.setItem(key, "1");
+
+  pushEvent("purchase_confirmed", {
     transaction_id: orderId,
     currency: "THB",
     value: totalSatang / 100,

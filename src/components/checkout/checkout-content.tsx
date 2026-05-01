@@ -9,6 +9,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { createOrder } from "@/actions/order.actions";
 import { formatPriceTHB } from "@/lib/order-utils";
+import { trackBeginCheckout } from "@/lib/gtm";
 import type { CartWithItems } from "@/actions/cart.actions";
 
 interface BankDetails {
@@ -30,6 +31,22 @@ export function CheckoutContent({ cart, bankDetails }: CheckoutContentProps) {
   const { toast } = useToast();
   const [creating, setCreating] = React.useState(false);
   const [copiedField, setCopiedField] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (cart.items.length > 0) {
+      const products = cart.items.map((item) => ({
+        id: item.product.id,
+        priceSatang: item.product.priceSatang,
+        salePriceSatang: item.product.salePriceSatang,
+        playlist: { title: item.product.playlist.title },
+      }));
+      const total = cart.items.reduce(
+        (sum, item) => sum + (item.product.salePriceSatang ?? item.product.priceSatang),
+        0,
+      );
+      trackBeginCheckout(products, total);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const subtotal = cart.items.reduce((sum, item) => {
     return sum + (item.product.salePriceSatang ?? item.product.priceSatang);

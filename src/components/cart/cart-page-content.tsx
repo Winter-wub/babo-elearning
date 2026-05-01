@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { removeFromCart } from "@/actions/cart.actions";
 import { formatPriceTHB } from "@/lib/order-utils";
+import { trackViewCart, trackRemoveFromCart } from "@/lib/gtm";
 import { PriceDisplay } from "@/components/shared/price-display";
 import type { CartWithItems } from "@/actions/cart.actions";
 
@@ -22,6 +23,22 @@ export function CartPageContent({ cart: initialCart }: CartPageContentProps) {
   const [items, setItems] = React.useState(initialCart.items);
   const [removingId, setRemovingId] = React.useState<string | null>(null);
 
+  React.useEffect(() => {
+    if (initialCart.items.length > 0) {
+      const products = initialCart.items.map((item) => ({
+        id: item.product.id,
+        priceSatang: item.product.priceSatang,
+        salePriceSatang: item.product.salePriceSatang,
+        playlist: { title: item.product.playlist.title },
+      }));
+      const total = initialCart.items.reduce(
+        (sum, item) => sum + (item.product.salePriceSatang ?? item.product.priceSatang),
+        0,
+      );
+      trackViewCart(products, total);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   const subtotal = items.reduce((sum, item) => {
     const price = item.product.salePriceSatang ?? item.product.priceSatang;
     return sum + price;
@@ -31,6 +48,15 @@ export function CartPageContent({ cart: initialCart }: CartPageContentProps) {
     setRemovingId(productId);
     const result = await removeFromCart(productId);
     if (result.success) {
+      const removedItem = items.find((i) => i.productId === productId);
+      if (removedItem) {
+        trackRemoveFromCart({
+          id: removedItem.product.id,
+          priceSatang: removedItem.product.priceSatang,
+          salePriceSatang: removedItem.product.salePriceSatang,
+          playlist: { title: removedItem.product.playlist.title },
+        });
+      }
       setItems((prev) => prev.filter((i) => i.productId !== productId));
       router.refresh();
       toast({ title: "ลบสินค้าแล้ว" });

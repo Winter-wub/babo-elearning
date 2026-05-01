@@ -10,6 +10,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { uploadSlip, cancelOrder } from "@/actions/order.actions";
 import { formatPriceTHB, formatOrderStatus, getOrderStatusVariant } from "@/lib/order-utils";
+import { trackSlipUploaded, trackPurchaseConfirmed } from "@/lib/gtm";
 import { OrderStatus } from "@prisma/client";
 import type { OrderWithItems } from "@/actions/order.actions";
 
@@ -35,6 +36,19 @@ export function OrderDetailContent({ order }: OrderDetailContentProps) {
     return () => { if (previewUrl) URL.revokeObjectURL(previewUrl); };
   }, [previewUrl]);
 
+  React.useEffect(() => {
+    if (order.status === OrderStatus.APPROVED) {
+      const items = order.items.map((item) => ({
+        item_id: item.productId,
+        item_name: item.snapshotTitle,
+        price: item.snapshotPriceSatang / 100,
+        quantity: 1,
+        item_category: "course" as const,
+      }));
+      trackPurchaseConfirmed(order.id, items, order.totalSatang);
+    }
+  }, [order.status, order.id, order.items, order.totalSatang]);
+
   const canUploadSlip = order.status === OrderStatus.PENDING_PAYMENT || order.status === OrderStatus.PENDING_VERIFICATION || order.status === OrderStatus.REJECTED;
   const canCancel = order.status === OrderStatus.PENDING_PAYMENT;
   const hasSlip = !!order.paymentSlip;
@@ -58,6 +72,7 @@ export function OrderDetailContent({ order }: OrderDetailContentProps) {
       formData.append("slip", selectedFile);
       const result = await uploadSlip(order.id, formData);
       if (result.success) {
+        trackSlipUploaded(order.id);
         toast({ title: "ส่งหลักฐานแล้ว", description: "ทีมงานจะตรวจสอบภายใน 24 ชั่วโมง" });
         setSelectedFile(null);
         router.refresh();

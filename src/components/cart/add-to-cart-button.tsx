@@ -6,6 +6,7 @@ import { ShoppingCart, Check, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { addToCart } from "@/actions/cart.actions";
+import { trackAddToCart } from "@/lib/gtm";
 
 interface AddToCartButtonProps {
   productId: string;
@@ -29,6 +30,7 @@ export function AddToCartButton({ productId, isInCart = false, className }: AddT
       const result = await addToCart(productId);
       if (result.success) {
         setAdded(true);
+        trackAddToCart(result.data);
         toast({ title: "เพิ่มลงตะกร้าแล้ว" });
         router.refresh();
       } else {

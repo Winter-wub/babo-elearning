@@ -4,17 +4,15 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
-import { getUploadUrl, getMaterialViewUrl, getMaterialDownloadUrl, deleteObject } from "@/lib/r2";
+import { getUploadUrl, deleteObject } from "@/lib/r2";
 import {
-  SIGNED_URL_EXPIRY,
   CONTENT_BLOCK_KEY_PREFIX,
   ACCEPTED_CONTENT_BLOCK_IMAGE_TYPES,
   ACCEPTED_CONTENT_BLOCK_VIDEO_TYPES,
   ACCEPTED_CONTENT_BLOCK_PDF_TYPES,
-  MAX_CONTENT_BLOCK_IMAGE_SIZE,
-  MAX_CONTENT_BLOCK_FILE_SIZE,
 } from "@/lib/constants";
 import { logAdminAction } from "@/lib/audit";
+import { sanitizeBlogContent } from "@/lib/blog-sanitize";
 import type { ActionResult } from "@/types";
 
 // -----------------------------------------------------------------------
@@ -82,6 +80,21 @@ const ADMIN_SELECT = {
   updatedAt: true,
 } as const;
 
+const PUBLIC_SELECT = {
+  id: true,
+  playlistId: true,
+  type: true,
+  sortOrder: true,
+  content: true,
+  s3Key: true,
+  filename: true,
+  contentType: true,
+  fileSize: true,
+  alt: true,
+  createdAt: true,
+  updatedAt: true,
+} as const;
+
 // -----------------------------------------------------------------------
 // Schemas
 // -----------------------------------------------------------------------
@@ -92,13 +105,18 @@ const ACCEPTED_FILE_TYPES: readonly string[] = [
   ...ACCEPTED_CONTENT_BLOCK_PDF_TYPES,
 ];
 
+const contentTypeSchema = z.string().refine(
+  (val) => ACCEPTED_FILE_TYPES.includes(val),
+  { message: "ประเภทไฟล์ไม่รองรับ" }
+);
+
 const CreateContentBlockSchema = z.object({
   playlistId: z.string().min(1),
   type: z.enum(["TEXT", "IMAGE", "VIDEO", "PDF"]),
   content: z.string().optional(),
   s3Key: z.string().optional(),
   filename: z.string().max(255).optional(),
-  contentType: z.string().optional(),
+  contentType: contentTypeSchema.optional(),
   fileSize: z.number().int().positive().optional(),
   alt: z.string().max(255).optional(),
 });
@@ -107,7 +125,7 @@ const UpdateContentBlockSchema = z.object({
   content: z.string().optional(),
   s3Key: z.string().optional(),
   filename: z.string().max(255).optional(),
-  contentType: z.string().optional(),
+  contentType: contentTypeSchema.optional(),
   fileSize: z.number().int().positive().optional(),
   alt: z.string().max(255).optional(),
 });
@@ -192,12 +210,14 @@ export async function createContentBlock(
     });
     const nextSortOrder = maxBlock ? maxBlock.sortOrder + 1 : 0;
 
+    const sanitizedContent = data.content ? sanitizeBlogContent(data.content) : null;
+
     const block = await db.playlistContentBlock.create({
       data: {
         playlistId: data.playlistId,
         type: data.type,
         sortOrder: nextSortOrder,
-        content: data.content ?? null,
+        content: sanitizedContent,
         s3Key: data.s3Key ?? null,
         filename: data.filename ?? null,
         contentType: data.contentType ?? null,
@@ -256,7 +276,7 @@ export async function updateContentBlock(
     const block = await db.playlistContentBlock.update({
       where: { id: blockId },
       data: {
-        ...(data.content !== undefined && { content: data.content }),
+        ...(data.content !== undefined && { content: data.content ? sanitizeBlogContent(data.content) : data.content }),
         ...(data.s3Key !== undefined && { s3Key: data.s3Key }),
         ...(data.filename !== undefined && { filename: data.filename }),
         ...(data.contentType !== undefined && { contentType: data.contentType }),
@@ -340,6 +360,9 @@ export async function reorderContentBlocks(
     });
 
     const existingIds = new Set(blocks.map((b) => b.id));
+    if (orderedIds.length !== blocks.length) {
+      return { success: false, error: "ต้องระบุ block ทุกรายการ" };
+    }
     for (const id of orderedIds) {
       if (!existingIds.has(id)) {
         return { success: false, error: "Content block บางรายการไม่ถูกต้อง" };
@@ -401,20 +424,50 @@ export async function getPublicContentBlocks(
 ): Promise<ActionResult<PublicContentBlock[]>> {
   try {
     const blocks = await db.playlistContentBlock.findMany({
-      where: { playlistId },
-      select: ADMIN_SELECT,
+      where: { playlistId, playlist: { isActive: true } },
+      select: PUBLIC_SELECT,
       orderBy: { sortOrder: "asc" },
     });
 
-    const publicBlocks = await Promise.all(
-      (blocks as AdminContentBlock[]).map(blockToPublic)
-    );
+    const publicBlocks: PublicContentBlock[] = blocks.map((block) => {
+      const { s3Key, ...rest } = block;
+      return {
+        ...rest,
+        type: rest.type as ContentBlockType,
+        viewUrl: s3Key ? contentBlockProxyUrl(s3Key) : null,
+      };
+    });
 
     return { success: true, data: publicBlocks };
   } catch (err) {
     return {
       success: false,
       error: err instanceof Error ? err.message : "ไม่สามารถโหลด content blocks ได้",
+    };
+  }
+}
+
+/**
+ * Delete an orphaned R2 file that was uploaded but never saved to a block record.
+ * Validates the key prefix before deleting.
+ * ADMIN only.
+ */
+export async function deleteOrphanedContentBlockFile(
+  s3Key: string
+): Promise<ActionResult> {
+  try {
+    await requireAdmin();
+
+    if (!s3Key.startsWith(CONTENT_BLOCK_KEY_PREFIX)) {
+      return { success: false, error: "Invalid key prefix" };
+    }
+
+    await deleteObject(s3Key);
+    return { success: true, data: undefined };
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "ไม่สามารถลบไฟล์ได้",
     };
   }
 }

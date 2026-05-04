@@ -51,6 +51,7 @@ import {
   updateContentBlock,
   deleteContentBlock,
   reorderContentBlocks,
+  deleteOrphanedContentBlockFile,
   type AdminContentBlock,
   type ContentBlockType,
 } from "@/actions/content-block.actions";
@@ -102,10 +103,6 @@ function acceptForType(type: "IMAGE" | "VIDEO" | "PDF"): string {
 function maxSizeForType(type: "IMAGE" | "VIDEO" | "PDF"): number {
   return type === "IMAGE" ? MAX_CONTENT_BLOCK_IMAGE_SIZE : MAX_CONTENT_BLOCK_FILE_SIZE;
 }
-
-const ACCEPTED_IMAGE_SET = new Set<string>(ACCEPTED_CONTENT_BLOCK_IMAGE_TYPES);
-const ACCEPTED_VIDEO_SET = new Set<string>(ACCEPTED_CONTENT_BLOCK_VIDEO_TYPES);
-const ACCEPTED_PDF_SET = new Set<string>(ACCEPTED_CONTENT_BLOCK_PDF_TYPES);
 
 // -----------------------------------------------------------------------
 // File upload hook
@@ -178,6 +175,7 @@ function useFileUpload(playlistId: string) {
         }
 
         if (!result.success) {
+          deleteOrphanedContentBlockFile(s3Key).catch(() => {});
           setUploadState("error");
           setUploadError(result.error);
           return null;
@@ -641,9 +639,14 @@ export function PlaylistContentBlocksEditor({
     const oldIndex = blocks.findIndex((b) => b.id === active.id);
     const newIndex = blocks.findIndex((b) => b.id === over.id);
     const reordered = arrayMove(blocks, oldIndex, newIndex);
+    const previous = blocks;
     setBlocks(reordered);
 
-    await reorderContentBlocks(playlistId, reordered.map((b) => b.id));
+    const result = await reorderContentBlocks(playlistId, reordered.map((b) => b.id));
+    if (!result.success) {
+      setBlocks(previous);
+      toast({ title: result.error, variant: "destructive" });
+    }
   };
 
   return (

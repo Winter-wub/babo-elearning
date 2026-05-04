@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getPlaybackUrl } from "@/lib/r2";
+import { db } from "@/lib/db";
 import { CONTENT_BLOCK_KEY_PREFIX, CONTENT_BLOCK_CACHE_SECONDS } from "@/lib/constants";
 
 /**
@@ -11,6 +12,7 @@ import { CONTENT_BLOCK_KEY_PREFIX, CONTENT_BLOCK_CACHE_SECONDS } from "@/lib/con
  * SECURITY:
  * - Strict prefix validation: only serves keys under content-blocks/
  * - Pattern validation: key must match uuid/filename format
+ * - DB ownership check: key must belong to a block in an active playlist
  */
 
 /** Validate key matches: content-blocks/<hex-uuid>/<filename> */
@@ -30,9 +32,16 @@ function getCachedUrl(key: string): string | null {
 
 function setCachedUrl(key: string, url: string): void {
   urlCache.set(key, { url, expiresAt: Date.now() + CACHE_TTL_MS });
+
   if (urlCache.size > 1000) {
-    const firstKey = urlCache.keys().next().value;
-    if (firstKey) urlCache.delete(firstKey);
+    const now = Date.now();
+    for (const [k, v] of urlCache) {
+      if (v.expiresAt <= now) urlCache.delete(k);
+    }
+    if (urlCache.size > 1000) {
+      const firstKey = urlCache.keys().next().value;
+      if (firstKey) urlCache.delete(firstKey);
+    }
   }
 }
 
@@ -49,6 +58,14 @@ export async function GET(
 
   if (!KEY_PATTERN.test(key)) {
     return NextResponse.json({ error: "Invalid key" }, { status: 400 });
+  }
+
+  const block = await db.playlistContentBlock.findFirst({
+    where: { s3Key: key, playlist: { isActive: true } },
+    select: { id: true },
+  });
+  if (!block) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
   try {

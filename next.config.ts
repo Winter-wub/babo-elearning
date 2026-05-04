@@ -58,7 +58,7 @@ const nextConfig: NextConfig = {
       },
       // CORS lockdown for video and material API routes
       {
-        source: "/api/:path(videos|materials)/:rest*",
+        source: "/api/:path(videos|materials|content-blocks)/:rest*",
         headers: [
           {
             key: "Access-Control-Allow-Origin",

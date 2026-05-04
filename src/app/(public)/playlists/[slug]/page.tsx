@@ -15,10 +15,12 @@ import { db } from "@/lib/db";
 import { getPlaylistBySlug } from "@/actions/playlist.actions";
 import { getVideoExerciseStatus } from "@/actions/exercise.actions";
 import { getSiteContent } from "@/actions/content.actions";
+import { getPublicContentBlocks } from "@/actions/content-block.actions";
 import { Button } from "@/components/ui/button";
 import { PriceDisplay } from "@/components/shared/price-display";
 import { AddToCartButton } from "@/components/cart/add-to-cart-button";
 import { DemoVideoSection } from "@/components/courses/demo-video-section";
+import { ContentBlocksRenderer } from "@/components/courses/content-blocks-renderer";
 import {
   Card,
   CardContent,
@@ -73,6 +75,9 @@ export default async function PublicPlaylistPage({
   }
 
   const playlist = result.data;
+
+  const contentBlocksResult = await getPublicContentBlocks(playlist.id);
+  const contentBlocks = contentBlocksResult.success ? contentBlocksResult.data : [];
   const isAuthenticated = !!session?.user;
   const userId = session?.user?.id;
   const videoCount = playlist.videos.length;
@@ -191,6 +196,11 @@ export default async function PublicPlaylistPage({
               </p>
             )}
           </div>
+
+          {/* ── Who is this for ── */}
+          {contentBlocks.length > 0 && (
+            <ContentBlocksRenderer blocks={contentBlocks} />
+          )}
 
           {/* ── Curriculum list ── */}
           <section>

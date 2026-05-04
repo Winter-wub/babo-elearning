@@ -235,10 +235,11 @@ model Playlist {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  videos    PlaylistVideo[]
-  blogPosts BlogPostPlaylist[]
-  product   Product?
-  demoVideo Video?             @relation("PlaylistDemoVideo", fields: [demoVideoId], references: [id], onDelete: SetNull)
+  videos        PlaylistVideo[]
+  blogPosts     BlogPostPlaylist[]
+  product       Product?
+  demoVideo     Video?             @relation("PlaylistDemoVideo", fields: [demoVideoId], references: [id], onDelete: SetNull)
+  contentBlocks PlaylistContentBlock[]
 
   @@index([isActive])
   @@index([isFeatured])
@@ -254,6 +255,36 @@ model PlaylistVideo {
 
   @@id([playlistId, videoId])
   @@index([playlistId])
+}
+
+// -----------------------------------------------------------------------
+// Playlist Content Blocks — per-playlist mixed media section
+// -----------------------------------------------------------------------
+
+enum ContentBlockType {
+  TEXT
+  IMAGE
+  VIDEO
+  PDF
+}
+
+model PlaylistContentBlock {
+  id          String           @id @default(cuid())
+  playlistId  String
+  type        ContentBlockType
+  sortOrder   Int              @default(0)
+  content     String?          @db.Text
+  s3Key       String?
+  filename    String?
+  contentType String?
+  fileSize    Int?
+  alt         String?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  playlist Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+
+  @@index([playlistId, sortOrder])
 }
 
 // -----------------------------------------------------------------------

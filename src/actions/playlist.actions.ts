@@ -479,10 +479,19 @@ export async function updatePlaylist(
 export async function deletePlaylist(id: string): Promise<ActionResult<undefined>> {
   try {
     const session = await requireAdmin();
-    // Clean up R2 thumbnail before deleting the record
-    const existing = await db.playlist.findUnique({ where: { id }, select: { thumbnailKey: true } });
+    // Clean up R2 thumbnail and content block files before deleting the record
+    const existing = await db.playlist.findUnique({
+      where: { id },
+      select: {
+        thumbnailKey: true,
+        contentBlocks: { select: { s3Key: true } },
+      },
+    });
     if (existing?.thumbnailKey) {
       deleteObject(existing.thumbnailKey).catch(() => {});
+    }
+    for (const block of existing?.contentBlocks ?? []) {
+      if (block.s3Key) deleteObject(block.s3Key).catch(() => {});
     }
     await db.playlist.delete({ where: { id } });
     logAdminAction(session, "PLAYLIST_DELETE", "Playlist", id);

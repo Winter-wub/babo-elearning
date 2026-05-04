@@ -320,6 +320,36 @@ export const ACCEPTED_LOGO_MIME_TYPES = [
 ] as const;
 
 // -----------------------------------------------------------------------
+// Playlist content blocks
+// -----------------------------------------------------------------------
+
+/** R2 key prefix for playlist content block files. */
+export const CONTENT_BLOCK_KEY_PREFIX = "content-blocks/";
+
+/** Maximum image upload size for content blocks (5 MB). */
+export const MAX_CONTENT_BLOCK_IMAGE_SIZE = 5 * 1024 * 1024;
+
+/** Maximum file upload size for content block videos and PDFs (50 MB). */
+export const MAX_CONTENT_BLOCK_FILE_SIZE = 50 * 1024 * 1024;
+
+/** Accepted image MIME types for content block image blocks. */
+export const ACCEPTED_CONTENT_BLOCK_IMAGE_TYPES = [
+  "image/png",
+  "image/jpeg",
+  "image/webp",
+  "image/gif",
+] as const;
+
+/** Accepted video MIME types for content block video blocks. */
+export const ACCEPTED_CONTENT_BLOCK_VIDEO_TYPES = ["video/mp4", "video/webm"] as const;
+
+/** Accepted PDF MIME type for content block PDF blocks. */
+export const ACCEPTED_CONTENT_BLOCK_PDF_TYPES = ["application/pdf"] as const;
+
+/** Signed URL cache duration for content block files (10 minutes). */
+export const CONTENT_BLOCK_CACHE_SECONDS = 600;
+
+// -----------------------------------------------------------------------
 // Order / checkout constraints
 // -----------------------------------------------------------------------
 

@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { PlaylistForm } from "@/components/admin/playlist-form";
 import { PlaylistVideosManager } from "@/components/admin/playlist-videos-manager";
+import { PlaylistContentBlocksEditor } from "@/components/admin/playlist-content-blocks-editor";
 import { getPlaylistById, getAllVideosForPicker } from "@/actions/playlist.actions";
+import { getAdminContentBlocks } from "@/actions/content-block.actions";
 
 export const metadata: Metadata = {
   title: "Edit Playlist",
@@ -15,9 +17,10 @@ interface EditPlaylistPageProps {
 export default async function EditPlaylistPage({ params }: EditPlaylistPageProps) {
   const { playlistId } = await params;
 
-  const [playlistResult, videosResult] = await Promise.all([
+  const [playlistResult, videosResult, blocksResult] = await Promise.all([
     getPlaylistById(playlistId),
     getAllVideosForPicker(),
+    getAdminContentBlocks(playlistId),
   ]);
 
   if (!playlistResult.success || !playlistResult.data) {
@@ -26,6 +29,7 @@ export default async function EditPlaylistPage({ params }: EditPlaylistPageProps
 
   const playlist = playlistResult.data;
   const allVideos = videosResult.success ? videosResult.data : [];
+  const contentBlocks = blocksResult.success ? blocksResult.data : [];
 
   // Videos already in the playlist
   const playlistVideoIds = new Set(playlist.videos.map((pv) => pv.videoId));
@@ -57,6 +61,11 @@ export default async function EditPlaylistPage({ params }: EditPlaylistPageProps
           demoVideoId: playlist.demoVideoId,
         }}
         allVideos={allVideos.map((v) => ({ id: v.id, title: v.title }))}
+      />
+
+      <PlaylistContentBlocksEditor
+        playlistId={playlist.id}
+        initialBlocks={contentBlocks}
       />
 
       <PlaylistVideosManager

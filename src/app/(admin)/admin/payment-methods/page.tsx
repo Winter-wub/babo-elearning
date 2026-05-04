@@ -11,8 +11,7 @@ export const metadata: Metadata = {
 
 export default async function AdminPaymentMethodsPage() {
   const keys = Object.values(CHECKOUT_KEYS);
-  const result = await getSiteContent(keys);
-  const data = result.success ? result.data : {};
+  const data = await getSiteContent(keys);
 
   return (
     <div className="space-y-6">

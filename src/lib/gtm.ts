@@ -63,7 +63,7 @@ export function trackPurchase(orderId: string, items: GtmItem[], totalSatang: nu
   });
 }
 
-export function trackPurchaseConfirmed(orderId: string, items: GtmItem[], totalSatang: number) {
+export function trackPurchaseConfirmed(orderId: string, items: GtmItem[], totalSatang: number, metaEventId?: string | null) {
   if (typeof window === "undefined") return;
   const key = `purchase_confirmed_fired_${orderId}`;
   if (localStorage.getItem(key)) return;
@@ -74,6 +74,7 @@ export function trackPurchaseConfirmed(orderId: string, items: GtmItem[], totalS
     currency: "THB",
     value: totalSatang / 100,
     items,
+    ...(metaEventId ? { meta_event_id: metaEventId } : {}),
   });
 }
 

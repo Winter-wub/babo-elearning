@@ -664,6 +664,11 @@ model Order {
   adminId          String?
   gaClientId       String?
   gaSessionId      String?
+  fbClickId        String?
+  fbBrowserId      String?
+  clientIp         String?
+  clientUserAgent  String?
+  metaEventId      String?
   createdAt        DateTime    @default(now())
   updatedAt        DateTime    @updatedAt
 

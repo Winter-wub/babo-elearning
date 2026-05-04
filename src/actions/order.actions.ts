@@ -1,7 +1,7 @@
 "use server";
 
 import { z } from "zod";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
@@ -9,6 +9,7 @@ import { uploadObject, getPlaybackUrl, deleteObject } from "@/lib/r2";
 import { logAdminAction } from "@/lib/audit";
 import { notifyNewSlip, notifyOrderApproved, notifyOrderRejected } from "@/lib/notifications";
 import { trackServerPurchase } from "@/lib/ga4-measurement";
+import { trackMetaPurchase } from "@/lib/meta-capi";
 import {
   ORDER_EXPIRY_HOURS,
   MAX_SLIP_SIZE_BYTES,
@@ -78,6 +79,12 @@ function parseGaCookies(cookieStore: Awaited<ReturnType<typeof cookies>>) {
   return { gaClientId, gaSessionId };
 }
 
+function parseFbCookies(cookieStore: Awaited<ReturnType<typeof cookies>>) {
+  const fbClickId = cookieStore.get("_fbc")?.value ?? null;
+  const fbBrowserId = cookieStore.get("_fbp")?.value ?? null;
+  return { fbClickId, fbBrowserId };
+}
+
 // -----------------------------------------------------------------------
 // Student actions
 // -----------------------------------------------------------------------
@@ -129,9 +136,18 @@ export async function createOrder(): Promise<ActionResult<{ orderId: string }>> 
       return sum + (item.product.salePriceSatang ?? item.product.priceSatang);
     }, 0);
 
-    // Capture GA cookies for attribution
+    // Capture GA + FB cookies and request context for attribution
     const cookieStore = await cookies();
     const { gaClientId, gaSessionId } = parseGaCookies(cookieStore);
+    const { fbClickId, fbBrowserId } = parseFbCookies(cookieStore);
+
+    const headersList = await headers();
+    const clientIp =
+      headersList.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+      headersList.get("x-real-ip") ??
+      null;
+    const clientUserAgent = headersList.get("user-agent") ?? null;
+    const metaEventId = randomUUID();
 
     // Create order + items in transaction
     const order = await db.$transaction(async (tx) => {
@@ -144,6 +160,11 @@ export async function createOrder(): Promise<ActionResult<{ orderId: string }>> 
           expiresAt: new Date(Date.now() + ORDER_EXPIRY_HOURS * 60 * 60 * 1000),
           gaClientId,
           gaSessionId,
+          fbClickId,
+          fbBrowserId,
+          clientIp,
+          clientUserAgent,
+          metaEventId,
         },
       });
 
@@ -454,7 +475,9 @@ export async function approveOrder(orderId: string, adminNote?: string): Promise
 
     logAdminAction(session, "ORDER_APPROVE", "Order", orderId, { adminNote });
 
-    trackServerPurchase({
+    const user = await db.user.findUnique({ where: { id: order.userId }, select: { name: true, email: true } });
+
+    void trackServerPurchase({
       orderId: order.id,
       orderNumber: order.orderNumber,
       userId: order.userId,
@@ -468,7 +491,18 @@ export async function approveOrder(orderId: string, adminNote?: string): Promise
       })),
     });
 
-    const user = await db.user.findUnique({ where: { id: order.userId }, select: { name: true, email: true } });
+    void trackMetaPurchase({
+      orderId: order.id,
+      userId: order.userId,
+      totalSatang: order.totalSatang,
+      fbClickId: order.fbClickId,
+      fbBrowserId: order.fbBrowserId,
+      clientIp: order.clientIp,
+      clientUserAgent: order.clientUserAgent,
+      userEmail: user?.email,
+      metaEventId: order.metaEventId,
+    });
+
     if (user) {
       notifyOrderApproved({
         studentEmail: user.email,

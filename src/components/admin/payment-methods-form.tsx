@@ -167,7 +167,7 @@ export function PaymentMethodsForm({ initialData }: PaymentMethodsFormProps) {
           </CardHeader>
           <CardContent>
             <div className="space-y-4 rounded-lg border bg-muted/30 p-4 text-sm">
-              {bankTransferEnabled && bankName && (
+              {bankTransferEnabled && (
                 <div className="space-y-2">
                   <p className="font-medium">โอนเงินเข้าบัญชี</p>
                   <div className="space-y-1 text-xs">
@@ -187,12 +187,12 @@ export function PaymentMethodsForm({ initialData }: PaymentMethodsFormProps) {
                 </div>
               )}
 
-              {promptpayEnabled && promptpayId && (
+              {promptpayEnabled && (
                 <div className="space-y-1">
                   <p className="font-medium">พร้อมเพย์</p>
                   <div className="flex justify-between text-xs">
                     <span className="text-muted-foreground">หมายเลข</span>
-                    <span className="font-mono">{promptpayId}</span>
+                    <span className="font-mono">{promptpayId || "—"}</span>
                   </div>
                 </div>
               )}

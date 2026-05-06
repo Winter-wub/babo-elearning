@@ -45,22 +45,23 @@ export function Header({ onMenuClick }: HeaderProps) {
         >
           <Menu className="h-5 w-5" />
         </Button>
-        {isStudent && (
-          <nav className="hidden items-center gap-1 lg:flex" aria-label="เมนูสาธารณะ">
-            <Button variant="ghost" size="sm" asChild>
-              <Link href="/">หน้าแรก</Link>
-            </Button>
-            <Button variant="ghost" size="sm" asChild>
-              <Link href="/courses">คอร์สเรียน</Link>
-            </Button>
-            <Button variant="ghost" size="sm" asChild>
-              <Link href="/blog">บทความ</Link>
-            </Button>
-            <Button variant="ghost" size="sm" asChild>
-              <Link href="/about">เกี่ยวกับเรา</Link>
-            </Button>
-          </nav>
-        )}
+        <nav className="hidden items-center gap-1 lg:flex" aria-label="เมนูสาธารณะ">
+          <Button variant="ghost" size="sm" asChild>
+            <Link href="/">หน้าแรก</Link>
+          </Button>
+          <Button variant="ghost" size="sm" asChild>
+            <Link href="/courses">คอร์สเรียน</Link>
+          </Button>
+          <Button variant="ghost" size="sm" asChild>
+            <Link href="/blog">บทความ</Link>
+          </Button>
+          <Button variant="ghost" size="sm" asChild>
+            <Link href="/about">เกี่ยวกับเรา</Link>
+          </Button>
+          <Button variant="ghost" size="sm" asChild>
+            <Link href="/faq">คำถามที่พบบ่อย</Link>
+          </Button>
+        </nav>
       </div>
 
       {/* Right side: help + theme toggle + user menu */}

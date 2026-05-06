@@ -486,9 +486,10 @@ function OtpStep({ email, onSuccess, onBack, inviteCode }: OtpStepProps) {
 interface CompleteStepProps {
   email: string;
   sessionToken: string;
+  callbackUrl?: string;
 }
 
-function CompleteStep({ email, sessionToken }: CompleteStepProps) {
+function CompleteStep({ email, sessionToken, callbackUrl }: CompleteStepProps) {
   const router = useRouter();
   const [serverError, setServerError] = useState<string | null>(null);
 
@@ -520,7 +521,10 @@ function CompleteStep({ email, sessionToken }: CompleteStepProps) {
         return;
       }
 
-      router.push("/login?registered=1");
+      const loginUrl = callbackUrl
+        ? `/login?registered=1&callbackUrl=${encodeURIComponent(callbackUrl)}`
+        : "/login?registered=1";
+      router.push(loginUrl);
     } catch {
       setServerError("เกิดข้อผิดพลาด กรุณาลองอีกครั้งภายหลัง");
     }
@@ -731,9 +735,10 @@ function InviteBanner({ info }: { info: PublicInviteLinkInfo }) {
 
 interface RegisterFormProps {
   inviteCode?: string;
+  callbackUrl?: string;
 }
 
-export function RegisterForm({ inviteCode }: RegisterFormProps) {
+export function RegisterForm({ inviteCode, callbackUrl }: RegisterFormProps) {
   const [step, setStep] = useState<Step>("email");
   const [email, setEmail] = useState("");
   const [sessionToken, setSessionToken] = useState("");
@@ -791,7 +796,7 @@ export function RegisterForm({ inviteCode }: RegisterFormProps) {
       )}
 
       {step === "complete" && (
-        <CompleteStep email={email} sessionToken={sessionToken} />
+        <CompleteStep email={email} sessionToken={sessionToken} callbackUrl={callbackUrl} />
       )}
     </Card>
   );

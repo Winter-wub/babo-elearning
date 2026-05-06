@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 };
 
 interface LoginPageProps {
-  searchParams: Promise<{ verified?: string; registered?: string }>;
+  searchParams: Promise<{ verified?: string; registered?: string; callbackUrl?: string }>;
 }
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
@@ -51,12 +51,12 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
         </div>
       )}
 
-      <LoginForm enabledProviders={enabledProviders} />
+      <LoginForm enabledProviders={enabledProviders} callbackUrl={params.callbackUrl} />
 
       <p className="text-center text-sm text-muted-foreground">
         ยังไม่มีบัญชี?{" "}
         <Link
-          href="/register"
+          href={params.callbackUrl ? `/register?callbackUrl=${encodeURIComponent(params.callbackUrl)}` : "/register"}
           className="font-medium text-primary underline-offset-4 hover:underline"
         >
           สมัครสมาชิก

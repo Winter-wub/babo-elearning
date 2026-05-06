@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Play, Lock, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { VideoPlayer } from "@/components/video/video-player";
@@ -58,6 +59,7 @@ export function DemoVideoSection({
   lineUrl,
   playlistSlug,
 }: DemoVideoSectionProps) {
+  const pathname = usePathname();
   const [state, setState] = useState<DemoState>("preview");
   const [exerciseResult, setExerciseResult] = useState<ExerciseResult | null>(null);
 
@@ -154,7 +156,7 @@ export function DemoVideoSection({
                   className="mt-1 shadow-lg"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <Link href="/register">สมัครสมาชิกฟรี</Link>
+                  <Link href={`/register?callbackUrl=${encodeURIComponent(pathname)}`}>สมัครสมาชิกฟรี</Link>
                 </Button>
               </>
             )}

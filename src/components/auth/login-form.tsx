@@ -42,13 +42,18 @@ interface LoginFormProps {
   verified?: boolean;
 }
 
+function isSafeRedirect(url: string): boolean {
+  return url.startsWith("/") && !url.startsWith("//") && !url.startsWith("/\\");
+}
+
 export function LoginForm({
-  callbackUrl = "/dashboard",
+  callbackUrl,
   enabledProviders,
   verified = false,
 }: LoginFormProps) {
   const router = useRouter();
   const [serverError, setServerError] = useState<string | null>(null);
+  const safeCallbackUrl = callbackUrl && isSafeRedirect(callbackUrl) ? callbackUrl : "/dashboard";
 
   const {
     register,
@@ -75,11 +80,9 @@ export function LoginForm({
         return;
       }
 
-      // Successful sign-in -- read the session to determine the user's role
-      // and redirect to the appropriate dashboard.
       const session = await getSession();
       const destination =
-        session?.user?.role === "ADMIN" ? "/admin/dashboard" : "/dashboard";
+        session?.user?.role === "ADMIN" ? "/admin/dashboard" : safeCallbackUrl;
       router.push(destination);
       router.refresh();
     } catch {
@@ -97,7 +100,7 @@ export function LoginForm({
       </CardHeader>
 
       <CardContent>
-        <SocialLoginButtons callbackUrl={callbackUrl} enabledProviders={enabledProviders} />
+        <SocialLoginButtons callbackUrl={safeCallbackUrl} enabledProviders={enabledProviders} />
         {enabledProviders === undefined || enabledProviders.length > 0 ? <SocialDivider /> : null}
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>

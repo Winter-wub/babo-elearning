@@ -25,6 +25,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
+import { CartIcon } from "@/components/cart/cart-icon";
+import { CartDrawer } from "@/components/cart/cart-drawer";
 
 interface HomeHeaderProps {
   isAuthenticated: boolean;
@@ -57,6 +59,7 @@ export function HomeHeader({
 }: HomeHeaderProps) {
   const pathname = usePathname();
   const isAdmin = userRole === "ADMIN";
+  const [cartOpen, setCartOpen] = React.useState(false);
 
   return (
     <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur-sm supports-[backdrop-filter]:bg-background/60">
@@ -102,6 +105,9 @@ export function HomeHeader({
 
         {/* ── Desktop auth actions ─────────────────────────────────────── */}
         <div className="hidden items-center gap-2 md:flex" aria-label="การดำเนินการผู้ใช้">
+          {isAuthenticated && (
+            <CartIcon onClick={() => setCartOpen(true)} />
+          )}
           <ThemeToggle />
           {isAuthenticated ? (
             <DropdownMenu>
@@ -167,6 +173,9 @@ export function HomeHeader({
 
         {/* ── Mobile hamburger + Sheet drawer ──────────────────────────── */}
         <div className="flex items-center gap-1 md:hidden">
+        {isAuthenticated && (
+          <CartIcon onClick={() => setCartOpen(true)} />
+        )}
         <ThemeToggle />
         <Sheet>
           <SheetTrigger asChild>
@@ -260,12 +269,12 @@ export function HomeHeader({
                 <>
                   <SheetClose asChild>
                     <Button variant="outline" asChild>
-                      <Link href="/login">เข้าสู่ระบบ</Link>
+                      <Link href={`/login?callbackUrl=${encodeURIComponent(pathname)}`}>เข้าสู่ระบบ</Link>
                     </Button>
                   </SheetClose>
                   <SheetClose asChild>
                     <Button asChild>
-                      <Link href="/register">สมัครสมาชิก</Link>
+                      <Link href={`/register?callbackUrl=${encodeURIComponent(pathname)}`}>สมัครสมาชิก</Link>
                     </Button>
                   </SheetClose>
                 </>
@@ -276,6 +285,9 @@ export function HomeHeader({
         </div>
 
       </div>
+      {isAuthenticated && (
+        <CartDrawer open={cartOpen} onOpenChange={setCartOpen} />
+      )}
     </header>
   );
 }

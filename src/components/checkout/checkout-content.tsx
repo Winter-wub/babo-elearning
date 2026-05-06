@@ -11,6 +11,7 @@ import { createOrder } from "@/actions/order.actions";
 import { formatPriceTHB } from "@/lib/order-utils";
 import { trackBeginCheckout } from "@/lib/gtm";
 import type { CartWithItems } from "@/actions/cart.actions";
+import { PromptPayQR } from "@/components/shared/promptpay-qr";
 
 interface BankDetails {
   bankName: string;
@@ -175,6 +176,12 @@ export function CheckoutContent({ cart, bankDetails }: CheckoutContentProps) {
                 <p className="text-lg font-bold text-primary">{formatPriceTHB(subtotal)}</p>
               </div>
               <CopyButton text={String(subtotal / 100)} field="amount2" />
+            </div>
+            <div className="flex flex-col items-center gap-1 border-t pt-3">
+              <PromptPayQR promptpayId={bankDetails.promptpayId} amount={subtotal / 100} size={180} />
+              <p className="text-center text-xs text-muted-foreground">
+                สแกน QR Code ด้วยแอปธนาคารเพื่อชำระเงิน
+              </p>
             </div>
           </CardContent>
         </Card>

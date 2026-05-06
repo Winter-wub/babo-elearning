@@ -10,6 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { bulkUpdateSiteContent } from "@/actions/content.actions";
 import { CHECKOUT_KEYS } from "@/lib/constants";
+import { PromptPayQR } from "@/components/shared/promptpay-qr";
 
 interface PaymentMethodsFormProps {
   initialData: Record<string, string>;
@@ -188,12 +189,20 @@ export function PaymentMethodsForm({ initialData }: PaymentMethodsFormProps) {
               )}
 
               {promptpayEnabled && (
-                <div className="space-y-1">
+                <div className="space-y-2">
                   <p className="font-medium">พร้อมเพย์</p>
                   <div className="flex justify-between text-xs">
                     <span className="text-muted-foreground">หมายเลข</span>
                     <span className="font-mono">{promptpayId || "—"}</span>
                   </div>
+                  {promptpayId && (
+                    <div className="flex flex-col items-center gap-1 pt-2">
+                      <PromptPayQR promptpayId={promptpayId} size={120} />
+                      <p className="text-center text-[10px] text-muted-foreground">
+                        ตัวอย่าง QR (ไม่มีจำนวนเงิน)
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
 

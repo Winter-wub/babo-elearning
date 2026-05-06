@@ -3,7 +3,8 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { GraduationCap, Menu } from "lucide-react";
+import { GraduationCap, Menu, LogOut, LayoutDashboard, ShieldCheck } from "lucide-react";
+import { signOut } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Avatar } from "@/components/ui/avatar";
 import {
@@ -14,6 +15,14 @@ import {
   SheetTrigger,
   SheetClose,
 } from "@/components/ui/sheet";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
 
@@ -47,7 +56,7 @@ export function HomeHeader({
   logoUrl,
 }: HomeHeaderProps) {
   const pathname = usePathname();
-  const dashboardHref = userRole === "ADMIN" ? "/admin/dashboard" : "/dashboard";
+  const isAdmin = userRole === "ADMIN";
 
   return (
     <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur-sm supports-[backdrop-filter]:bg-background/60">
@@ -95,24 +104,62 @@ export function HomeHeader({
         <div className="hidden items-center gap-2 md:flex" aria-label="การดำเนินการผู้ใช้">
           <ThemeToggle />
           {isAuthenticated ? (
-            <>
-              <Button variant="ghost" size="sm" asChild>
-                <Link href={dashboardHref}>แดชบอร์ด</Link>
-              </Button>
-              <Link
-                href={dashboardHref}
-                aria-label={`${userName ?? "User"} profile`}
-              >
-                <Avatar size="sm" fallback={userName ?? "User"} />
-              </Link>
-            </>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  className="flex items-center gap-2 px-2"
+                  aria-label="เมนูผู้ใช้"
+                >
+                  <Avatar size="sm" fallback={userName ?? "User"} />
+                  <span className="hidden text-sm font-medium sm:inline">
+                    {userName ?? "User"}
+                  </span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel className="font-normal">
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium leading-none">
+                      {userName ?? "User"}
+                    </p>
+                    <p className="text-xs leading-none text-muted-foreground">
+                      {userRole === "ADMIN" ? "ผู้ดูแลระบบ" : "นักเรียน"}
+                    </p>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {isAdmin && (
+                  <DropdownMenuItem asChild>
+                    <Link href="/admin/dashboard">
+                      <ShieldCheck className="mr-2 h-4 w-4" />
+                      แดชบอร์ดผู้ดูแล
+                    </Link>
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuItem asChild>
+                  <Link href="/dashboard">
+                    <LayoutDashboard className="mr-2 h-4 w-4" />
+                    {isAdmin ? "แดชบอร์ดของฉัน" : "แดชบอร์ด"}
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => signOut({ callbackUrl: "/login" })}
+                  className="text-destructive focus:text-destructive"
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  ออกจากระบบ
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           ) : (
             <>
               <Button variant="ghost" size="sm" asChild>
-                <Link href="/login">เข้าสู่ระบบ</Link>
+                <Link href={`/login?callbackUrl=${encodeURIComponent(pathname)}`}>เข้าสู่ระบบ</Link>
               </Button>
               <Button size="sm" asChild>
-                <Link href="/register">สมัครสมาชิก</Link>
+                <Link href={`/register?callbackUrl=${encodeURIComponent(pathname)}`}>สมัครสมาชิก</Link>
               </Button>
             </>
           )}
@@ -184,9 +231,28 @@ export function HomeHeader({
                       {userName ?? "User"}
                     </span>
                   </div>
+                  {isAdmin && (
+                    <SheetClose asChild>
+                      <Button asChild>
+                        <Link href="/admin/dashboard">แดชบอร์ดผู้ดูแล</Link>
+                      </Button>
+                    </SheetClose>
+                  )}
                   <SheetClose asChild>
-                    <Button asChild>
-                      <Link href={dashboardHref}>ไปที่แดชบอร์ด</Link>
+                    <Button variant={isAdmin ? "outline" : "default"} asChild>
+                      <Link href="/dashboard">
+                        {isAdmin ? "แดชบอร์ดของฉัน" : "ไปที่แดชบอร์ด"}
+                      </Link>
+                    </Button>
+                  </SheetClose>
+                  <SheetClose asChild>
+                    <Button
+                      variant="outline"
+                      onClick={() => signOut({ callbackUrl: "/login" })}
+                      className="text-destructive"
+                    >
+                      <LogOut className="mr-2 h-4 w-4" />
+                      ออกจากระบบ
                     </Button>
                   </SheetClose>
                 </>

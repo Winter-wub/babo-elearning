@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
-import { Menu, LogOut, User } from "lucide-react";
+import { Menu, LogOut, User, LayoutDashboard, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { HeaderHelpButton } from "@/components/layout/header-help-button";
@@ -99,6 +99,23 @@ export function Header({ onMenuClick }: HeaderProps) {
             </div>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
+          {userRole === "ADMIN" && (
+            <>
+              <DropdownMenuItem asChild>
+                <Link href="/admin/dashboard">
+                  <ShieldCheck className="mr-2 h-4 w-4" />
+                  แดชบอร์ดผู้ดูแล
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/dashboard">
+                  <LayoutDashboard className="mr-2 h-4 w-4" />
+                  แดชบอร์ดของฉัน
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+            </>
+          )}
           <DropdownMenuItem disabled>
             <User className="mr-2 h-4 w-4" />
             โปรไฟล์

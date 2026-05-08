@@ -82,20 +82,27 @@ export default async function VideoPage({ params }: VideoPageProps) {
 
   // ---- 3. Authorisation (with time-based check) ---------------------------
   if (session.user.role === "STUDENT") {
-    const permission = await db.videoPermission.findUnique({
-      where: {
-        userId_videoId: { userId: session.user.id, videoId },
-      },
-      select: { id: true, validFrom: true, validUntil: true },
+    const isDemoVideo = await db.playlist.findFirst({
+      where: { demoVideoId: videoId },
+      select: { id: true },
     });
 
-    if (!permission) {
-      redirect("/unauthorized");
-    }
+    if (!isDemoVideo) {
+      const permission = await db.videoPermission.findUnique({
+        where: {
+          userId_videoId: { userId: session.user.id, videoId },
+        },
+        select: { id: true, validFrom: true, validUntil: true },
+      });
 
-    const timeStatus = getPermissionTimeStatus(permission);
-    if (timeStatus === "expired" || timeStatus === "not_yet_active") {
-      redirect("/unauthorized");
+      if (!permission) {
+        redirect("/unauthorized");
+      }
+
+      const timeStatus = getPermissionTimeStatus(permission);
+      if (timeStatus === "expired" || timeStatus === "not_yet_active") {
+        redirect("/unauthorized");
+      }
     }
   }
 

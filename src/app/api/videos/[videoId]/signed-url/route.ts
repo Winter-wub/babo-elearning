@@ -97,34 +97,43 @@ export async function GET(
   // -----------------------------------------------------------------------
   // 5. Authorise — STUDENT needs an explicit VideoPermission row that is
   //               currently valid (time-based check); ADMIN bypasses.
+  //               Demo videos (referenced as demoVideoId on any playlist)
+  //               are free for all authenticated users.
   // -----------------------------------------------------------------------
   if (session.user.role === "STUDENT") {
-    const permission = await db.videoPermission.findUnique({
-      where: {
-        userId_videoId: { userId: session.user.id, videoId },
-      },
-      select: { id: true, validFrom: true, validUntil: true },
+    const isDemoVideo = await db.playlist.findFirst({
+      where: { demoVideoId: videoId },
+      select: { id: true },
     });
 
-    if (!permission) {
-      return NextResponse.json(
-        { error: "ไม่มีสิทธิ์เข้าถึง" },
-        { status: 403, headers: { "Cache-Control": "no-store" } }
-      );
-    }
+    if (!isDemoVideo) {
+      const permission = await db.videoPermission.findUnique({
+        where: {
+          userId_videoId: { userId: session.user.id, videoId },
+        },
+        select: { id: true, validFrom: true, validUntil: true },
+      });
 
-    const timeStatus = getPermissionTimeStatus(permission);
-    if (timeStatus === "expired") {
-      return NextResponse.json(
-        { error: "สิทธิ์หมดอายุแล้ว" },
-        { status: 403, headers: { "Cache-Control": "no-store" } }
-      );
-    }
-    if (timeStatus === "not_yet_active") {
-      return NextResponse.json(
-        { error: "สิทธิ์ยังไม่เริ่มใช้งาน" },
-        { status: 403, headers: { "Cache-Control": "no-store" } }
-      );
+      if (!permission) {
+        return NextResponse.json(
+          { error: "ไม่มีสิทธิ์เข้าถึง" },
+          { status: 403, headers: { "Cache-Control": "no-store" } }
+        );
+      }
+
+      const timeStatus = getPermissionTimeStatus(permission);
+      if (timeStatus === "expired") {
+        return NextResponse.json(
+          { error: "สิทธิ์หมดอายุแล้ว" },
+          { status: 403, headers: { "Cache-Control": "no-store" } }
+        );
+      }
+      if (timeStatus === "not_yet_active") {
+        return NextResponse.json(
+          { error: "สิทธิ์ยังไม่เริ่มใช้งาน" },
+          { status: 403, headers: { "Cache-Control": "no-store" } }
+        );
+      }
     }
   }
 

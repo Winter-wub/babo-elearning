@@ -6,7 +6,23 @@ import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import type { SiteContent } from "@prisma/client";
 import { logAdminAction } from "@/lib/audit";
+import { getUploadUrl } from "@/lib/r2";
 import type { ActionResult } from "@/types";
+
+// -----------------------------------------------------------------------
+// Marketing assets (About page images + intro video) constants
+// -----------------------------------------------------------------------
+
+const MARKETING_ASSETS_PREFIX = "marketing-assets/";
+
+const MARKETING_MEDIA_CONTENT_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+  "video/mp4",
+  "video/webm",
+] as const;
 
 // -----------------------------------------------------------------------
 // Helpers
@@ -28,6 +44,38 @@ const UpdateSiteContentSchema = z.object({
   key: z.string().min(1, "จำเป็นต้องระบุคีย์").max(255),
   value: z.string().max(10000),
 });
+
+const MediaUploadInputSchema = z.object({
+  filename: z.string().min(1, "ต้องระบุชื่อไฟล์").max(255),
+  contentType: z.enum(MARKETING_MEDIA_CONTENT_TYPES),
+});
+
+/**
+ * Sanitize an uploaded filename: strip path separators, lowercase,
+ * replace disallowed chars with "-", clamp base name to 100 chars.
+ */
+function sanitizeMarketingFilename(filename: string): string {
+  // Drop any directory portion that a browser might include
+  const base = filename.replace(/\\/g, "/").split("/").pop() ?? filename;
+
+  // Split off the final extension to enforce length on the base only
+  const lastDot = base.lastIndexOf(".");
+  const rawName = lastDot > 0 ? base.slice(0, lastDot) : base;
+  const rawExt = lastDot > 0 ? base.slice(lastDot) : "";
+
+  const cleanName = rawName
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 100) || "file";
+
+  const cleanExt = rawExt
+    .toLowerCase()
+    .replace(/[^a-z0-9.]/g, "");
+
+  return `${cleanName}${cleanExt}`;
+}
 
 // Hero content validation is handled in src/components/home/hero-data.ts
 // via isSafeHref() and isValidHex() in parseHeroContent().
@@ -184,6 +232,59 @@ export async function bulkUpdateSiteContent(
     return {
       success: false,
       error: err instanceof Error ? err.message : "ไม่สามารถอัปเดตเนื้อหาได้",
+    };
+  }
+}
+
+// -----------------------------------------------------------------------
+// Marketing assets — public images & video for the About page
+// -----------------------------------------------------------------------
+
+/**
+ * Generate a presigned PUT URL for uploading a marketing asset
+ * (image or short video) used on the public About page.
+ *
+ * Key shape: `marketing-assets/<uuid>/<sanitized-filename>`.
+ * `publicUrl` is the same-origin proxy path the admin should store in
+ * `SiteContent` — the browser will then fetch through the public
+ * proxy route at /api/marketing-assets/[...key].
+ *
+ * ADMIN only.
+ */
+export async function getSiteContentMediaUploadUrl(input: {
+  filename: string;
+  contentType: string;
+}): Promise<
+  ActionResult<{ uploadUrl: string; key: string; publicUrl: string }>
+> {
+  try {
+    await requireAdmin();
+
+    const parsed = MediaUploadInputSchema.safeParse(input);
+    if (!parsed.success) {
+      return { success: false, error: "ประเภทไฟล์หรือชื่อไฟล์ไม่รองรับ" };
+    }
+
+    const { filename, contentType } = parsed.data;
+    const safeName = sanitizeMarketingFilename(filename);
+    const path = `${crypto.randomUUID()}/${safeName}`;
+    const key = `${MARKETING_ASSETS_PREFIX}${path}`;
+
+    const uploadUrl = await getUploadUrl(key, contentType);
+
+    return {
+      success: true,
+      data: {
+        uploadUrl,
+        key,
+        publicUrl: `/api/marketing-assets/${path}`,
+      },
+    };
+  } catch (err) {
+    return {
+      success: false,
+      error:
+        err instanceof Error ? err.message : "ไม่สามารถสร้าง URL สำหรับอัปโหลดได้",
     };
   }
 }

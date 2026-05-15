@@ -40,6 +40,11 @@ import { ContentPreview, type PreviewContext } from "./content-preview";
 import { RichTextEditor } from "./rich-text-editor";
 import { AiContentGenerateDialog } from "./ai-content-generate-dialog";
 import type { FieldType } from "@/lib/ai/content-prompt-builder";
+import {
+  SiteContentMediaCell,
+  isVideoKey,
+  isMediaKey,
+} from "./site-content-media-cell";
 
 // -----------------------------------------------------------------------
 // Types
@@ -186,6 +191,28 @@ function getFieldType(key: string, value: string): FieldType {
   return "text";
 }
 
+/**
+ * Suffixes the AI generator must never write to — URLs / file paths
+ * the model has no way to fabricate correctly.
+ *
+ * The image/video keys (`.photo`, `.imageUrl`, `.avatarUrl`, `.poster`,
+ * and `*.video.url` matched via `isMediaKey`) are upload-only; `.href`
+ * is an internal route; `.url` is the marketing-asset video path.
+ */
+const AI_SKIPPED_SUFFIXES = new Set([
+  "photo",
+  "imageUrl",
+  "avatarUrl",
+  "poster",
+  "url",
+  "href",
+]);
+
+function isAiSkipped(key: string): boolean {
+  const suffix = key.split(".").pop() ?? "";
+  return AI_SKIPPED_SUFFIXES.has(suffix);
+}
+
 /** Whether AI content generation is enabled */
 const AI_ENABLED = process.env.NEXT_PUBLIC_AI_CHAT_ENABLED === "true";
 
@@ -287,11 +314,13 @@ const ContentSection = React.memo(function ContentSection({
                   mode: "section",
                   prefix: group.prefix,
                   sectionLabel: group.label,
-                  fields: group.entries.map((e) => ({
-                    key: e.key,
-                    currentValue: values[e.key] ?? "",
-                    fieldType: getFieldType(e.key, values[e.key] ?? ""),
-                  })),
+                  fields: group.entries
+                    .filter((e) => !isAiSkipped(e.key))
+                    .map((e) => ({
+                      key: e.key,
+                      currentValue: values[e.key] ?? "",
+                      fieldType: getFieldType(e.key, values[e.key] ?? ""),
+                    })),
                 })
               }
               className="h-7 text-xs text-amber-600 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300"
@@ -349,7 +378,7 @@ const ContentSection = React.memo(function ContentSection({
                     )}
                   </Label>
                   <div className="flex items-center gap-1">
-                    {AI_ENABLED && onOpenAiDialog && (
+                    {AI_ENABLED && onOpenAiDialog && !isAiSkipped(entry.key) && (
                       <button
                         type="button"
                         onClick={() =>
@@ -357,11 +386,16 @@ const ContentSection = React.memo(function ContentSection({
                             mode: "field",
                             prefix: group.prefix,
                             sectionLabel: group.label,
-                            fields: group.entries.map((e) => ({
-                              key: e.key,
-                              currentValue: values[e.key] ?? "",
-                              fieldType: getFieldType(e.key, values[e.key] ?? ""),
-                            })),
+                            fields: group.entries
+                              .filter((e) => !isAiSkipped(e.key))
+                              .map((e) => ({
+                                key: e.key,
+                                currentValue: values[e.key] ?? "",
+                                fieldType: getFieldType(
+                                  e.key,
+                                  values[e.key] ?? "",
+                                ),
+                              })),
                             targetFieldKey: entry.key,
                           })
                         }
@@ -396,8 +430,18 @@ const ContentSection = React.memo(function ContentSection({
                   </div>
                 </div>
 
-                {/* Input / ColorPicker / RichText / Textarea — uncontrolled for performance */}
-                {isColorField(entry.key) ? (
+                {/* Media (image/video) / Input / ColorPicker / RichText / Textarea — uncontrolled for performance */}
+                {isMediaKey(entry.key) ? (
+                  <SiteContentMediaCell
+                    key={`${entry.key}-${resetKeys[entry.key] ?? 0}`}
+                    kind={isVideoKey(entry.key) ? "video" : "image"}
+                    value={values[entry.key] ?? ""}
+                    onChange={(newValue) =>
+                      onValueChange(entry.key, newValue)
+                    }
+                    isDirty={isDirty}
+                  />
+                ) : isColorField(entry.key) ? (
                   <div
                     key={`${entry.key}-${resetKeys[entry.key] ?? 0}`}
                     className="flex items-center gap-3"
